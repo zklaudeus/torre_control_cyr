@@ -1,0 +1,23 @@
+# Checklist de Fase 7
+
+- [x] Se leyó documentación previa.
+- [x] Se creó endpoint GET /api/resumen-zona.
+- [x] Se creó servicio de cálculo del resumen.
+- [x] Se calcularon brigadas por zona (PXQ, CF, Convenio).
+- [x] Se integró programación por zona.
+- [x] Se integraron resultados reales temporales.
+- [x] Se integraron parámetros CYR (zonas y parámetros generales).
+- [x] Se implementaron las 8 fórmulas base.
+- [x] Se evitaron divisiones por cero.
+- [x] Se creó fila total general con fórmulas sobre totales.
+- [x] Se creó pantalla ResumenZonaPage.
+- [x] Se muestra tabla calculada y bloqueada (solo lectura).
+- [x] Se muestran alertas de datos faltantes.
+- [x] Se mantiene funcionando Reporte Diario.
+- [x] Se mantiene funcionando Programación por zona.
+- [x] Se mantiene funcionando Brigadas del día.
+- [x] Se mantiene funcionando Resultados reales.
+- [x] No se creó exportación Excel.
+- [x] No se creó login ni roles.
+- [x] No se guardó el resumen como tabla editable.
+- [x] Se documentó la Fase 7.

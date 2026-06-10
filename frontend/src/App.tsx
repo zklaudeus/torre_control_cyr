@@ -1,39 +1,25 @@
-import { useState } from 'react';
-import { ReporteDiarioPage } from './pages/ReporteDiarioPage';
-import { ProgramacionZonaPage } from './pages/ProgramacionZonaPage';
-import { BrigadasDiaPage } from './pages/BrigadasDiaPage';
+import { useState, useEffect } from 'react';
+import { DashboardPage } from './pages/DashboardPage';
 import './App.css';
 
 function App() {
-  const [fechaOperacional, setFechaOperacional] = useState<string | null>(null);
-  const [currentView, setCurrentView] = useState<'reporte' | 'programacion' | 'brigadas'>('reporte');
+  const [fechaOperacional, setFechaOperacional] = useState<string>('');
+
+  useEffect(() => {
+    const today = new Date();
+    const offset = today.getTimezoneOffset() * 60000;
+    const localISOTime = (new Date(today.getTime() - offset)).toISOString().split('T')[0];
+    setFechaOperacional(localISOTime);
+  }, []);
+
+  if (!fechaOperacional) return null;
 
   return (
     <div className="App">
-      {currentView === 'reporte' && (
-        <ReporteDiarioPage 
-          onSelectReporte={(fecha) => {
-            setFechaOperacional(fecha);
-            // Default to staying on reporte to allow choice, 
-            // the buttons in ReporteDiarioPage will actually trigger the view change.
-          }} 
-          onChangeView={(view) => setCurrentView(view)}
-        />
-      )}
-      
-      {currentView === 'programacion' && fechaOperacional && (
-        <ProgramacionZonaPage 
-          fechaOperacional={fechaOperacional} 
-          onBack={() => setCurrentView('reporte')} 
-        />
-      )}
-
-      {currentView === 'brigadas' && fechaOperacional && (
-        <BrigadasDiaPage
-          fechaOperacional={fechaOperacional}
-          onBack={() => setCurrentView('reporte')}
-        />
-      )}
+      <DashboardPage
+        fechaOperacional={fechaOperacional}
+        onChangeFecha={setFechaOperacional}
+      />
     </div>
   );
 }

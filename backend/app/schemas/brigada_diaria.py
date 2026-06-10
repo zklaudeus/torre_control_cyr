@@ -12,6 +12,19 @@ class BrigadaDiariaBase(BaseModel):
     estado_brigada: str
     hora_primer_movimiento: Optional[time] = None
     observacion_brigada: Optional[str] = None
+    # Nuevos campos de resultados por brigada (Ajuste Fase 5.1)
+    reconexiones_ejecutadas: int = 0
+    primer_corte: Optional[time] = None
+    ultimo_corte: Optional[time] = None
+    acum_09: int = 0
+    acum_10: int = 0
+    acum_11: int = 0
+    acum_12: int = 0
+    acum_13: int = 0
+    acum_14: int = 0
+    corte_en_poste: int = 0
+    corte_en_empalme: int = 0
+    visita_fallida: int = 0
 
 
 class BrigadaDiariaCreate(BrigadaDiariaBase):
@@ -27,6 +40,18 @@ class BrigadaDiariaUpdate(BaseModel):
     estado_brigada: Optional[str] = None
     hora_primer_movimiento: Optional[time] = None
     observacion_brigada: Optional[str] = None
+    reconexiones_ejecutadas: Optional[int] = None
+    primer_corte: Optional[time] = None
+    ultimo_corte: Optional[time] = None
+    acum_09: Optional[int] = None
+    acum_10: Optional[int] = None
+    acum_11: Optional[int] = None
+    acum_12: Optional[int] = None
+    acum_13: Optional[int] = None
+    acum_14: Optional[int] = None
+    corte_en_poste: Optional[int] = None
+    corte_en_empalme: Optional[int] = None
+    visita_fallida: Optional[int] = None
 
 
 class BrigadaDiaria(BrigadaDiariaBase):
