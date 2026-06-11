@@ -2,6 +2,7 @@ import { ResumenGeneralPanel } from '../resumen-general/ResumenGeneralPanel';
 import { ResumenZonaDashboardView } from '../resumen-zona/ResumenZonaDashboardView';
 import { ConfiguracionDashboardView } from '../configuracion/ConfiguracionDashboardView';
 import { InicioDiaDashboardView } from '../inicio-dia/InicioDiaDashboardView';
+import { ReporteGerencialDashboardView } from '../reporte-gerencial/ReporteGerencialDashboardView';
 import type { FormularioActivo } from '../../pages/DashboardPage';
 
 interface CyrDashboardViewProps {
@@ -25,6 +26,17 @@ export const CyrDashboardView = ({
   if (activeSection === 'inicio-dia') {
     return (
       <InicioDiaDashboardView
+        fechaOperacional={fechaOperacional}
+        onChangeFecha={onChangeFecha}
+        activeSection={activeSection}
+        onChangeSection={onChangeSection}
+      />
+    );
+  }
+
+  if (activeSection === 'reporte-gerencial') {
+    return (
+      <ReporteGerencialDashboardView
         fechaOperacional={fechaOperacional}
         onChangeFecha={onChangeFecha}
         activeSection={activeSection}

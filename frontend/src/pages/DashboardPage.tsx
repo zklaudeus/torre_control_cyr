@@ -4,7 +4,7 @@ import { MedicionPlaceholderView } from '../components/medicion/MedicionPlacehol
 import { EmpalmePlaceholderView } from '../components/empalme/EmpalmePlaceholderView';
 
 export type FormularioActivo = 'cyr' | 'medicion' | 'empalme';
-export type SeccionFormulario = 'inicio-dia' | 'resumen-general' | 'resumen-zona' | 'configuracion';
+export type SeccionFormulario = 'inicio-dia' | 'resumen-general' | 'resumen-zona' | 'reporte-gerencial' | 'configuracion';
 
 interface DashboardPageProps {
   fechaOperacional: string;

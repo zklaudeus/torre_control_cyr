@@ -162,7 +162,7 @@ export const BrigadasEditableTable = ({
                   <td style={tdStyle}><input type="text" value={row.patente} onChange={(e) => handleRowChange(row.id, 'patente', e.target.value)} style={{ ...inputStyle, width: '70px' }} /></td>
                   <td style={tdStyle}><input type="text" value={row.usuario} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '80px' }} /></td>
                   <td style={tdStyle}>
-                    <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#f59e0b' : '#fff' }}>
+                    <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af' }}>
                       <option value="PXQ">PXQ</option>
                       <option value="CF">CF</option>
                       <option value="Convenio">Conv</option>

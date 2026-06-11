@@ -56,6 +56,11 @@ export const SidebarNav = ({
       <button type="button" style={getBtnStyle('resumen-zona')} onClick={() => handleClick('resumen-zona')}>
         <span style={{ marginRight: '10px' }}>🗺️</span> Resumen por Zona
       </button>
+      <button type="button" style={getBtnStyle('reporte-gerencial')} onClick={() => {
+        window.open(`${window.location.origin}${window.location.pathname}#/reporte-gerencial`, '_blank');
+      }}>
+        <span style={{ marginRight: '10px' }}>📊</span> Reporte Gerencial
+      </button>
       <button type="button" style={getBtnStyle('configuracion')} onClick={() => handleClick('configuracion')}>
         <span style={{ marginRight: '10px' }}>⚙️</span> Configuración
       </button>

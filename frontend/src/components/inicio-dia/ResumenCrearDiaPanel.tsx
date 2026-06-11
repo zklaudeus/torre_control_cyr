@@ -1,5 +1,5 @@
-import { panelContainerStyle as cardStyle } from '../../styles/dashboardStyles';
 import type { ComparacionBrigadaDia } from '../../utils/inicio-dia/compararBrigadasDiaActual';
+import { contentStackStyle } from '../../styles/dashboardStyles';
 
 interface ResumenCrearDiaPanelProps {
   comparacion: ComparacionBrigadaDia[];
@@ -11,24 +11,31 @@ export const ResumenCrearDiaPanel = ({ comparacion }: ResumenCrearDiaPanelProps)
   const yaExisten = comparacion.filter(c => c.estado === 'ya_existe').length;
   const errores = comparacion.filter(c => c.estado === 'error').length;
 
+  const kpiCard = (label: string, value: number, color: string, icon: string) => (
+    <div style={{
+      flex: 1, background: '#ffffff', border: '1px solid #E2E8F0',
+      borderRadius: '8px', padding: '16px 20px',
+      display: 'flex', alignItems: 'center', gap: '16px',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+    }}>
+      <div style={{
+        width: '40px', height: '40px', borderRadius: '8px',
+        background: `${color}18`, display: 'flex', alignItems: 'center',
+        justifyContent: 'center', fontSize: '20px', flexShrink: 0
+      }}>{icon}</div>
+      <div>
+        <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{label}</div>
+        <div style={{ fontSize: '28px', fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+      </div>
+    </div>
+  );
+
   return (
-    <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-      <div style={{ ...cardStyle, flex: 1, textAlign: 'center', padding: '1rem' }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748B' }}>Encontradas en origen</h4>
-        <span style={{ fontSize: '1.5rem', color: '#1E293B', fontWeight: 'bold' }}>{encontradas}</span>
-      </div>
-      <div style={{ ...cardStyle, flex: 1, textAlign: 'center', padding: '1rem' }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748B' }}>A Crear</h4>
-        <span style={{ fontSize: '1.5rem', color: '#10b981', fontWeight: 'bold' }}>{aCrear}</span>
-      </div>
-      <div style={{ ...cardStyle, flex: 1, textAlign: 'center', padding: '1rem' }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748B' }}>Ya Existentes</h4>
-        <span style={{ fontSize: '1.5rem', color: '#eab308', fontWeight: 'bold' }}>{yaExisten}</span>
-      </div>
-      <div style={{ ...cardStyle, flex: 1, textAlign: 'center', padding: '1rem' }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#64748B' }}>Errores</h4>
-        <span style={{ fontSize: '1.5rem', color: '#ef4444', fontWeight: 'bold' }}>{errores}</span>
-      </div>
+    <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+      {kpiCard('Encontradas en origen', encontradas, '#1E293B', '📁')}
+      {kpiCard('A Crear', aCrear, '#16A34A', '✅')}
+      {kpiCard('Ya Existentes', yaExisten, '#D97706', '⚠️')}
+      {kpiCard('Errores', errores, '#DC2626', '❌')}
     </div>
   );
 };

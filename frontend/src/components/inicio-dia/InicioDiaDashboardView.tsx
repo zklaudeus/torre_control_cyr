@@ -70,41 +70,44 @@ export const InicioDiaDashboardView = ({
             loading={loading}
           />
         ) : (
-          <div style={{ background: '#F8FAFC', padding: '1rem', borderRadius: '8px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1rem', color: '#1E293B' }}>Resultados de Brigadas Origen</h2>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>📋</div>
+                <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>Resultados de Brigadas Origen</h2>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
                   onClick={addRow}
                   disabled={saving}
-                  style={{ ...actionBtnStyle, background: '#16A34A', color: '#FFFFFF', border: 'none' }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#16A34A', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
                 >
-                  Agregar brigada
+                  + Agregar brigada
                 </button>
                 <button
                   type="button"
                   onClick={limpiar}
                   disabled={saving}
-                  style={{ ...actionBtnStyle, background: '#475569', color: '#1E293B', border: 'none' }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
                 >
-                  Limpiar vista previa
+                  Limpiar vista
                 </button>
                 <button
                   type="button"
                   onClick={restablecerCambios}
                   disabled={saving}
-                  style={{ ...actionBtnStyle, background: '#475569', color: '#1E293B', border: 'none' }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
                 >
-                  Restablecer cambios
+                  Restablecer
                 </button>
                 <button
                   type="button"
                   onClick={crearBrigadas}
                   disabled={saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')}
-                  style={{ ...actionBtnStyle, background: '#0e7490', color: '#1E293B', border: 'none' }}
+                  style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: (saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')) ? '#94A3B8' : '#0059bb', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: (saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')) ? 'not-allowed' : 'pointer' }}
                 >
-                  {saving ? 'Creando...' : 'Crear desde día anterior'}
+                  {saving ? '⏳ Creando...' : '✓ Crear desde día anterior'}
                 </button>
               </div>
             </div>
