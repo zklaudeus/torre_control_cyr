@@ -3,12 +3,12 @@ import type { ProgramacionZona } from '../../types/programacionZona';
 
 const K = {
   primary: '#0B7BFF',
-  secondary: '#08E5FF',
-  tertiary: '#0A192F',
+  secondary: '#00BFFF',
+  tertiary: '#16202B',
   neutral: '#F8FAFC',
   textMain: '#1A2B4A',
   textMuted: '#64748B',
-  bgMain: '#F1F5F9',
+  bgMain: '#F4F5F7',
   bgCard: '#FFFFFF',
   border: '#E2E8F0',
   success: '#10B981',
@@ -96,20 +96,20 @@ export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGri
       {/* Summary Bar */}
       <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', padding: '0.5rem 0' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: K.textMuted }}>🏠 Total Zonas:</span>
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: K.tertiary }}>{summary.zonas}</span>
+          <span style={{ color: K.textMuted }}>Total Zonas:</span>
+          <span style={{ fontSize: '1.4rem', fontWeight: 600, color: K.tertiary }}>{summary.zonas}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: K.textMuted }}>✂️ Cortes Prog:</span>
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: K.tertiary }}>{summary.cortes}</span>
+          <span style={{ color: K.textMuted }}>Cortes Prog:</span>
+          <span style={{ fontSize: '1.4rem', fontWeight: 600, color: K.tertiary }}>{summary.cortes}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: K.textMuted }}>👤 Asign. Carga:</span>
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: K.tertiary }}>{summary.carga}</span>
+          <span style={{ color: K.textMuted }}>Asign. Carga:</span>
+          <span style={{ fontSize: '1.4rem', fontWeight: 600, color: K.tertiary }}>{summary.carga}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <span style={{ color: K.textMuted }}>🔄 Rec. Programadas:</span>
-          <span style={{ fontSize: '1.4rem', fontWeight: 800, color: K.tertiary }}>{summary.reconexiones}</span>
+          <span style={{ color: K.textMuted }}>Rec. Programadas:</span>
+          <span style={{ fontSize: '1.4rem', fontWeight: 600, color: K.tertiary }}>{summary.reconexiones}</span>
         </div>
       </div>
 
@@ -129,7 +129,7 @@ export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGri
               borderRadius: '12px',
               padding: '1.25rem',
               boxShadow: '0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05)',
-              border: `1px solid ${isCompleted ? K.success : K.border}`,
+              border: `1px solid ${isCompleted ? K.primary : K.border}`,
               display: 'flex',
               flexDirection: 'column',
               gap: '1rem',
@@ -140,13 +140,13 @@ export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGri
                 <h3 style={{ margin: 0, fontSize: '1.1rem', color: K.tertiary, fontWeight: 700 }}>{item.zona}</h3>
                 
                 {status === 'Completado' && (
-                  <span style={{ background: K.successBg, color: K.success, padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    ✅ Completado
+                  <span style={{ background: `${K.primary}1A`, color: K.primary, padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    ✔ Completado
                   </span>
                 )}
                 {status === 'Pendiente' && (
-                  <span style={{ background: K.warningBg, color: K.warning, padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                    ⚠️ Pendiente
+                  <span style={{ background: K.bgMain, color: K.textMuted, padding: '0.2rem 0.6rem', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
+                    ⏳ Pendiente
                   </span>
                 )}
               </div>
@@ -157,15 +157,13 @@ export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGri
                   <input 
                     type="number"
                     value={item.corte_programado === 0 ? '' : item.corte_programado}
-                    onChange={(e) => onChange(item.zona, item.tipo_brigada, 'corte_programado', e.target.value)}
+                    readOnly
                     style={{
                       width: '100px', padding: '0.4rem 0.5rem', borderRadius: '6px',
                       border: `1px solid ${K.border}`, textAlign: 'right', fontSize: '0.9rem',
-                      background: K.bgMain, color: K.textMain, fontWeight: 600,
-                      outline: 'none', transition: 'border-color 0.2s'
+                      background: K.bgMain, color: K.textMuted, fontWeight: 600,
+                      outline: 'none', cursor: 'not-allowed'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = K.primary}
-                    onBlur={(e) => e.target.style.borderColor = K.border}
                   />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>

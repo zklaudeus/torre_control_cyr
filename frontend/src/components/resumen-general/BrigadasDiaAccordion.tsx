@@ -23,7 +23,6 @@ export const BrigadasDiaAccordion = ({ hook }: BrigadasDiaAccordionProps) => {
   return (
     <AccordionPanel
       title="LISTADO DE BRIGADAS"
-      icon="⚡"
       meta={<span>{rows.length} brigadas</span>}
       rightAction={
         <div style={{ display: 'flex', gap: '0.5rem' }}>

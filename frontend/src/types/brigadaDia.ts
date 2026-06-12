@@ -9,6 +9,8 @@ export interface BrigadaDiaria {
   estado_brigada: string;
   hora_primer_movimiento: string | null;
   observacion_brigada: string | null;
+  corte_programado?: number;
+  reconexiones_programadas?: number;
   // Nuevos campos de resultados por brigada (Ajuste 5.1)
   reconexiones_ejecutadas: number;
   primer_corte: string | null;
@@ -34,6 +36,8 @@ export interface BrigadaDiariaCreate {
   estado_brigada: string;
   hora_primer_movimiento: string | null;
   observacion_brigada: string | null;
+  corte_programado?: number;
+  reconexiones_programadas?: number;
   // Nuevos campos
   reconexiones_ejecutadas: number;
   primer_corte: string | null;

@@ -23,6 +23,9 @@ class ControlBrigadasDiario(Base):
     estado_brigada = Column(String(50))
     hora_primer_movimiento = Column(Time)
     observacion_brigada = Column(Text)
+    # Planificación supervisor
+    corte_programado = Column(Integer, default=0)
+    reconexiones_programadas = Column(Integer, default=0)
     # Columnas de resultados por brigada (ajuste Fase 5.1)
     reconexiones_ejecutadas = Column(Integer, default=0)
     primer_corte = Column(Time)

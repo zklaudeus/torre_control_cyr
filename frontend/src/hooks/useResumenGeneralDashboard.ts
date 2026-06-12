@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useProgramacionDiaria } from './useProgramacionDiaria';
 import { useBrigadasDia } from './useBrigadasDia';
 import { bulkCreateOrUpdateProgramacion } from '../api/programacionZona.api';
@@ -13,6 +13,26 @@ export const useResumenGeneralDashboard = (fechaOperacional: string) => {
   const { programacionData, fetchProgramacion, handleProgramacionChange } = useProgramacionDiaria(fechaOperacional);
   
   const brigadasHook = useBrigadasDia(fechaOperacional);
+
+  const displayProgramacionData = useMemo(() => {
+    const sums: Record<string, { corte: number; rec: number }> = {};
+    brigadasHook.originalBrigadas.forEach(b => {
+      const key = `${b.zona}_${b.tipo_brigada}`;
+      if (!sums[key]) sums[key] = { corte: 0, rec: 0 };
+      sums[key].corte += Number(b.corte_programado) || 0;
+      sums[key].rec += Number(b.reconexiones_programadas) || 0;
+    });
+
+    return programacionData.map(p => {
+      const key = `${p.zona}_${p.tipo_brigada}`;
+      const sum = sums[key] || { corte: 0, rec: 0 };
+      return {
+        ...p,
+        corte_programado: sum.corte,
+        reconexiones_programadas: sum.rec
+      };
+    });
+  }, [programacionData, brigadasHook.originalBrigadas]);
 
   const fetchAll = useCallback(async () => {
     setLoading(true);
@@ -38,7 +58,7 @@ export const useResumenGeneralDashboard = (fechaOperacional: string) => {
     try {
       const payload: ProgramacionZonaBulkCreate = {
         fecha_operacional: fechaOperacional,
-        items: programacionData.map((p) => ({
+        items: displayProgramacionData.map((p) => ({
           zona: p.zona,
           tipo_brigada: p.tipo_brigada,
           reconexiones_programadas: Number(p.reconexiones_programadas) || 0,
@@ -69,7 +89,7 @@ export const useResumenGeneralDashboard = (fechaOperacional: string) => {
     fetchAll,
     handleSaveAll,
     
-    programacionData,
+    programacionData: displayProgramacionData,
     handleProgramacionChange,
     
     brigadasHook,

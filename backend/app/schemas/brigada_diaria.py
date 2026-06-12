@@ -12,6 +12,8 @@ class BrigadaDiariaBase(BaseModel):
     estado_brigada: str
     hora_primer_movimiento: Optional[time] = None
     observacion_brigada: Optional[str] = None
+    corte_programado: int = 0
+    reconexiones_programadas: int = 0
     # Nuevos campos de resultados por brigada (Ajuste Fase 5.1)
     reconexiones_ejecutadas: int = 0
     primer_corte: Optional[time] = None
@@ -40,6 +42,8 @@ class BrigadaDiariaUpdate(BaseModel):
     estado_brigada: Optional[str] = None
     hora_primer_movimiento: Optional[time] = None
     observacion_brigada: Optional[str] = None
+    corte_programado: Optional[int] = None
+    reconexiones_programadas: Optional[int] = None
     reconexiones_ejecutadas: Optional[int] = None
     primer_corte: Optional[time] = None
     ultimo_corte: Optional[time] = None

@@ -135,11 +135,11 @@ export const ResumenZonaPanel = ({ fechaOperacional, refreshKey }: ResumenZonaPa
                     <SortableHeaderCell column="asignacion_carga" label="Asig. Carga" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="corte_programado" label="Corte Prog." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="total_cortes" label="Total Cortes" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="cumplimiento_corte_porcentaje" label="Cumpl. Corte %" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell column="cumplimiento_corte_porcentaje" label="Cumpl. Corte s/Carga" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="promedio_cortes" label="Prom. Cortes" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="total_actividades" label="Total Act." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="promedio_actividades" label="Prom. Act." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="cumplimiento_promedio_meta" label="Cumpl. % Meta" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell column="cumplimiento_promedio_meta" label="Cumpl. % Prom. según Meta" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="observacion" label="Observación" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                   </tr>
                 </thead>

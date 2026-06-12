@@ -31,13 +31,16 @@ interface SupervisorBitacoraViewProps {
 
 const K = {
   primary:     '#0B7BFF',
-  secondary:   '#08E5FF',
-  tertiary:    '#0A192F',
-  tertiaryMid: '#102240',
-  neutral:     '#F8FAFC',
-  mutedText:   '#64849F',
-  border:      '#1C3454',
-  error:       '#FF4B4B'
+  secondary:   '#00BFFF',
+  tertiary:    '#F4F5F7',
+  tertiaryMid: '#FFFFFF',
+  neutral:     '#1A2B4A',
+  mutedText:   '#64748B',
+  border:      '#E2E8F0',
+  error:       '#FF4B4B',
+  bgMain:      '#F4F5F7',
+  headerBg:    '#16202B',
+  headerText:  '#FFFFFF'
 };
 
 const initialForm: Omit<BitacoraRow, 'id' | '_errors'> = {
@@ -54,26 +57,7 @@ const initialForm: Omit<BitacoraRow, 'id' | '_errors'> = {
   tipoBrigada: 'PXQ'
 };
 
-const LOCAL_STORAGE_KEY = 'bitacora_programmed_values';
-
-const saveProgrammedDataToStorage = (fecha: string, sap: string, data: { carga: string, reconexiones: string }) => {
-  try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
-    existing[`${fecha}_${sap}`] = data;
-    localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(existing));
-  } catch (e) {
-    console.error('Error saving to localStorage', e);
-  }
-};
-
-const getProgrammedDataFromStorage = (fecha: string, sap: string) => {
-  try {
-    const existing = JSON.parse(localStorage.getItem(LOCAL_STORAGE_KEY) || '{}');
-    return existing[`${fecha}_${sap}`] || null;
-  } catch (e) {
-    return null;
-  }
-};
+// LocalStorage usage removed to use DB completely
 
 export const SupervisorBitacoraView = ({
   fechaOperacional,
@@ -88,7 +72,7 @@ export const SupervisorBitacoraView = ({
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
-  const fetchBrigadas = async () => {
+  const fetchBrigadas = async (): Promise<BitacoraRow[] | undefined> => {
     try {
       const data: any[] = await fetchAPI(`/brigadas-dia/?fecha=${fechaOperacional}`);
       const mapped: BitacoraRow[] = data.map(b => ({
@@ -99,8 +83,8 @@ export const SupervisorBitacoraView = ({
         brigada: b.usuario || '', // using usuario as brigada
         pareja: '',
         comuna: b.zona || '', // using zona as comuna
-        carga: '0', // Supervisor local programmed value
-        reconexiones: '0', // Supervisor local programmed value
+        carga: String(b.corte_programado || 0),
+        reconexiones: String(b.reconexiones_programadas || 0),
         observacion: b.observacion_brigada || '',
         estado: b.estado_brigada || 'Operativa',
         tipoBrigada: b.tipo_brigada || 'PXQ'
@@ -116,30 +100,23 @@ export const SupervisorBitacoraView = ({
         const hasAll = user?.zonasAsignadas?.includes('TODAS');
         return isAdmin || hasAll || !user?.zonasAsignadas || (zona && user.zonasAsignadas.includes(zona));
       });
-      setRows(prevRows => {
-        return filtered.map(m => {
-          const prog = getProgrammedDataFromStorage(fechaOperacional, m.usuarioSap);
-          if (prog) {
-            return {
-              ...m,
-              carga: prog.carga,
-              reconexiones: prog.reconexiones
-            };
-          }
-          const existing = prevRows.find(r => r.id === m.id);
-          if (existing) {
-            return {
-              ...m,
-              carga: existing.carga,
-              reconexiones: existing.reconexiones
-            };
-          }
+      const finalRows = filtered.map(m => {
+        // Find existing data in state if we're not reloading from server just keeping local
+        const existing = rows.find(r => r.id === m.id);
+        if (existing) {
+          // If existing is present, we keep what the server gave us but if you were typing it could be saved. 
+          // Actually, now that it's in DB, we should just use what comes from `data`!
+          // m is already the mapped version of `data`, so it has the backend DB values.
           return m;
-        });
+        }
+        return m;
       });
+      setRows(finalRows);
+      return finalRows;
     } catch (err) {
       console.error(err);
       setMessage({ text: 'Error al cargar brigadas desde servidor.', type: 'error' });
+      return undefined;
     }
   };
 
@@ -148,7 +125,7 @@ export const SupervisorBitacoraView = ({
       const data: any[] = await fetchAPI(`/programacion-zona/?fecha=${fechaOperacional}`);
       const cargas: Record<string, number> = {};
       data.forEach(p => {
-        if (p.asignacion_carga !== undefined && p.asignacion_carga !== null) {
+        if (p.tipo_brigada === 'PXQ' && p.asignacion_carga !== undefined && p.asignacion_carga !== null) {
           cargas[p.zona] = Number(p.asignacion_carga);
         }
       });
@@ -166,9 +143,19 @@ export const SupervisorBitacoraView = ({
 
   const handleFormChange = (field: keyof typeof form, value: string) => {
     setForm(prev => {
-      const updated = { ...prev, [field]: value };
+      let finalValue = value;
+      if (field === 'patente') {
+        finalValue = value.toUpperCase().slice(0, 6);
+      }
+      const updated = { ...prev, [field]: finalValue };
       if (field === 'cuenta') {
         updated.usuarioSap = obtenerSapPorCuenta(value);
+      }
+      if (field === 'comuna') {
+        const valLower = value.toLowerCase();
+        if (valLower !== 'coquimbo' && valLower !== 'talca' && prev.tipoBrigada === 'CF') {
+          updated.tipoBrigada = 'PXQ';
+        }
       }
       return updated;
     });
@@ -218,12 +205,9 @@ export const SupervisorBitacoraView = ({
         tipo_brigada: form.tipoBrigada,
         estado_brigada: form.estado,
         observacion_brigada: form.observacion,
+        corte_programado: parseInt(form.carga, 10) || 0,
+        reconexiones_programadas: parseInt(form.reconexiones, 10) || 0,
       };
-
-      saveProgrammedDataToStorage(fechaOperacional, form.usuarioSap, {
-        carga: form.carga,
-        reconexiones: form.reconexiones
-      });
 
       if (!editId) {
         payload.hora_primer_movimiento = null;
@@ -264,7 +248,10 @@ export const SupervisorBitacoraView = ({
       setForm(initialForm);
       setEditId(null);
       setFormErrors({});
-      await fetchBrigadas();
+      const newRows = await fetchBrigadas();
+      if (newRows) {
+        await actualizarBitacora(newRows);
+      }
     } catch (err: any) {
       console.error(err);
       setMessage({ text: `Error al guardar: ${err.message}`, type: 'error' });
@@ -278,7 +265,10 @@ export const SupervisorBitacoraView = ({
       try {
         await fetchAPI(`/brigadas-dia/${id}`, { method: 'DELETE' });
         setMessage({ text: 'Brigada eliminada de la BD.', type: 'success' });
-        await fetchBrigadas();
+        const newRows = await fetchBrigadas();
+        if (newRows) {
+          await actualizarBitacora(newRows);
+        }
       } catch (err: any) {
         console.error(err);
         setMessage({ text: `Error al eliminar: ${err.message}`, type: 'error' });
@@ -302,17 +292,37 @@ export const SupervisorBitacoraView = ({
     setFormErrors({});
   };
 
-  const actualizarBitacora = async () => {
-    if (rows.length === 0) {
+  const actualizarBitacora = async (customRows?: BitacoraRow[]) => {
+    const targetRows = customRows || rows;
+    if (targetRows.length === 0 && !customRows) {
       setMessage({ text: 'No hay brigadas registradas para actualizar el KPI.', type: 'error' });
       return;
     }
 
     setIsSaving(true);
-    setMessage({ text: 'Subiendo...', type: 'success' });
+    if (!customRows) setMessage({ text: 'Subiendo...', type: 'success' });
+
+    let targetResumen = resumen;
+    if (customRows) {
+      const calc = calcularResumenPorZona(customRows);
+      const completo: Record<string, ResumenZona> = {};
+      const isAdminOrAll = user?.rol === 'admin' || user?.rol === 'superadmin' || user?.zonasAsignadas?.includes('TODAS');
+
+      if (isAdminOrAll) {
+        const allZones = Array.from(new Set(COMUNA_ZONA_TEMP.map(c => c.zona)));
+        allZones.forEach(z => {
+          completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
+        });
+      } else {
+        user?.zonasAsignadas?.forEach(z => {
+          completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
+        });
+      }
+      targetResumen = completo;
+    }
 
     try {
-      const programacionBulkData = Object.values(resumen).map(r => ({
+      const programacionBulkData = Object.values(targetResumen).map(r => ({
         zona: r.zona,
         corte_programado: r.corteTotal,
         reconexiones_programadas: r.reconexionesTotal,
@@ -328,10 +338,10 @@ export const SupervisorBitacoraView = ({
         }) 
       });
 
-      setMessage({ text: 'KPIs zonales actualizados exitosamente en Torre de Control.', type: 'success' });
+      if (!customRows) setMessage({ text: 'KPIs zonales actualizados exitosamente en Torre de Control.', type: 'success' });
     } catch (err: any) {
       console.error(err);
-      setMessage({ text: `Error al actualizar: ${err.message}`, type: 'error' });
+      if (!customRows) setMessage({ text: `Error al actualizar: ${err.message}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -369,14 +379,14 @@ export const SupervisorBitacoraView = ({
   }, [rows, editId]);
 
   return (
-    <div style={{ padding: '2rem', height: '100%', overflowY: 'auto' }}>
+    <div style={{ padding: '2rem', height: '100%', overflowY: 'auto', background: K.bgMain }}>
       {/* 1. Encabezado Superior */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ background: K.headerBg, padding: '1.5rem 2rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: K.neutral }}>Bitácora Supervisor</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: K.headerText }}>Bitácora Supervisor</h2>
           {user && (
-            <div style={{ fontSize: '0.9rem', color: K.mutedText, marginTop: '0.25rem' }}>
-              <span style={{ color: K.secondary, fontWeight: 600 }}>{user.nombre}</span> — Zonas: {user.zonasAsignadas?.join(', ')}
+            <div style={{ fontSize: '0.9rem', color: K.secondary, marginTop: '0.25rem' }}>
+              <span style={{ fontWeight: 600 }}>{user.nombre}</span> — Zonas: {user.zonasAsignadas?.join(', ')}
             </div>
           )}
         </div>
@@ -385,9 +395,9 @@ export const SupervisorBitacoraView = ({
             type="date" 
             value={fechaOperacional}
             onChange={(e) => onChangeFecha(e.target.value)}
-            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid ${K.border}`, background: K.tertiaryMid, color: K.neutral }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText }}
           />
-          <button onClick={actualizarBitacora} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: K.primary, color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+          <button onClick={() => actualizarBitacora()} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: K.primary, color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
             {isSaving ? 'Subiendo...' : 'Actualizar bitácora del día de hoy'}
           </button>
         </div>
@@ -408,7 +418,7 @@ export const SupervisorBitacoraView = ({
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
           {Object.values(resumen).map(r => (
-            <div key={r.zona} style={{ background: K.tertiaryMid, border: `1px solid ${K.border}`, borderRadius: '12px', padding: '1.25rem' }}>
+            <div key={r.zona} style={{ background: K.tertiaryMid, border: `1px solid ${K.border}`, borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               <h4 style={{ margin: '0 0 1rem', color: K.secondary, fontSize: '1.1rem' }}>Zona: {r.zona}</h4>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -440,27 +450,27 @@ export const SupervisorBitacoraView = ({
       </div>
 
       {/* 3. Formulario de ingreso de una sola brigada */}
-      <div style={{ background: K.tertiaryMid, borderRadius: '12px', padding: '1.5rem', border: `1px solid ${K.border}`, marginBottom: '2rem' }}>
+      <div style={{ background: K.tertiaryMid, borderRadius: '12px', padding: '1.5rem', border: `1px solid ${K.border}`, marginBottom: '2rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
         <h3 style={{ margin: '0 0 1.5rem', color: K.neutral, fontSize: '1.2rem' }}>
           {editId ? 'Editar Brigada' : 'Ingresar Brigada'}
         </h3>
         
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <FormGroup label="Patente" error={formErrors.patente}>
-            <input value={form.patente} onChange={e => handleFormChange('patente', e.target.value)} placeholder="Ej: VSXK79" style={inputStyle(!!formErrors.patente)} />
+            <input value={form.patente} onChange={e => handleFormChange('patente', e.target.value)} maxLength={6} placeholder="Ej: VSXK79" style={inputStyle(!!formErrors.patente)} />
           </FormGroup>
           
           <FormGroup label="Cuenta / Proyecto" error={formErrors.cuenta}>
             <select value={form.cuenta} onChange={e => handleFormChange('cuenta', e.target.value)} style={inputStyle(!!formErrors.cuenta)}>
-              <option value="">Seleccione...</option>
+              <option value="" style={{ background: K.tertiary, color: K.neutral }}>Seleccione...</option>
               {cuentasDisponibles.map(c => (
-                <option key={c} value={c}>{c}</option>
+                <option key={c} value={c} style={{ background: K.tertiary, color: K.neutral }}>{c}</option>
               ))}
             </select>
           </FormGroup>
 
           <FormGroup label="Usuario SAP" error={formErrors.usuarioSap}>
-            <input value={form.usuarioSap} readOnly placeholder="Autocompletado" style={{ ...inputStyle(!!formErrors.usuarioSap), opacity: 0.7, background: K.tertiary }} title="Se completa al seleccionar la Cuenta" />
+            <input value={form.usuarioSap} readOnly placeholder="Autocompletado" style={{ ...inputStyle(!!formErrors.usuarioSap), opacity: 0.7, background: '#E2E8F0' }} title="Se completa al seleccionar la Cuenta" />
           </FormGroup>
         </div>
 
@@ -475,18 +485,18 @@ export const SupervisorBitacoraView = ({
 
           <FormGroup label="Comuna" error={formErrors.comuna}>
             <select value={form.comuna} onChange={e => handleFormChange('comuna', e.target.value)} style={inputStyle(!!formErrors.comuna)}>
-              <option value="">Seleccione...</option>
+              <option value="" style={{ background: K.tertiary, color: K.neutral }}>Seleccione...</option>
               {COMUNA_ZONA_TEMP
                 .filter(c => user?.rol === 'admin' || !user?.zonasAsignadas || user.zonasAsignadas.includes(c.zona))
                 .map(c => (
-                <option key={c.comuna} value={c.comuna}>{c.comuna} ({c.zona})</option>
+                <option key={c.comuna} value={c.comuna} style={{ background: K.tertiary, color: K.neutral }}>{c.comuna} ({c.zona})</option>
               ))}
             </select>
           </FormGroup>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: K.tertiary, padding: '1rem', borderRadius: '8px', border: `1px solid ${K.border}` }}>
+          <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: '8px', border: `1px solid ${K.border}` }}>
             <div style={{ fontSize: '0.75rem', color: K.mutedText, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem', fontWeight: 600 }}>Carga Operativa</div>
             <div style={{ display: 'flex', gap: '1.5rem' }}>
               <FormGroup label="Cortes Prog." error={formErrors.carga}>
@@ -502,16 +512,18 @@ export const SupervisorBitacoraView = ({
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <FormGroup label="Tipo Brigada">
                 <select value={form.tipoBrigada} onChange={e => handleFormChange('tipoBrigada', e.target.value as any)} style={inputStyle(false)}>
-                  <option value="PXQ">PXQ</option>
-                  <option value="CF">CF</option>
+                  <option value="PXQ" style={{ background: K.tertiary, color: K.neutral }}>PXQ</option>
+                  {(form.comuna.toLowerCase() === 'coquimbo' || form.comuna.toLowerCase() === 'talca') && (
+                    <option value="CF" style={{ background: K.tertiary, color: K.neutral }}>CF</option>
+                  )}
                 </select>
               </FormGroup>
               <FormGroup label="Estado">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', ...inputStyle(false) }}>
                   <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: form.estado === 'Operativa' ? K.primary : K.error }}></span>
                   <select value={form.estado} onChange={e => handleFormChange('estado', e.target.value as any)} style={{ background: 'transparent', border: 'none', color: K.neutral, outline: 'none', flex: 1, appearance: 'none' }}>
-                    <option value="Operativa">Operativo</option>
-                    <option value="Inactiva">Inactivo</option>
+                    <option value="Operativa" style={{ background: K.tertiary, color: K.neutral }}>Operativo</option>
+                    <option value="Inactiva" style={{ background: K.tertiary, color: K.neutral }}>Inactivo</option>
                   </select>
                 </div>
               </FormGroup>
@@ -539,8 +551,8 @@ export const SupervisorBitacoraView = ({
       </div>
 
       {/* 4. Lista de brigadas ingresadas */}
-      <div style={{ background: K.tertiaryMid, borderRadius: '12px', border: `1px solid ${K.border}`, overflow: 'hidden' }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${K.border}`, background: '#102240', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ background: K.tertiaryMid, borderRadius: '12px', border: `1px solid ${K.border}`, overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+        <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${K.border}`, background: K.tertiaryMid, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h4 style={{ margin: 0, color: K.neutral, fontSize: '1.1rem' }}>Lista de Brigadas Ingresadas ({rows.length})</h4>
           <div style={{ fontSize: '0.85rem', color: K.mutedText }}>Revise o edite las brigadas antes de subir la bitácora</div>
         </div>
@@ -561,7 +573,7 @@ export const SupervisorBitacoraView = ({
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={row.id} style={{ background: i % 2 === 0 ? 'transparent' : `${K.tertiary}55`, transition: 'background 0.2s' }}>
+                  <tr key={row.id} style={{ background: i % 2 === 0 ? 'transparent' : K.tertiary, transition: 'background 0.2s' }}>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.patente}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.cuenta}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.usuarioSap}</td>

@@ -31,6 +31,8 @@ const emptyForm = (fecha: string, primerZona: string = ''): Omit<EditableBrigada
   corte_en_poste: 0,
   corte_en_empalme: 0,
   visita_fallida: 0,
+  corte_programado: 0,
+  reconexiones_programadas: 0,
 });
 
 export const useBrigadasDia = (fechaOperacional: string) => {
@@ -150,6 +152,8 @@ export const useBrigadasDia = (fechaOperacional: string) => {
         corte_en_poste: Number(row.corte_en_poste) || 0,
         corte_en_empalme: Number(row.corte_en_empalme) || 0,
         visita_fallida: Number(row.visita_fallida) || 0,
+        corte_programado: Number(row.corte_programado) || 0,
+        reconexiones_programadas: Number(row.reconexiones_programadas) || 0,
       };
 
       if (row.isTemp) {
@@ -184,5 +188,6 @@ export const useBrigadasDia = (fechaOperacional: string) => {
     handleDeleteRow,
     handleSaveRow,
     handleSaveAll,
+    originalBrigadas,
   };
 };

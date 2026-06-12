@@ -315,12 +315,11 @@ export const ReporteGerencialDashboardView = ({
                 <div style={kpiSubValueStyle}>de {reporte.total.corte_programado} programados</div>
               </div>
               <div style={{...cardStyle, border: `1px solid ${THEME.primary}`}}>
-                <div style={kpiTitleStyle}>Cumplimiento Meta</div>
+                <div style={kpiTitleStyle}>Cumpl. % Prom. según Meta</div>
                 <div style={kpiValueStyle}>{reporte.total.cumplimiento_meta_pct}%</div>
-                <div style={{...kpiSubValueStyle, color: THEME.primary}}>Global View</div>
               </div>
               <div style={cardStyle}>
-                <div style={kpiTitleStyle}>Cumplimiento Corte</div>
+                <div style={kpiTitleStyle}>Cumpl. Corte s/Carga</div>
                 <div style={kpiValueStyle}>{reporte.total.cumplimiento_corte_pct}%</div>
                 <div style={kpiSubValueStyle}>Eficiencia</div>
               </div>
@@ -336,7 +335,7 @@ export const ReporteGerencialDashboardView = ({
               
               {/* 1. Cumplimiento % meta por zona */}
               <div style={chartCardStyle}>
-                <div style={chartTitleStyle}>% Cumplimiento Meta por Zona</div>
+                <div style={chartTitleStyle}>Cumpl. % Prom. según Meta por Zona</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart layout="vertical" data={reporte.zonas} margin={{ left: 20, right: 30, top: 0, bottom: 0 }}>
@@ -475,8 +474,8 @@ export const ReporteGerencialDashboardView = ({
                       <th style={tableHeaderStyle}>Prom. Rec.</th>
                       <th style={tableHeaderStyle}>Prom. Cort.</th>
                       <th style={tableHeaderStyle}>Prom. Act.</th>
-                      <th style={tableHeaderStyle}>% Meta</th>
-                      <th style={tableHeaderStyle}>% Corte</th>
+                      <th style={tableHeaderStyle}>Cumpl. % Prom. según Meta</th>
+                      <th style={tableHeaderStyle}>Cumpl. Corte s/Carga</th>
                     </tr>
                   </thead>
                   <tbody>

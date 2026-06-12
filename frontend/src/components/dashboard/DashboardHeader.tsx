@@ -4,7 +4,6 @@ import {
   actionsContainerStyle,
   dateBadgeStyle,
   dateLabelStyle,
-  statusBadgeStyle,
   actionBtnStyle,
 } from '../../styles/dashboardStyles';
 
@@ -50,7 +49,6 @@ export const DashboardHeader = ({
           />
         </div>
 
-        <div style={statusBadgeStyle}>⊘ INCOMPLETO</div>
 
         <button
           type="button"

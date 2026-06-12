@@ -18,6 +18,7 @@ export interface ZonaGerencialData {
   promedio_actividad: number;
   cumplimiento_meta_pct: number;
   cumplimiento_corte_pct: number;
+  asignacion_carga: number;
 }
 
 export interface ReporteGerencialData {
@@ -77,6 +78,7 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
 
         let reconexiones_programadas = 0;
         let corte_programado = 0;
+        let asignacion_carga = 0;
 
         // Add PXQ programming
         if (filtro === 'Todo' || filtro === 'PXQ') {
@@ -84,6 +86,7 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
           if (p) {
             reconexiones_programadas += p.reconexiones_programadas || 0;
             corte_programado += p.corte_programado || 0;
+            asignacion_carga += p.asignacion_carga || 0;
           }
         }
 
@@ -93,6 +96,7 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
           if (c) {
             reconexiones_programadas += c.reconexiones_programadas || 0;
             corte_programado += c.corte_programado || 0;
+            asignacion_carga += c.asignacion_carga || 0;
           }
         }
 
@@ -109,10 +113,12 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
         const promedio_cortes = brigadas_operativas > 0 ? (cortes_ejecutados / brigadas_operativas) : 0;
         const promedio_actividad = brigadas_operativas > 0 ? ((reconexiones_ejecutadas + cortes_ejecutados + visitas_fallidas) / brigadas_operativas) : 0;
 
-        const baseMeta = reconexiones_programadas + corte_programado;
-        const cumplimiento_meta_pct = baseMeta > 0 ? ((reconexiones_ejecutadas + cortes_ejecutados) / baseMeta) * 100 : 0;
-
-        const cumplimiento_corte_pct = corte_programado > 0 ? (cortes_ejecutados / corte_programado) * 100 : 0;
+        // Meta parameters
+        const meta_diaria = 30; // Using 30 to match backend default
+        const base_meta_calc = brigadas_operativas * meta_diaria;
+        
+        const cumplimiento_meta_pct = base_meta_calc > 0 ? (cortes_ejecutados / base_meta_calc) * 100 : 0;
+        const cumplimiento_corte_pct = asignacion_carga > 0 ? (cortes_ejecutados / asignacion_carga) * 100 : 0;
 
         return {
           zona,
@@ -128,7 +134,8 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
           promedio_cortes: formatNumber(promedio_cortes),
           promedio_actividad: formatNumber(promedio_actividad),
           cumplimiento_meta_pct: formatNumber(cumplimiento_meta_pct),
-          cumplimiento_corte_pct: formatNumber(cumplimiento_corte_pct)
+          cumplimiento_corte_pct: formatNumber(cumplimiento_corte_pct),
+          asignacion_carga
         };
       });
 
@@ -142,6 +149,8 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
         acc.corte_en_poste += curr.corte_en_poste;
         acc.corte_en_empalme += curr.corte_en_empalme;
         acc.visitas_fallidas += curr.visitas_fallidas;
+        // Keep asignacion_carga in total as well
+        acc.asignacion_carga += curr.asignacion_carga;
         return acc;
       }, {
         zona: 'Total General',
@@ -157,17 +166,21 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
         promedio_cortes: 0,
         promedio_actividad: 0,
         cumplimiento_meta_pct: 0,
-        cumplimiento_corte_pct: 0
+        cumplimiento_corte_pct: 0,
+        asignacion_carga: 0
       } as ZonaGerencialData);
 
       // Calcular promedios y porcentajes del total
       const bo = totalGlobal.brigadas_operativas;
-      const baseM = totalGlobal.reconexiones_programadas + totalGlobal.corte_programado;
+      const asigCargaTot = totalGlobal.asignacion_carga;
+      const meta_diaria_tot = 30;
+      const baseM = bo * meta_diaria_tot;
+
       totalGlobal.promedio_reconexiones = bo > 0 ? formatNumber(totalGlobal.reconexiones_ejecutadas / bo) : 0;
       totalGlobal.promedio_cortes = bo > 0 ? formatNumber(totalGlobal.cortes_ejecutados / bo) : 0;
       totalGlobal.promedio_actividad = bo > 0 ? formatNumber((totalGlobal.reconexiones_ejecutadas + totalGlobal.cortes_ejecutados + totalGlobal.visitas_fallidas) / bo) : 0;
-      totalGlobal.cumplimiento_meta_pct = baseM > 0 ? formatNumber(((totalGlobal.reconexiones_ejecutadas + totalGlobal.cortes_ejecutados) / baseM) * 100) : 0;
-      totalGlobal.cumplimiento_corte_pct = totalGlobal.corte_programado > 0 ? formatNumber((totalGlobal.cortes_ejecutados / totalGlobal.corte_programado) * 100) : 0;
+      totalGlobal.cumplimiento_meta_pct = baseM > 0 ? formatNumber((totalGlobal.cortes_ejecutados / baseM) * 100) : 0;
+      totalGlobal.cumplimiento_corte_pct = asigCargaTot > 0 ? formatNumber((totalGlobal.cortes_ejecutados / asigCargaTot) * 100) : 0;
 
       setReporte({
         fecha_operacional: fechaOperacional,

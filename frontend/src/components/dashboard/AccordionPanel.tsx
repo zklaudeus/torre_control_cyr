@@ -20,7 +20,7 @@ interface AccordionPanelProps {
 
 export const AccordionPanel = ({
   title,
-  icon = '◫',
+  icon,
   meta,
   defaultOpen = false,
   children,
@@ -37,7 +37,7 @@ export const AccordionPanel = ({
           style={{ ...accordionHeaderStyle, flex: 1 }}
         >
           <div style={accordionTitleGroupStyle}>
-            <span style={accordionIconStyle}>{isOpen ? '▾' : '▸'} {icon}</span>
+            <span style={accordionIconStyle}>{isOpen ? '▾' : '▸'}{icon ? ` ${icon}` : ''}</span>
             <span style={accordionTitleStyle}>{title}</span>
           </div>
 
