@@ -3,6 +3,7 @@ import { ResumenZonaDashboardView } from '../resumen-zona/ResumenZonaDashboardVi
 import { ConfiguracionDashboardView } from '../configuracion/ConfiguracionDashboardView';
 import { InicioDiaDashboardView } from '../inicio-dia/InicioDiaDashboardView';
 import { ReporteGerencialDashboardView } from '../reporte-gerencial/ReporteGerencialDashboardView';
+import { SupervisorBitacoraView } from '../supervisor/SupervisorBitacoraView';
 import type { FormularioActivo } from '../../pages/DashboardPage';
 
 interface CyrDashboardViewProps {
@@ -59,6 +60,17 @@ export const CyrDashboardView = ({
   if (activeSection === 'configuracion') {
     return (
       <ConfiguracionDashboardView
+        activeSection={activeSection}
+        onChangeSection={onChangeSection}
+      />
+    );
+  }
+
+  if (activeSection === 'supervisor-cyr') {
+    return (
+      <SupervisorBitacoraView
+        fechaOperacional={fechaOperacional}
+        onChangeFecha={onChangeFecha}
         activeSection={activeSection}
         onChangeSection={onChangeSection}
       />

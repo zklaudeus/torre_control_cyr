@@ -109,6 +109,40 @@ export const BrigadasEditableTable = ({
     ]
   });
 
+  const stickyZonaHeaderStyle = {
+    position: 'sticky' as const,
+    left: 0,
+    zIndex: 10,
+    background: '#F8FAFC',
+    minWidth: '120px',
+  };
+
+  const stickyUsuarioHeaderStyle = {
+    position: 'sticky' as const,
+    left: '120px',
+    zIndex: 10,
+    background: '#F8FAFC',
+    boxShadow: '4px 0 6px -2px rgba(0,0,0,0.05)',
+  };
+
+  const getStickyCellZona = (isDirty: boolean) => ({
+    ...tdStyle,
+    position: 'sticky' as const,
+    left: 0,
+    zIndex: 5,
+    background: isDirty ? '#1e293b' : '#FFFFFF',
+    minWidth: '120px',
+  });
+
+  const getStickyCellUsuario = (isDirty: boolean) => ({
+    ...tdStyle,
+    position: 'sticky' as const,
+    left: '120px',
+    zIndex: 5,
+    background: isDirty ? '#1e293b' : '#FFFFFF',
+    boxShadow: '4px 0 6px -2px rgba(0,0,0,0.05)',
+  });
+
   return (
     <div style={{ width: '100%' }}>
       <DataTableToolbar
@@ -122,10 +156,10 @@ export const BrigadasEditableTable = ({
         <table style={tableStyle}>
           <thead>
             <tr style={{ ...tableHeadRowStyle, background: '#F8FAFC', fontSize: '0.65rem' }}>
-              <SortableHeaderCell column="zona" label="ZONA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} width="80px" />
+              <SortableHeaderCell column="zona" label="ZONA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyZonaHeaderStyle} />
               <SortableHeaderCell column="codigo_sap" label="SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="patente" label="PATENTE" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-              <SortableHeaderCell column="usuario" label="USUARIO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeaderCell column="usuario" label="USUARIO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyUsuarioHeaderStyle} />
               <SortableHeaderCell column="tipo_brigada" label="TIPO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="estado_brigada" label="ESTADO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="hora_primer_movimiento" label="HORA GPS" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
@@ -152,7 +186,7 @@ export const BrigadasEditableTable = ({
 
               return (
                 <tr key={row.id} style={{ ...tableBodyRowStyle, background: isDirty ? '#1e293b' : 'transparent' }}>
-                  <td style={tdStyle}>
+                  <td style={getStickyCellZona(isDirty)}>
                     <select value={row.zona} onChange={(e) => handleRowChange(row.id, 'zona', e.target.value)} style={selectStyle}>
                       <option value="">Selec...</option>
                       {zonas.map(z => <option key={z.zona} value={z.zona}>{z.zona}</option>)}
@@ -160,7 +194,7 @@ export const BrigadasEditableTable = ({
                   </td>
                   <td style={tdStyle}><input type="text" value={row.codigo_sap} onChange={(e) => handleRowChange(row.id, 'codigo_sap', e.target.value)} style={{ ...inputStyle, width: '70px' }} /></td>
                   <td style={tdStyle}><input type="text" value={row.patente} onChange={(e) => handleRowChange(row.id, 'patente', e.target.value)} style={{ ...inputStyle, width: '70px' }} /></td>
-                  <td style={tdStyle}><input type="text" value={row.usuario} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '80px' }} /></td>
+                  <td style={getStickyCellUsuario(isDirty)}><input type="text" value={row.usuario} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '80px' }} /></td>
                   <td style={tdStyle}>
                     <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af' }}>
                       <option value="PXQ">PXQ</option>

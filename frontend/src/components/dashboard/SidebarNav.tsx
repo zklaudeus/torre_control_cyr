@@ -1,5 +1,5 @@
-import type { CSSProperties } from 'react';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import { useLocation, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../auth/AuthContext';
 
 // ─── Kinetic Analytics palette ───────────────────────────────────────────────
 const K = {
@@ -68,11 +68,12 @@ const IconChevron = ({ open }: { open: boolean }) => (
 
 // ─── Nav item config ────────────────────────────────────────────────────────
 const NAV_ITEMS = [
-  { section: 'inicio-dia',      label: 'Inicio del día',    Icon: IconSun      },
-  { section: 'resumen-general', label: 'Resumen General',   Icon: IconCalendar },
-  { section: 'resumen-zona',    label: 'Resumen por Zona',  Icon: IconMap      },
-  { section: 'reporte-gerencial', label: 'Reporte Gerencial', Icon: IconBarChart, external: true },
-  { section: 'configuracion',   label: 'Configuración',     Icon: IconSettings },
+  { route: '/torre-control/inicio-dia',      label: 'Inicio del día',    Icon: IconSun      },
+  { route: '/torre-control/dashboard-cyr',   label: 'Resumen General',   Icon: IconCalendar },
+  { route: '/torre-control/resumen-zona',    label: 'Resumen por Zona',  Icon: IconMap      },
+  { route: '#/reporte-gerencial',            label: 'Reporte Gerencial', Icon: IconBarChart, external: true },
+  { route: '/supervisor/bitacora',           label: 'Bitácora Supervisor', Icon: IconGitMerge },
+  { route: '/torre-control/configuracion',   label: 'Configuración',     Icon: IconSettings },
 ];
 
 const COMING_ITEMS = [
@@ -80,51 +81,63 @@ const COMING_ITEMS = [
   { label: 'Empalme',  Icon: IconGitMerge },
 ];
 
-interface SidebarNavProps {
-  formularioActivo?: FormularioActivo;
-  onChangeFormulario?: (form: FormularioActivo) => void;
-  activeSection?: string;
-  onChangeSection?: (section: string) => void;
-}
+export const SidebarNav = () => {
+  const { user, logout } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
-export const SidebarNav = ({
-  formularioActivo = 'cyr',
-  onChangeFormulario,
-  activeSection = 'inicio-dia',
-  onChangeSection,
-}: SidebarNavProps) => {
-
-  const handleClick = (section: string, external?: boolean) => {
+  const handleClick = (route: string, external?: boolean) => {
     if (external) {
       window.open(`${window.location.origin}${window.location.pathname}#/reporte-gerencial`, '_blank');
       return;
     }
-    if (onChangeSection) onChangeSection(section);
+    navigate(route);
   };
 
-  const navItem = (section: string, label: string, Icon: React.FC, external?: boolean): CSSProperties => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: '0.7rem',
-    padding: '0.58rem 0.875rem',
-    borderRadius: '8px',
-    cursor: 'pointer',
-    border: 'none',
-    width: '100%',
-    textAlign: 'left',
-    fontSize: '0.875rem',
-    fontWeight: activeSection === section ? 600 : 400,
-    background: activeSection === section
-      ? `linear-gradient(90deg, ${K.primary}22 0%, ${K.primary}0a 100%)`
-      : 'transparent',
-    color: activeSection === section ? K.neutral : K.mutedText,
-    borderLeft: activeSection === section ? `3px solid ${K.primary}` : '3px solid transparent',
-    transition: 'all 0.15s',
-    boxSizing: 'border-box',
-  });
+  const navItem = (route: string): React.CSSProperties => {
+    const isActive = location.pathname === route;
+    return {
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.7rem',
+      padding: '0.58rem 0.875rem',
+      borderRadius: '8px',
+      cursor: 'pointer',
+      border: 'none',
+      width: '100%',
+      textAlign: 'left',
+      fontSize: '0.875rem',
+      fontWeight: isActive ? 600 : 400,
+      background: isActive
+        ? `linear-gradient(90deg, ${K.primary}22 0%, ${K.primary}0a 100%)`
+        : 'transparent',
+      color: isActive ? K.neutral : K.mutedText,
+      borderLeft: isActive ? `3px solid ${K.primary}` : '3px solid transparent',
+      transition: 'all 0.15s',
+      boxSizing: 'border-box',
+    };
+  };
 
   return (
-    <aside style={{
+    <>
+      <style>{`
+        .sidebar-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .sidebar-scrollbar::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-scrollbar::-webkit-scrollbar-thumb {
+          background: #334155;
+          border-radius: 4px;
+        }
+        .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #475569;
+        }
+      `}</style>
+    <aside 
+      className="sidebar-scrollbar"
+      style={{
       width: '240px',
       minWidth: '240px',
       height: '100vh',
@@ -139,7 +152,7 @@ export const SidebarNav = ({
 
       {/* ── Header ── */}
       <div style={{
-        padding: '1.6rem 1.25rem 1.1rem',
+        padding: '1.25rem 1.25rem 1rem',
         borderBottom: `1px solid ${K.border}`,
       }}>
         {/* Cyan accent dot */}
@@ -176,28 +189,29 @@ export const SidebarNav = ({
             fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
             marginBottom: '0.25rem',
           }}
-          onClick={() => onChangeFormulario && onChangeFormulario('cyr')}
         >
           <span>CyR</span>
-          <IconChevron open={formularioActivo === 'cyr'} />
+          <IconChevron open={true} />
         </button>
 
-        {formularioActivo === 'cyr' && NAV_ITEMS.map(({ section, label, Icon, external }) => (
+        {NAV_ITEMS
+          .filter(item => user?.rol === 'supervisor' ? item.route === '/supervisor/bitacora' : true)
+          .map(({ route, label, Icon, external }) => (
           <button
-            key={section}
+            key={route}
             type="button"
-            style={navItem(section, label, Icon, external)}
-            onClick={() => handleClick(section, external)}
+            style={navItem(route)}
+            onClick={() => handleClick(route, external)}
           >
             <span style={{
-              color: activeSection === section ? K.primary : K.dimText,
+              color: location.pathname === route ? K.primary : K.dimText,
               display: 'flex', alignItems: 'center',
             }}>
               <Icon />
             </span>
             <span>{label}</span>
             {/* Cyan glow dot for active */}
-            {activeSection === section && (
+            {location.pathname === route && (
               <span style={{
                 marginLeft: 'auto',
                 width: '5px', height: '5px', borderRadius: '50%',
@@ -210,10 +224,11 @@ export const SidebarNav = ({
       </nav>
 
       {/* ── Coming soon ── */}
+      {user?.rol !== 'supervisor' && (
       <div style={{
-        padding: '0.75rem 0.625rem 1.5rem',
+        padding: '0.5rem 0.625rem 1rem',
         borderTop: `1px solid ${K.border}`,
-        display: 'flex', flexDirection: 'column', gap: '0.1rem',
+        display: 'flex', flexDirection: 'column', gap: '0',
       }}>
         <div style={{
           fontSize: '0.65rem', color: K.dimText,
@@ -255,7 +270,38 @@ export const SidebarNav = ({
           </button>
         ))}
       </div>
+      )}
+
+      {/* ── Footer / User ── */}
+      <div style={{
+        marginTop: 'auto',
+        padding: '1rem',
+        borderTop: `1px solid ${K.border}`,
+        flexShrink: 0,
+      }}>
+        <div style={{ fontSize: '0.8rem', color: K.neutral, fontWeight: 600, marginBottom: '0.5rem' }}>
+          {user?.nombre || 'Administrador'}
+        </div>
+        {user?.zonasAsignadas && (
+          <div style={{ fontSize: '0.7rem', color: K.secondary, marginBottom: '0.5rem', lineHeight: 1.3 }}>
+            Zonas: {user.zonasAsignadas.join(', ')}
+          </div>
+        )}
+        <button
+          onClick={logout}
+          style={{
+            width: '100%', padding: '0.5rem', background: 'transparent', color: K.mutedText,
+            border: `1px solid ${K.border}`, borderRadius: '6px', fontSize: '0.8rem',
+            cursor: 'pointer', transition: 'all 0.2s'
+          }}
+          onMouseEnter={e => e.currentTarget.style.color = K.neutral}
+          onMouseLeave={e => e.currentTarget.style.color = K.mutedText}
+        >
+          Cerrar Sesión
+        </button>
+      </div>
 
     </aside>
+    </>
   );
 };

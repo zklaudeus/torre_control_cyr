@@ -8,6 +8,7 @@ interface SortableHeaderCellProps {
   sortDirection: SortDirection;
   onSort: (column: string) => void;
   width?: string;
+  style?: React.CSSProperties;
 }
 
 export const SortableHeaderCell = ({
@@ -16,7 +17,8 @@ export const SortableHeaderCell = ({
   sortColumn,
   sortDirection,
   onSort,
-  width
+  width,
+  style = {}
 }: SortableHeaderCellProps) => {
   const isSorted = sortColumn === column;
 
@@ -27,7 +29,8 @@ export const SortableHeaderCell = ({
         width,
         cursor: 'pointer',
         userSelect: 'none',
-        background: isSorted ? 'rgba(0, 123, 255, 0.06)' : 'transparent'
+        background: isSorted ? 'rgba(0, 123, 255, 0.06)' : 'transparent',
+        ...style
       }}
       onClick={() => onSort(column)}
     >

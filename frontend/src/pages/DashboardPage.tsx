@@ -1,60 +1,13 @@
-import { useState } from 'react';
-import { CyrDashboardView } from '../components/cyr/CyrDashboardView';
-import { MedicionPlaceholderView } from '../components/medicion/MedicionPlaceholderView';
-import { EmpalmePlaceholderView } from '../components/empalme/EmpalmePlaceholderView';
+import { Outlet } from 'react-router-dom';
+import { SidebarNav } from '../components/dashboard/SidebarNav';
 
-export type FormularioActivo = 'cyr' | 'medicion' | 'empalme';
-export type SeccionFormulario = 'inicio-dia' | 'resumen-general' | 'resumen-zona' | 'reporte-gerencial' | 'configuracion';
-
-interface DashboardPageProps {
-  fechaOperacional: string;
-  onChangeFecha: (fecha: string) => void;
-}
-
-export const DashboardPage = ({ fechaOperacional, onChangeFecha }: DashboardPageProps) => {
-  const [formularioActivo, setFormularioActivo] = useState<FormularioActivo>('cyr');
-  const [activeSection, setActiveSection] = useState<SeccionFormulario>('inicio-dia');
-
-  const handleFormularioChange = (form: FormularioActivo) => {
-    setFormularioActivo(form);
-    // When switching modules, reset to the default section
-    setActiveSection('inicio-dia');
-  };
-
-  if (formularioActivo === 'medicion') {
-    return (
-      <MedicionPlaceholderView
-        fechaOperacional={fechaOperacional}
-        onChangeFecha={onChangeFecha}
-        formularioActivo={formularioActivo}
-        onChangeFormulario={handleFormularioChange}
-        activeSection={activeSection}
-        onChangeSection={(s) => setActiveSection(s as SeccionFormulario)}
-      />
-    );
-  }
-
-  if (formularioActivo === 'empalme') {
-    return (
-      <EmpalmePlaceholderView
-        fechaOperacional={fechaOperacional}
-        onChangeFecha={onChangeFecha}
-        formularioActivo={formularioActivo}
-        onChangeFormulario={handleFormularioChange}
-        activeSection={activeSection}
-        onChangeSection={(s) => setActiveSection(s as SeccionFormulario)}
-      />
-    );
-  }
-
+export const DashboardPage = () => {
   return (
-    <CyrDashboardView
-      fechaOperacional={fechaOperacional}
-      onChangeFecha={onChangeFecha}
-      formularioActivo={formularioActivo}
-      onChangeFormulario={handleFormularioChange}
-      activeSection={activeSection}
-      onChangeSection={(s) => setActiveSection(s as SeccionFormulario)}
-    />
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f5f5f5' }}>
+      <SidebarNav />
+      <div style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
+        <Outlet />
+      </div>
+    </div>
   );
 };

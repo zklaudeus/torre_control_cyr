@@ -23,7 +23,7 @@ const tokens = {
 };
 
 export const pageStyle: CSSProperties = {
-  width: '100vw',
+  width: '100%',
   height: '100vh',
   display: 'flex',
   background: tokens.bgMain,
