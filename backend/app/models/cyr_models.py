@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Boolean, Date, Time, Text, DateTime, text, UniqueConstraint
+from sqlalchemy import Column, Integer, String, Boolean, Date, Time, Text, DateTime, text, UniqueConstraint, CheckConstraint
 from app.core.database import Base
 
 class ReporteCYR(Base):
@@ -39,12 +39,17 @@ class ControlBrigadasDiario(Base):
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
+    __table_args__ = (
+        CheckConstraint("tipo_brigada IN ('PXQ', 'CF')", name='chk_tipo_brigada'),
+    )
+
 class ControlProgramacionZona(Base):
     __tablename__ = "control_programacion_zona"
 
     id = Column(Integer, primary_key=True, index=True)
     fecha_operacional = Column(Date, nullable=False)
     zona = Column(String(100), nullable=False)
+    tipo_brigada = Column(String(50), nullable=False, default='PXQ')
     reconexiones_programadas = Column(Integer, default=0)
     asignacion_carga = Column(Integer, default=0)
     corte_programado = Column(Integer, default=0)
@@ -52,18 +57,25 @@ class ControlProgramacionZona(Base):
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
 
     __table_args__ = (
-        UniqueConstraint('fecha_operacional', 'zona', name='uq_programacion_fecha_zona'),
+        UniqueConstraint('fecha_operacional', 'zona', 'tipo_brigada', name='uq_programacion_fecha_zona_tipo'),
+        CheckConstraint("tipo_brigada IN ('PXQ', 'CF')", name='chk_prog_tipo_brigada'),
     )
 
 class ControlParametrosZona(Base):
     __tablename__ = "control_parametros_zona"
 
     id = Column(Integer, primary_key=True, index=True)
-    zona = Column(String(100), nullable=False, unique=True)
+    zona = Column(String(100), nullable=False)
+    tipo_brigada = Column(String(50), nullable=False, default='PXQ')
     brigadas_contrato = Column(Integer, default=0)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+    __table_args__ = (
+        UniqueConstraint('zona', 'tipo_brigada', name='uq_parametros_zona_tipo'),
+        CheckConstraint("tipo_brigada IN ('PXQ', 'CF')", name='chk_param_tipo_brigada'),
+    )
 
 class ControlParametrosGenerales(Base):
     __tablename__ = "control_parametros_generales"
@@ -145,4 +157,20 @@ class ControlProgramacionCFZona(Base):
 
     __table_args__ = (
         UniqueConstraint('fecha_operacional', 'zona', name='uq_programacion_cf_fecha_zona'),
+    )
+
+class DimTipoBrigadaUsuario(Base):
+    __tablename__ = "dim_tipo_brigada_usuario"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario_normalizado = Column(String(100), nullable=False, unique=True)
+    tipo_brigada = Column(String(50), nullable=False, default='PXQ')
+    activo = Column(Boolean, default=True)
+    fecha_inicio = Column(Date)
+    fecha_fin = Column(Date)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+    __table_args__ = (
+        CheckConstraint("tipo_brigada IN ('PXQ', 'CF')", name='chk_dim_tipo_brigada'),
     )

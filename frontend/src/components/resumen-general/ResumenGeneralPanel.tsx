@@ -2,9 +2,8 @@ import { useEffect } from 'react';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
 import { DashboardHeader } from '../dashboard/DashboardHeader';
 import { AlertMessage } from '../dashboard/AlertMessage';
-import { ProgramacionPxqAccordion } from './ProgramacionPxqAccordion';
-import { ProgramacionCfAccordion } from './ProgramacionCfAccordion';
 import { BrigadasDiaAccordion } from './BrigadasDiaAccordion';
+import { ProgramacionDiariaGrid } from './ProgramacionDiariaGrid';
 import { contentStackStyle } from '../../styles/dashboardStyles';
 import { useResumenGeneralDashboard } from '../../hooks/useResumenGeneralDashboard';
 import type { FormularioActivo } from '../../pages/DashboardPage';
@@ -33,10 +32,8 @@ export const ResumenGeneralPanel = ({
     success,
     fetchAll,
     handleSaveAll,
-    pxqData,
-    handlePxqChange,
-    cfData,
-    handleCfChange,
+    programacionData,
+    handleProgramacionChange,
     brigadasHook,
   } = useResumenGeneralDashboard(fechaOperacional);
 
@@ -69,17 +66,12 @@ export const ResumenGeneralPanel = ({
         </div>
       ) : (
         <section style={contentStackStyle}>
-          <ProgramacionPxqAccordion
-            pxqData={pxqData}
-            handlePxqChange={handlePxqChange}
-          />
-          
-          <ProgramacionCfAccordion
-            cfData={cfData}
-            handleCfChange={handleCfChange}
-          />
-
           <BrigadasDiaAccordion hook={brigadasHook} />
+
+          <ProgramacionDiariaGrid 
+            data={programacionData} 
+            onChange={handleProgramacionChange} 
+          />
         </section>
       )}
     </DashboardLayout>

@@ -2,6 +2,7 @@ export interface ProgramacionZona {
   id: number | null;
   fecha_operacional: string;
   zona: string;
+  tipo_brigada: string;
   reconexiones_programadas: number;
   asignacion_carga: number;
   corte_programado: number;
@@ -9,6 +10,7 @@ export interface ProgramacionZona {
 
 export interface ProgramacionZonaBase {
   zona: string;
+  tipo_brigada: string;
   reconexiones_programadas: number;
   asignacion_carga: number;
   corte_programado: number;

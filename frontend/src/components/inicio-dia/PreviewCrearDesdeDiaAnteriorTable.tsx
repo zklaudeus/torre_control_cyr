@@ -7,14 +7,16 @@ import { SortableHeaderCell } from '../common/SortableHeaderCell';
 
 const inputStyleLocal = {
   width: '100%',
-  padding: '0.25rem',
-  background: '#FFFFFF',
+  padding: '0.4rem 0.5rem',
+  background: '#F8FAFC',
   border: '1px solid #E2E8F0',
-  color: '#1E293B',
-  borderRadius: '4px',
-  fontSize: '0.8rem',
+  color: '#1A2B4A',
+  borderRadius: '6px',
+  fontSize: '0.85rem',
   outline: 'none',
   boxSizing: 'border-box' as const,
+  transition: 'border-color 0.2s',
+  fontWeight: 500,
 };
 
 const selectStyleLocal = {
@@ -93,20 +95,21 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
 
               const rowStyle = {
                 borderBottom: '1px solid #E2E8F0',
-                background: item.estado === 'ya_existe' ? 'rgba(255,255,255,0.02)' : hasError ? 'rgba(153,27,27,0.1)' : 'transparent',
-                opacity: item.estado === 'ya_existe' ? 0.6 : 1
+                background: item.estado === 'ya_existe' ? '#F8FAFC' : hasError ? '#FEF2F2' : '#FFFFFF',
+                opacity: item.estado === 'ya_existe' ? 0.7 : 1,
+                transition: 'background 0.2s'
               };
 
               const statusBadge = b.estado_brigada.toLowerCase() === 'inactiva' ? badgeInactivaStyle : badgeOperativaStyle;
-              let badgeStyle = { ...statusBadge, padding: '2px 8px' };
+              let badgeStyle = { ...statusBadge, padding: '4px 10px', fontSize: '0.75rem', fontWeight: 600, display: 'inline-block', borderRadius: '12px' };
               
               if (item.estado === 'ya_existe') {
-                 badgeStyle = { background: '#475569', color: '#1E293B', borderRadius: '12px', padding: '2px 8px', fontSize: '0.8rem' };
+                 badgeStyle = { ...badgeStyle, background: '#FEF3C7', color: '#F59E0B' };
               } else if (item.estado === 'crear') {
-                 badgeStyle = { background: '#166534', color: '#1E293B', borderRadius: '12px', padding: '2px 8px', fontSize: '0.8rem' };
+                 badgeStyle = { ...badgeStyle, background: '#D1FAE5', color: '#10B981' };
               }
               if (hasError) {
-                 badgeStyle = { background: '#991b1b', color: '#1E293B', borderRadius: '12px', padding: '2px 8px', fontSize: '0.8rem' };
+                 badgeStyle = { ...badgeStyle, background: '#FEE2E2', color: '#EF4444' };
               }
 
               let estadoText = 'A Crear';
@@ -154,7 +157,7 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
                     </select>
                   </td>
                   <td style={tdStyle}>
-                    <button type="button" onClick={() => onDeleteRow(idx)} style={{ ...actionBtnSmallStyle, background: '#FEE2E2', borderColor: '#FCA5A5', color: '#DC2626' }}>
+                    <button type="button" onClick={() => onDeleteRow(idx)} style={{ ...actionBtnSmallStyle, background: '#FEE2E2', borderColor: '#FCA5A5', color: '#EF4444', padding: '4px 8px', borderRadius: '6px', fontWeight: 600 }}>
                       Eliminar
                     </button>
                   </td>

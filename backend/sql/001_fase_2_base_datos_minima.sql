@@ -22,7 +22,8 @@ CREATE TABLE IF NOT EXISTS control_brigadas_diario (
     hora_primer_movimiento TIME,
     observacion_brigada TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_tipo_brigada CHECK (tipo_brigada IN ('PXQ', 'CF'))
 );
 
 CREATE INDEX IF NOT EXISTS idx_brigadas_diario_fecha_zona ON control_brigadas_diario(fecha_operacional, zona);
@@ -32,24 +33,29 @@ CREATE TABLE IF NOT EXISTS control_programacion_zona (
     id SERIAL PRIMARY KEY,
     fecha_operacional DATE NOT NULL,
     zona VARCHAR(100) NOT NULL,
+    tipo_brigada VARCHAR(50) NOT NULL DEFAULT 'PXQ',
     reconexiones_programadas INTEGER DEFAULT 0,
     asignacion_carga INTEGER DEFAULT 0,
     corte_programado INTEGER DEFAULT 0,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT uq_programacion_fecha_zona UNIQUE(fecha_operacional, zona)
+    CONSTRAINT uq_programacion_fecha_zona_tipo UNIQUE(fecha_operacional, zona, tipo_brigada),
+    CONSTRAINT chk_prog_tipo_brigada CHECK (tipo_brigada IN ('PXQ', 'CF'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_programacion_zona_fecha_zona ON control_programacion_zona(fecha_operacional, zona);
+CREATE INDEX IF NOT EXISTS idx_programacion_zona_fecha_zona_tipo ON control_programacion_zona(fecha_operacional, zona, tipo_brigada);
 
 -- Crear tabla: control_parametros_zona
 CREATE TABLE IF NOT EXISTS control_parametros_zona (
     id SERIAL PRIMARY KEY,
-    zona VARCHAR(100) NOT NULL UNIQUE,
+    zona VARCHAR(100) NOT NULL,
+    tipo_brigada VARCHAR(50) NOT NULL DEFAULT 'PXQ',
     brigadas_contrato INTEGER DEFAULT 0,
     activo BOOLEAN DEFAULT true,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT uq_parametros_zona_tipo UNIQUE(zona, tipo_brigada),
+    CONSTRAINT chk_param_tipo_brigada CHECK (tipo_brigada IN ('PXQ', 'CF'))
 );
 
 -- Crear tabla: control_parametros_generales
@@ -92,18 +98,44 @@ CREATE INDEX IF NOT EXISTS idx_resultados_reales_fecha_zona ON control_resultado
 -- SEEDS INICIALES
 -- ---------------------------------------------------------
 
--- Zonas iniciales
-INSERT INTO control_parametros_zona (zona, brigadas_contrato, activo) VALUES
-('Iquique', 3, true),
-('Coquimbo', 16, true),
-('Santa Cruz', 4, true),
-('Talca', 11, true),
-('Concepción', 21, true),
-('Los Ángeles', 3, true),
-('Chillán', 3, true)
-ON CONFLICT (zona) DO NOTHING;
+-- Zonas iniciales (NOTA: Valores actuales asumen Total Zona, asignados temporalmente a PXQ)
+INSERT INTO control_parametros_zona (zona, tipo_brigada, brigadas_contrato, activo) VALUES
+  ('Iquique', 'PXQ', 3, true),
+  ('Coquimbo', 'PXQ', 16, true),
+  ('Coquimbo', 'CF', 4, true),
+  ('Santa Cruz', 'PXQ', 4, true),
+  ('Talca', 'PXQ', 11, true),
+  ('Talca', 'CF', 3, true),
+  ('Concepción', 'PXQ', 21, true),
+  ('Los Ángeles', 'PXQ', 3, true),
+  ('Chillán', 'PXQ', 3, true)
+ON CONFLICT (zona, tipo_brigada) DO NOTHING;
 
 -- Parámetros generales
 INSERT INTO control_parametros_generales (meta_diaria_cortes_brigada, hora_inicio_jornada, hora_cierre_jornada, activo)
 SELECT 30, '08:00', '14:00', true
 WHERE NOT EXISTS (SELECT 1 FROM control_parametros_generales);
+
+-- Crear tabla: dim_tipo_brigada_usuario
+CREATE TABLE IF NOT EXISTS dim_tipo_brigada_usuario (
+    id SERIAL PRIMARY KEY,
+    usuario_normalizado VARCHAR(100) NOT NULL UNIQUE,
+    tipo_brigada VARCHAR(50) NOT NULL DEFAULT 'PXQ',
+    activo BOOLEAN DEFAULT true,
+    fecha_inicio DATE,
+    fecha_fin DATE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT chk_dim_tipo_brigada CHECK (tipo_brigada IN ('PXQ', 'CF'))
+);
+
+-- Insertar usuarios CF iniciales
+INSERT INTO dim_tipo_brigada_usuario (usuario_normalizado, tipo_brigada, activo) VALUES
+('Hector Huerta', 'CF', true),
+('Mauricio Veliz', 'CF', true),
+('Lexter Jorquera', 'CF', true),
+('Rafael Sevilla', 'CF', true),
+('Alexis Sepulveda', 'CF', true),
+('Bryan Rojas', 'CF', true),
+('Benjamin Medina', 'CF', true)
+ON CONFLICT (usuario_normalizado) DO NOTHING;

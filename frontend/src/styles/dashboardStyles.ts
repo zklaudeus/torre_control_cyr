@@ -11,7 +11,7 @@ const tokens = {
   bgPanel: '#FFFFFF',
   bgCard: '#FFFFFF',
   bgCardSoft: '#F8FAFC',
-  bgSidebar: '#0A192F',
+  bgSidebar: '#F5F3EF',
   textMain: '#1E293B',
   textMuted: '#64748B',
   textOnDark: '#F8FAFC',

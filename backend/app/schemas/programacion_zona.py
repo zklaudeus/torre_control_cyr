@@ -4,6 +4,7 @@ from typing import List, Optional
 
 class ProgramacionZonaBase(BaseModel):
     zona: str
+    tipo_brigada: str = Field(default='PXQ', description="Tipo de brigada: PXQ o CF")
     reconexiones_programadas: int = Field(default=0, ge=0)
     asignacion_carga: int = Field(default=0, ge=0)
     corte_programado: int = Field(default=0, ge=0)

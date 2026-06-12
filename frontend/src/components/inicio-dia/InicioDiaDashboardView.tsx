@@ -4,7 +4,7 @@ import { AlertMessage } from '../dashboard/AlertMessage';
 import { CrearDesdeDiaAnteriorPanel } from './CrearDesdeDiaAnteriorPanel';
 import { ResumenCrearDiaPanel } from './ResumenCrearDiaPanel';
 import { PreviewCrearDesdeDiaAnteriorTable } from './PreviewCrearDesdeDiaAnteriorTable';
-import { contentStackStyle, actionBtnStyle } from '../../styles/dashboardStyles';
+import { contentStackStyle } from '../../styles/dashboardStyles';
 import { useCrearDesdeDiaAnterior } from '../../hooks/useCrearDesdeDiaAnterior';
 import type { FormularioActivo } from '../../pages/DashboardPage';
 
@@ -70,18 +70,18 @@ export const InicioDiaDashboardView = ({
             loading={loading}
           />
         ) : (
-          <div style={{ background: '#ffffff', border: '1px solid #E2E8F0', borderRadius: '8px', padding: '20px 24px', boxShadow: '0 1px 3px rgba(0,0,0,0.06)' }}>
+          <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '6px', background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>📋</div>
-                <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>Resultados de Brigadas Origen</h2>
+                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#0B7BFF15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>📋</div>
+                <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0A192F' }}>Resultados de Brigadas Origen</h2>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>
                 <button
                   type="button"
                   onClick={addRow}
                   disabled={saving}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: '#16A34A', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: '#0B7BFF', color: '#ffffff', fontSize: '0.85rem', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}
                 >
                   + Agregar brigada
                 </button>
@@ -89,7 +89,7 @@ export const InicioDiaDashboardView = ({
                   type="button"
                   onClick={limpiar}
                   disabled={saving}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}
                 >
                   Limpiar vista
                 </button>
@@ -97,7 +97,7 @@ export const InicioDiaDashboardView = ({
                   type="button"
                   onClick={restablecerCambios}
                   disabled={saving}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #CBD5E1', background: '#F8FAFC', color: '#475569', fontSize: '13px', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: '1px solid #E2E8F0', background: '#F8FAFC', color: '#64748B', fontSize: '0.85rem', fontWeight: 600, cursor: saving ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}
                 >
                   Restablecer
                 </button>
@@ -105,7 +105,7 @@ export const InicioDiaDashboardView = ({
                   type="button"
                   onClick={crearBrigadas}
                   disabled={saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')}
-                  style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', background: (saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')) ? '#94A3B8' : '#0059bb', color: '#ffffff', fontSize: '13px', fontWeight: 600, cursor: (saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')) ? 'not-allowed' : 'pointer' }}
+                  style={{ padding: '8px 16px', borderRadius: '8px', border: 'none', background: (saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')) ? '#94A3B8' : '#0B7BFF', color: '#ffffff', fontSize: '0.85rem', fontWeight: 600, cursor: (saving || !comparacion.some(c => c.aplicar && c.estado === 'crear')) ? 'not-allowed' : 'pointer', transition: 'background 0.2s' }}
                 >
                   {saving ? '⏳ Creando...' : '✓ Crear desde día anterior'}
                 </button>

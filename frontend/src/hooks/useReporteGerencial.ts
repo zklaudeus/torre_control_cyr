@@ -1,7 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { getBrigadas } from '../api/brigadasDia.api';
 import { getProgramacionZona } from '../api/programacionZona.api';
-import { getProgramacionCFZona } from '../api/cf.api';
 
 export interface ZonaGerencialData {
   zona: string;
@@ -41,13 +40,13 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
     setError(null);
     try {
       // Fetch raw data
-      const [brigadas, progPXQ, progCFResponse] = await Promise.all([
+      const [brigadas, progAll] = await Promise.all([
         getBrigadas(fechaOperacional),
-        getProgramacionZona(fechaOperacional),
-        getProgramacionCFZona(fechaOperacional)
+        getProgramacionZona(fechaOperacional)
       ]);
 
-      const progCF = progCFResponse.zonas;
+      const progPXQ = progAll.filter(p => p.tipo_brigada === 'PXQ');
+      const progCF = progAll.filter(p => p.tipo_brigada === 'CF');
 
       // Extract unique zones based on filter
       const zonasSet = new Set<string>();
@@ -67,11 +66,6 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
       }
 
       let zonasList = Array.from(zonasSet).sort();
-
-      // En CF solo se usan Coquimbo y Talca
-      if (filtro === 'CF') {
-        zonasList = zonasList.filter(z => ['coquimbo', 'talca'].includes(z.toLowerCase()));
-      }
 
       const zonasCalculadas: ZonaGerencialData[] = zonasList.map(zona => {
         // Filter brigadas by zona and tipo_brigada
@@ -98,7 +92,7 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
           const c = progCF.find(x => x.zona === zona);
           if (c) {
             reconexiones_programadas += c.reconexiones_programadas || 0;
-            corte_programado += c.cortes_programados || 0;
+            corte_programado += c.corte_programado || 0;
           }
         }
 

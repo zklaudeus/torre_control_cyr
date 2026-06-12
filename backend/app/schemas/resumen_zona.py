@@ -4,10 +4,8 @@ from typing import List, Optional
 
 class ResumenZonaFila(BaseModel):
     zona: str
-    brigadas_pxq: int
-    brigadas_cf: int
-    brigadas_convenio: int
-    total_brigadas_reportadas: int
+    tipo_brigada: str
+    brigadas_reportadas: int
     brigadas_contrato: int
     porcentaje_brigadas_efectivas: float
     reconexiones_programadas: int
@@ -27,5 +25,5 @@ class ResumenZonaFila(BaseModel):
 class ResumenZonaResponse(BaseModel):
     fecha_operacional: str
     zonas: List[ResumenZonaFila]
-    total: ResumenZonaFila
+    totales: List[ResumenZonaFila]
     alertas: List[str]

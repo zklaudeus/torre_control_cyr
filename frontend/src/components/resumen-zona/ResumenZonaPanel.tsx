@@ -15,6 +15,24 @@ interface ResumenZonaPanelProps {
 const fmt = (n: number) => n.toLocaleString('es-CL', { maximumFractionDigits: 2 });
 const fmtPct = (n: number) => `${(n * 100).toFixed(1)}%`;
 
+const tipoBadge = (tipo: string) => {
+  const color = tipo === 'CF' ? '#63b3ed' : '#68d391';
+  return (
+    <span style={{
+      display: 'inline-block',
+      background: color + '22',
+      color: color,
+      border: `1px solid ${color}55`,
+      borderRadius: '4px',
+      padding: '1px 6px',
+      fontSize: '0.72rem',
+      fontWeight: 'bold',
+    }}>
+      {tipo}
+    </span>
+  );
+};
+
 const FilaResumen = ({ fila, isTotal }: { fila: ResumenZonaFila; isTotal?: boolean }) => {
   const bgStyle = isTotal
     ? { background: '#F1F5F9', color: '#0A192F', fontWeight: 'bold' as const }
@@ -25,10 +43,8 @@ const FilaResumen = ({ fila, isTotal }: { fila: ResumenZonaFila; isTotal?: boole
       <td style={{ ...tdStyle, textAlign: 'left', fontWeight: isTotal ? 'bold' : 'normal' }}>
         {fila.zona}
       </td>
-      <td style={tdStyle}>{fila.brigadas_pxq}</td>
-      <td style={tdStyle}>{fila.brigadas_cf}</td>
-      <td style={tdStyle}>{fila.brigadas_convenio}</td>
-      <td style={{ ...tdStyle, fontWeight: 'bold' }}>{fila.total_brigadas_reportadas}</td>
+      <td style={tdStyle}>{tipoBadge(fila.tipo_brigada)}</td>
+      <td style={{ ...tdStyle, fontWeight: 'bold' }}>{fila.brigadas_reportadas}</td>
       <td style={tdStyle}>{fila.brigadas_contrato}</td>
       <td style={{ ...tdStyle, color: fila.porcentaje_brigadas_efectivas >= 1 ? '#48bb78' : '#fc8181' }}>
         {fmtPct(fila.porcentaje_brigadas_efectivas)}
@@ -66,7 +82,7 @@ export const ResumenZonaPanel = ({ fechaOperacional, refreshKey }: ResumenZonaPa
     processedData
   } = useDataTableControls<ResumenZonaFila>({
     data: resumen?.zonas || [],
-    searchableColumns: ['zona', 'observacion']
+    searchableColumns: ['zona', 'tipo_brigada', 'observacion']
   });
 
   useEffect(() => {
@@ -109,12 +125,10 @@ export const ResumenZonaPanel = ({ fechaOperacional, refreshKey }: ResumenZonaPa
                 <thead>
                   <tr style={tableHeadRowStyle}>
                     <SortableHeaderCell column="zona" label="Zona" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} width="120px" />
-                    <SortableHeaderCell column="brigadas_pxq" label="PXQ" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="brigadas_cf" label="CF" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="brigadas_convenio" label="Conv." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="total_brigadas_reportadas" label="Total B. Rep." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="brigadas_contrato" label="B. Contrato" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-                    <SortableHeaderCell column="porcentaje_brigadas_efectivas" label="% B. Efectivas" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell column="tipo_brigada" label="Tipo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell column="brigadas_reportadas" label="B. Rep." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell column="brigadas_contrato" label="B. Ctto" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell column="porcentaje_brigadas_efectivas" label="% B. Efect." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="reconexiones_programadas" label="Rec. Prog." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="total_reconexiones_ejecutadas" label="Rec. Ejec." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="promedio_reconexiones" label="Prom. Rec." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
@@ -131,9 +145,11 @@ export const ResumenZonaPanel = ({ fechaOperacional, refreshKey }: ResumenZonaPa
                 </thead>
                 <tbody>
                   {processedData.map((fila) => (
-                    <FilaResumen key={fila.zona} fila={fila} isTotal={false} />
+                    <FilaResumen key={`${fila.zona}-${fila.tipo_brigada}`} fila={fila} isTotal={false} />
                   ))}
-                  {(!searchTerm && !sortColumn) && <FilaResumen fila={resumen.total} isTotal={true} />}
+                  {(!searchTerm && !sortColumn) && resumen.totales.map((tot) => (
+                    <FilaResumen key={`total-${tot.tipo_brigada}`} fila={tot} isTotal={true} />
+                  ))}
                 </tbody>
               </table>
             </div>

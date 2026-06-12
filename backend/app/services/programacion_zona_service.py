@@ -17,16 +17,19 @@ class ProgramacionZonaService:
         
         # Traer la programación existente
         programacion_existente = self.prog_repo.get_by_fecha(db, fecha)
-        prog_dict = {p.zona: p for p in programacion_existente}
+        prog_dict = {(p.zona, p.tipo_brigada): p for p in programacion_existente}
         
         resultado = []
-        for zona in zonas_activas:
-            if zona.zona in prog_dict:
-                existente = prog_dict[zona.zona]
+        for param_zona in zonas_activas:
+            # param_zona ahora tiene .zona y .tipo_brigada
+            clave = (param_zona.zona, param_zona.tipo_brigada)
+            if clave in prog_dict:
+                existente = prog_dict[clave]
                 resultado.append(ProgramacionZona(
                     id=existente.id,
                     fecha_operacional=existente.fecha_operacional,
                     zona=existente.zona,
+                    tipo_brigada=existente.tipo_brigada,
                     reconexiones_programadas=existente.reconexiones_programadas,
                     asignacion_carga=existente.asignacion_carga,
                     corte_programado=existente.corte_programado
@@ -36,7 +39,8 @@ class ProgramacionZonaService:
                 resultado.append(ProgramacionZona(
                     id=None,
                     fecha_operacional=fecha,
-                    zona=zona.zona,
+                    zona=param_zona.zona,
+                    tipo_brigada=param_zona.tipo_brigada,
                     reconexiones_programadas=0,
                     asignacion_carga=0,
                     corte_programado=0
@@ -51,6 +55,7 @@ class ProgramacionZonaService:
                 id=db_item.id,
                 fecha_operacional=db_item.fecha_operacional,
                 zona=db_item.zona,
+                tipo_brigada=db_item.tipo_brigada,
                 reconexiones_programadas=db_item.reconexiones_programadas,
                 asignacion_carga=db_item.asignacion_carga,
                 corte_programado=db_item.corte_programado

@@ -1,5 +1,4 @@
 import type { ComparacionBrigadaDia } from '../../utils/inicio-dia/compararBrigadasDiaActual';
-import { contentStackStyle } from '../../styles/dashboardStyles';
 
 interface ResumenCrearDiaPanelProps {
   comparacion: ComparacionBrigadaDia[];
@@ -13,29 +12,30 @@ export const ResumenCrearDiaPanel = ({ comparacion }: ResumenCrearDiaPanelProps)
 
   const kpiCard = (label: string, value: number, color: string, icon: string) => (
     <div style={{
-      flex: 1, background: '#ffffff', border: '1px solid #E2E8F0',
-      borderRadius: '8px', padding: '16px 20px',
-      display: 'flex', alignItems: 'center', gap: '16px',
-      boxShadow: '0 1px 3px rgba(0,0,0,0.05)'
+      flex: 1, background: '#FFFFFF', border: '1px solid #E2E8F0',
+      borderRadius: '12px', padding: '1.25rem',
+      display: 'flex', alignItems: 'center', gap: '1rem',
+      boxShadow: '0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05)',
+      transition: 'transform 0.2s'
     }}>
       <div style={{
-        width: '40px', height: '40px', borderRadius: '8px',
-        background: `${color}18`, display: 'flex', alignItems: 'center',
+        width: '44px', height: '44px', borderRadius: '10px',
+        background: `${color}1A`, display: 'flex', alignItems: 'center',
         justifyContent: 'center', fontSize: '20px', flexShrink: 0
       }}>{icon}</div>
       <div>
-        <div style={{ fontSize: '11px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '4px' }}>{label}</div>
-        <div style={{ fontSize: '28px', fontWeight: 700, color, lineHeight: 1 }}>{value}</div>
+        <div style={{ fontSize: '0.75rem', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.25rem' }}>{label}</div>
+        <div style={{ fontSize: '1.75rem', fontWeight: 800, color: color, lineHeight: 1 }}>{value}</div>
       </div>
     </div>
   );
 
   return (
-    <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
-      {kpiCard('Encontradas en origen', encontradas, '#1E293B', '📁')}
-      {kpiCard('A Crear', aCrear, '#16A34A', '✅')}
-      {kpiCard('Ya Existentes', yaExisten, '#D97706', '⚠️')}
-      {kpiCard('Errores', errores, '#DC2626', '❌')}
+    <div style={{ display: 'flex', gap: '1.5rem', marginBottom: '1.5rem' }}>
+      {kpiCard('Encontradas en origen', encontradas, '#0B7BFF', '📁')}
+      {kpiCard('A Crear', aCrear, '#10B981', '✅')}
+      {kpiCard('Ya Existentes', yaExisten, '#F59E0B', '⚠️')}
+      {kpiCard('Errores', errores, '#EF4444', '❌')}
     </div>
   );
 };
