@@ -28,16 +28,31 @@ def get_comunas_zonas(id: int, db: Session = Depends(get_db)):
 
 @router.get("/{id}/usuarios-sap", response_model=List[SupervisorUsuarioSAP])
 def get_usuarios_sap(id: int, db: Session = Depends(get_db)):
-    """Obtiene los usuarios SAP asignados a un supervisor"""
+    """Obtiene los usuarios SAP asignados a un supervisor, con su zona principal"""
     sup = db.query(ControlSupervisores).filter(ControlSupervisores.id == id).first()
     if not sup:
         raise HTTPException(status_code=404, detail="Supervisor no encontrado")
         
-    return db.query(ControlSupervisorUsuariosSAP).filter(
+    usuarios = db.query(
+        ControlSupervisorUsuariosSAP,
+        ControlSupervisorComunasZonas.zona_principal
+    ).outerjoin(
+        ControlSupervisorComunasZonas,
+        (ControlSupervisorUsuariosSAP.comuna_habitual == ControlSupervisorComunasZonas.comuna) &
+        (ControlSupervisorComunasZonas.supervisor_id == id) &
+        (ControlSupervisorComunasZonas.activo == True)
+    ).filter(
         ControlSupervisorUsuariosSAP.supervisor_id == id,
         ControlSupervisorUsuariosSAP.activo == True
     ).order_by(ControlSupervisorUsuariosSAP.cuenta).all()
-
+    
+    result = []
+    for u, zona in usuarios:
+        u_dict = u.__dict__.copy()
+        u_dict['zona_principal'] = zona
+        result.append(u_dict)
+        
+    return result
 @router.get("/usuarios-sap/todos", response_model=List[SupervisorUsuarioSAP])
 def get_todos_usuarios_sap(db: Session = Depends(get_db)):
     """Obtiene todos los usuarios SAP activos"""

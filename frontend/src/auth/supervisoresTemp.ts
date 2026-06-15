@@ -25,6 +25,15 @@ export const USUARIOS_TEMP: UsuarioApp[] = [
     zonasAsignadas: ["Concepción", "Los Ángeles", "Chillán"]
   },
   {
+    // Temporal, se migrará a auth real en backend
+    id: "supervisor-talca-piloto",
+    nombre: "Supervisor Talca Piloto",
+    usuario: "supervisor.talca",
+    password: "admin123",
+    rol: "supervisor" as const,
+    zonasAsignadas: ["Talca"]
+  },
+  {
     id: "torre-control-claudio",
     nombre: "Claudio",
     usuario: "claudio",

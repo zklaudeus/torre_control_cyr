@@ -6,6 +6,7 @@ export interface BitacoraRow {
   brigada: string;
   pareja: string;
   comuna: string;
+  zona: string;
   carga: string;
   reconexiones: string;
   observacion: string;
@@ -103,8 +104,15 @@ export const validarFila = (
 
   if (!row.comuna) {
     errors.comuna = 'Obligatorio';
-  } else if (!obtenerZonaPorComuna(row.comuna, comunasMap)) {
+  } else if (!row.zona && !obtenerZonaPorComuna(row.comuna, comunasMap)) {
     errors.comuna = 'Comuna sin zona asociada';
+  }
+
+  if (!row.zona) {
+    const derivedZone = obtenerZonaPorComuna(row.comuna, comunasMap);
+    if (!derivedZone) {
+      errors.zona = 'No se encontró zona válida';
+    }
   }
 
   const cargaNum = parseNumber(row.carga);
@@ -137,7 +145,7 @@ export const calcularResumenPorZona = (rows: BitacoraRow[], comunasMap: Supervis
   const resumen: Record<string, ResumenZona> = {};
 
   rows.forEach(row => {
-    const zona = obtenerZonaPorComuna(row.comuna, comunasMap);
+    const zona = row.zona || obtenerZonaPorComuna(row.comuna, comunasMap);
     if (!zona) return; 
 
     if (!resumen[zona]) {

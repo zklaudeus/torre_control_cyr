@@ -28,6 +28,11 @@ class SupervisorUsuarioSAPBase(BaseModel):
     codigo_sap: str
     cuenta: str
     tipo_brigada: str = 'PXQ'
+    patente_habitual: Optional[str] = None
+    brigada: Optional[str] = None
+    pareja: Optional[str] = None
+    comuna_habitual: Optional[str] = None
+    zona_principal: Optional[str] = None
     activo: bool = True
 
 class SupervisorUsuarioSAP(SupervisorUsuarioSAPBase):

@@ -20,6 +20,11 @@ export interface SupervisorUsuarioSAP {
   codigo_sap: string;
   cuenta: string;
   tipo_brigada: string;
+  patente_habitual?: string;
+  brigada?: string;
+  pareja?: string;
+  comuna_habitual?: string;
+  zona_principal?: string;
   activo: boolean;
 }
 

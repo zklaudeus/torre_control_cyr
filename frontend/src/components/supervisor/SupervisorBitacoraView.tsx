@@ -39,6 +39,7 @@ const initialForm: Omit<BitacoraRow, 'id' | '_errors'> = {
   brigada: '',
   pareja: '',
   comuna: '',
+  zona: '',
   carga: '',
   reconexiones: '',
   observacion: '',
@@ -57,6 +58,7 @@ export const SupervisorBitacoraView = ({
   const [asignacionCarga, setAsignacionCarga] = useState<Record<string, string>>({});
   const [saveStatus, setSaveStatus] = useState<Record<string, 'Guardando...' | 'Guardado' | 'Error al guardar' | undefined>>({});
   const saveTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
+  const formRef = useRef<HTMLDivElement>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
@@ -68,12 +70,17 @@ export const SupervisorBitacoraView = ({
 
   useEffect(() => {
     getSupervisoresActivos().then(data => {
-      setSupervisores(data);
-      const juan = data.find(s => s.nombre === 'Juan Muñoz');
-      if (juan) setSelectedSupervisorId(juan.id);
-      else if (data.length > 0) setSelectedSupervisorId(data[0].id);
+      let supervisoresVisibles = data;
+      if (user?.rol === 'supervisor') {
+        supervisoresVisibles = data.filter(s => s.nombre === user.nombre);
+      }
+      setSupervisores(supervisoresVisibles);
+      
+      const matched = supervisoresVisibles.find(s => s.nombre === user?.nombre);
+      if (matched) setSelectedSupervisorId(matched.id);
+      else if (supervisoresVisibles.length > 0) setSelectedSupervisorId(supervisoresVisibles[0].id);
     }).catch(console.error);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     if (selectedSupervisorId) {
@@ -104,6 +111,7 @@ export const SupervisorBitacoraView = ({
         brigada: b.usuario || '',
         pareja: '',
         comuna: b.zona || '',
+        zona: b.zona || '',
         carga: (!b.corte_programado || b.corte_programado === 0) ? '' : String(b.corte_programado),
         reconexiones: (!b.reconexiones_programadas || b.reconexiones_programadas === 0) ? '' : String(b.reconexiones_programadas),
         observacion: b.observacion_brigada || '',
@@ -115,6 +123,12 @@ export const SupervisorBitacoraView = ({
         if (matchingSAP) m.cuenta = matchingSAP.cuenta;
       });
       const filtered = mapped.filter(m => {
+        // Validación estricta: Cada supervisor solo ve sus propios usuarios SAP
+        if (selectedSupervisorId) {
+          const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
+          if (!matchingSAP) return false;
+        }
+
         const zona = obtenerZonaPorComuna(m.comuna, comunasMap);
         const isAdmin = user?.rol === 'admin' || user?.rol === 'superadmin';
         const hasAll = user?.zonasAsignadas?.includes('TODAS');
@@ -170,6 +184,9 @@ export const SupervisorBitacoraView = ({
       const updated = { ...prev, [field]: finalValue };
       if (field === 'cuenta') {
         updated.usuarioSap = obtenerSapPorCuenta(value, sapMap);
+      }
+      if (field === 'comuna') {
+        updated.zona = obtenerZonaPorComuna(value, comunasMap);
       }
       return updated;
     });
@@ -258,8 +275,8 @@ export const SupervisorBitacoraView = ({
     setIsSaving(true);
     setMessage(null);
     try {
-      // Transformar comuna → zona antes de guardar
-      const zona = obtenerZonaPorComuna(form.comuna, comunasMap);
+      // Usar la zona directamente del formulario
+      const zona = form.zona || obtenerZonaPorComuna(form.comuna, comunasMap);
 
       const payload: any = {
         fecha_operacional: fechaOperacional,
@@ -338,7 +355,8 @@ export const SupervisorBitacoraView = ({
       setForm({ ...row });
       setEditId(id);
       setMessage(null);
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Desplazar la vista al formulario de edición
+      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -423,6 +441,90 @@ export const SupervisorBitacoraView = ({
     return todas.filter(c => !usadas.includes(c));
   }, [rows, editId]);
 
+  const cargarBrigadasFrecuentes = async () => {
+    if (!selectedSupervisorId) {
+      setMessage({ text: 'Debe seleccionar un supervisor para cargar sus brigadas frecuentes.', type: 'error' });
+      return;
+    }
+
+    if (!sapMap.length) {
+      setMessage({ text: 'No hay brigadas frecuentes (usuarios SAP) para este supervisor.', type: 'error' });
+      return;
+    }
+
+    setIsSaving(true);
+    setMessage(null);
+
+    const actualesSap = rows.map(r => r.usuarioSap);
+    const faltantes = sapMap.filter(s => s.activo && !actualesSap.includes(s.codigo_sap));
+
+    if (faltantes.length === 0) {
+      setMessage({ text: 'Todas las brigadas frecuentes ya están cargadas en la tabla.', type: 'success' });
+      setIsSaving(false);
+      return;
+    }
+
+    try {
+      const payloads: any[] = [];
+      const invalidas: string[] = [];
+
+      faltantes.forEach(s => {
+        const comuna_hab = s.comuna_habitual || '';
+        const zona = s.zona_principal || obtenerZonaPorComuna(comuna_hab, comunasMap);
+        
+        if (!zona) {
+          invalidas.push(`${s.cuenta} (${s.codigo_sap})`);
+          return;
+        }
+
+        payloads.push({
+          fecha_operacional: fechaOperacional,
+          zona: zona,
+          codigo_sap: s.codigo_sap,
+          patente: s.patente_habitual || '',
+          usuario: s.brigada || '',
+          tipo_brigada: s.tipo_brigada || 'PXQ',
+          estado_brigada: 'Operativa',
+          observacion_brigada: '',
+          corte_programado: 0,
+          reconexiones_programadas: 0,
+          hora_primer_movimiento: null,
+          primer_corte: null,
+          ultimo_corte: null,
+          acum_09: 0,
+          acum_10: 0,
+          acum_11: 0,
+          acum_12: 0,
+          acum_13: 0,
+          acum_14: 0,
+          visita_fallida: 0,
+          reconexiones_ejecutadas: 0,
+          corte_en_poste: 0,
+          corte_en_empalme: 0
+        });
+      });
+
+      // Insert missing ones via multiple parallel requests
+      await Promise.all(payloads.map(p => apiClient.post('/api/brigadas-dia/', p)));
+
+      if (invalidas.length > 0) {
+        setMessage({ text: `Se cargaron ${payloads.length} brigadas. Faltan por configurar zona: ${invalidas.join(', ')}`, type: 'error' });
+      } else {
+        setMessage({ text: `Se cargaron ${payloads.length} brigadas frecuentes.`, type: 'success' });
+      }
+      
+      const newRows = await fetchBrigadas();
+      if (newRows) {
+        await actualizarBitacora(newRows);
+      }
+    } catch (err: any) {
+      console.error(err);
+      setMessage({ text: `Error al cargar brigadas frecuentes: ${err.message}`, type: 'error' });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div style={{ padding: '2rem', height: '100%', overflowY: 'auto', background: K.bgMain }}>
       {/* 1. Encabezado Superior */}
@@ -439,7 +541,8 @@ export const SupervisorBitacoraView = ({
           <select
             value={selectedSupervisorId}
             onChange={(e) => setSelectedSupervisorId(Number(e.target.value) || '')}
-            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText }}
+            disabled={user?.rol === 'supervisor'}
+            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText, opacity: user?.rol === 'supervisor' ? 0.7 : 1 }}
           >
             <option value="">Seleccione supervisor...</option>
             {supervisores.map(s => (
@@ -452,6 +555,9 @@ export const SupervisorBitacoraView = ({
             onChange={(e) => onChangeFecha(e.target.value)}
             style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText }}
           />
+          <button onClick={cargarBrigadasFrecuentes} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: '#FF9800', color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+            {isSaving ? 'Cargando...' : 'Cargar brigadas frecuentes'}
+          </button>
           <button onClick={() => actualizarBitacora()} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: K.primary, color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
             {isSaving ? 'Subiendo...' : 'Actualizar bitácora del día de hoy'}
           </button>
@@ -472,8 +578,8 @@ export const SupervisorBitacoraView = ({
       {/* 2. Paneles KPI por zona */}
       <div style={{ marginBottom: '2rem' }}>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-          {Object.values(resumen).map(r => (
-            <div key={r.zona} style={{ background: K.tertiaryMid, border: `1px solid ${K.border}`, borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+          {Object.values(resumen).map((r, i) => (
+            <div key={`${r.zona}-${i}`} style={{ background: K.tertiaryMid, border: `1px solid ${K.border}`, borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               <h4 style={{ margin: '0 0 1rem', color: K.secondary, fontSize: '1.1rem' }}>Zona: {r.zona}</h4>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -518,7 +624,7 @@ export const SupervisorBitacoraView = ({
       </div>
 
       {/* 3. Formulario de ingreso de una sola brigada */}
-      <div style={{ background: K.tertiaryMid, borderRadius: '12px', padding: '1.5rem', border: `1px solid ${K.border}`, marginBottom: '2rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+      <div ref={formRef} style={{ background: K.tertiaryMid, borderRadius: '12px', padding: '1.5rem', border: `1px solid ${K.border}`, marginBottom: '2rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
         <h3 style={{ margin: '0 0 1.5rem', color: K.neutral, fontSize: '1.2rem' }}>
           {editId ? 'Editar Brigada' : 'Ingresar Brigada'}
         </h3>
@@ -554,10 +660,14 @@ export const SupervisorBitacoraView = ({
           <FormGroup label="Comuna" error={formErrors.comuna}>
             <select value={form.comuna} onChange={e => handleFormChange('comuna', e.target.value)} style={inputStyle(!!formErrors.comuna)} title="Seleccione la comuna. La zona se deriva automáticamente (ej: Coronel → Concepción)">
               <option value="" style={{ background: K.tertiary, color: K.neutral }}>Seleccione...</option>
-              {comunasVisibles.map(c => (
-                <option key={c.comuna} value={c.comuna} style={{ background: K.tertiary, color: K.neutral }}>{c.comuna} → {c.zona_principal}</option>
+              {comunasVisibles.map((c, i) => (
+                <option key={`${c.comuna}-${i}`} value={c.comuna} style={{ background: K.tertiary, color: K.neutral }}>{c.comuna} → {c.zona_principal}</option>
               ))}
             </select>
+          </FormGroup>
+
+          <FormGroup label="Zona" error={formErrors.zona}>
+            <input value={form.zona} readOnly placeholder="Autocompletado" style={{ ...inputStyle(!!formErrors.zona), opacity: 0.7, background: '#E2E8F0' }} title="Se completa al seleccionar la Comuna" />
           </FormGroup>
         </div>
 
@@ -649,7 +759,7 @@ export const SupervisorBitacoraView = ({
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.brigada}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.tipoBrigada}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.pareja || '-'}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{obtenerZonaPorComuna(row.comuna, comunasMap)}</td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.zona || obtenerZonaPorComuna(row.comuna, comunasMap)}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.carga}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.reconexiones}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: row.estado === 'Operativa' ? K.secondary : K.error }}>{row.estado}</td>
