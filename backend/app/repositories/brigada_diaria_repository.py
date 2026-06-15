@@ -26,6 +26,8 @@ class BrigadaDiariaRepository:
             estado_brigada=item.estado_brigada,
             hora_primer_movimiento=item.hora_primer_movimiento,
             observacion_brigada=item.observacion_brigada,
+            corte_programado=item.corte_programado,
+            reconexiones_programadas=item.reconexiones_programadas,
             # Nuevos campos (Ajuste 5.1)
             reconexiones_ejecutadas=item.reconexiones_ejecutadas,
             primer_corte=item.primer_corte,

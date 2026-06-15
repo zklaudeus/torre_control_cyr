@@ -4,9 +4,10 @@ import { BrigadasEditableTable } from './BrigadasEditableTable';
 
 interface BrigadasDiaAccordionProps {
   hook: any; // using any here to avoid importing the complex hook return type, but can be typed properly
+  readOnly?: boolean;
 }
 
-export const BrigadasDiaAccordion = ({ hook }: BrigadasDiaAccordionProps) => {
+export const BrigadasDiaAccordion = ({ hook, readOnly }: BrigadasDiaAccordionProps) => {
   const {
     rows,
     dirtyRows,
@@ -18,6 +19,7 @@ export const BrigadasDiaAccordion = ({ hook }: BrigadasDiaAccordionProps) => {
     handleSaveRow,
     handleSaveAll,
     error,
+    usuariosSap,
   } = hook;
 
   return (
@@ -26,7 +28,7 @@ export const BrigadasDiaAccordion = ({ hook }: BrigadasDiaAccordionProps) => {
       meta={<span>{rows.length} brigadas</span>}
       rightAction={
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {dirtyRows.size > 0 && (
+          {!readOnly && dirtyRows.size > 0 && (
             <button 
               type="button" 
               style={{ ...actionBtnSmallStyle, background: '#0e7490', color: 'white', border: 'none' }} 
@@ -35,9 +37,11 @@ export const BrigadasDiaAccordion = ({ hook }: BrigadasDiaAccordionProps) => {
               Guardar Todo ({dirtyRows.size})
             </button>
           )}
-          <button type="button" style={addBtnStyle} onClick={handleAddRow}>
-            + Agregar brigada
-          </button>
+          {!readOnly && (
+            <button type="button" style={addBtnStyle} onClick={handleAddRow}>
+              + Agregar brigada
+            </button>
+          )}
         </div>
       }
     >
@@ -55,6 +59,8 @@ export const BrigadasDiaAccordion = ({ hook }: BrigadasDiaAccordionProps) => {
           handleCancelRow={handleCancelRow}
           handleDeleteRow={handleDeleteRow}
           handleSaveRow={handleSaveRow}
+          usuariosSap={usuariosSap}
+          readOnly={readOnly}
         />
       </div>
     </AccordionPanel>

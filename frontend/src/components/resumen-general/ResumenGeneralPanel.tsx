@@ -25,6 +25,7 @@ export const ResumenGeneralPanel = ({
   activeSection, 
   onChangeSection 
 }: ResumenGeneralPanelProps) => {
+  const isReadOnly = false; // Torre de control DEBE poder editar y guardar
   const {
     loading,
     saving,
@@ -55,6 +56,7 @@ export const ResumenGeneralPanel = ({
         saving={saving}
         onRefresh={fetchAll}
         onSaveAll={handleSaveAll}
+        readOnly={isReadOnly}
       />
 
       <AlertMessage type="error" message={error || ''} />
@@ -66,11 +68,12 @@ export const ResumenGeneralPanel = ({
         </div>
       ) : (
         <section style={contentStackStyle}>
-          <BrigadasDiaAccordion hook={brigadasHook} />
+          <BrigadasDiaAccordion hook={brigadasHook} readOnly={isReadOnly} />
 
           <ProgramacionDiariaGrid 
             data={programacionData} 
             onChange={handleProgramacionChange} 
+            readOnly={isReadOnly}
           />
         </section>
       )}

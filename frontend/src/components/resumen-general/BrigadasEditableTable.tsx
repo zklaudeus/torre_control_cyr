@@ -13,6 +13,7 @@ import type { ParametroZona } from '../../types/programacionZona';
 import { useDataTableControls } from '../../hooks/useDataTableControls';
 import { DataTableToolbar } from '../common/DataTableToolbar';
 import { SortableHeaderCell } from '../common/SortableHeaderCell';
+import type { SupervisorUsuarioSAP } from '../../api/supervisores.api';
 
 const displayNumber = (value: number | null | undefined): string => {
   return value === 0 || value === null || value === undefined ? '' : String(value);
@@ -41,6 +42,8 @@ interface BrigadasEditableTableProps {
   handleCancelRow: (id: number | string) => void;
   handleDeleteRow: (id: number | string) => void;
   handleSaveRow: (id: number | string) => void;
+  usuariosSap?: SupervisorUsuarioSAP[];
+  readOnly?: boolean;
 }
 
 export const BrigadasEditableTable = ({
@@ -51,6 +54,8 @@ export const BrigadasEditableTable = ({
   handleCancelRow,
   handleDeleteRow,
   handleSaveRow,
+  usuariosSap = [],
+  readOnly = false,
 }: BrigadasEditableTableProps) => {
   const inputStyle = {
     width: '100%',
@@ -117,12 +122,24 @@ export const BrigadasEditableTable = ({
     minWidth: '120px',
   };
 
-  const stickyUsuarioHeaderStyle = {
+  const stickySapHeaderStyle = {
     position: 'sticky' as const,
     left: '120px',
     zIndex: 10,
     background: '#F8FAFC',
+    minWidth: '90px',
+  };
+
+  const stickyCuentaHeaderStyle = {
+    position: 'sticky' as const,
+    left: '210px',
+    zIndex: 10,
+    background: '#F8FAFC',
+    minWidth: '150px',
     boxShadow: '4px 0 6px -2px rgba(0,0,0,0.05)',
+    fontWeight: 600,
+    color: '#64748B',
+    fontSize: '0.65rem',
   };
 
   const getStickyCellZona = (isDirty: boolean) => ({
@@ -134,12 +151,22 @@ export const BrigadasEditableTable = ({
     minWidth: '120px',
   });
 
-  const getStickyCellUsuario = (isDirty: boolean) => ({
+  const getStickyCellSap = (isDirty: boolean) => ({
     ...tdStyle,
     position: 'sticky' as const,
     left: '120px',
     zIndex: 5,
     background: isDirty ? '#1e293b' : '#FFFFFF',
+    minWidth: '90px',
+  });
+
+  const getStickyCellCuenta = (isDirty: boolean) => ({
+    ...tdStyle,
+    position: 'sticky' as const,
+    left: '210px',
+    zIndex: 5,
+    background: isDirty ? '#1e293b' : '#FFFFFF',
+    minWidth: '150px',
     boxShadow: '4px 0 6px -2px rgba(0,0,0,0.05)',
   });
 
@@ -157,9 +184,10 @@ export const BrigadasEditableTable = ({
           <thead>
             <tr style={{ ...tableHeadRowStyle, background: '#F8FAFC', fontSize: '0.65rem' }}>
               <SortableHeaderCell column="zona" label="ZONA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyZonaHeaderStyle} />
-              <SortableHeaderCell column="codigo_sap" label="SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeaderCell column="codigo_sap" label="SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickySapHeaderStyle} />
+              <th style={{ ...thStyle, ...stickyCuentaHeaderStyle }}>CUENTA SAP</th>
               <SortableHeaderCell column="patente" label="PATENTE" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-              <SortableHeaderCell column="usuario" label="USUARIO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyUsuarioHeaderStyle} />
+              <SortableHeaderCell column="usuario" label="USUARIO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="tipo_brigada" label="TIPO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="estado_brigada" label="ESTADO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="hora_primer_movimiento" label="HORA GPS" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
@@ -177,7 +205,7 @@ export const BrigadasEditableTable = ({
               <SortableHeaderCell column="corte_en_empalme" label="C. EMP." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="visita_fallida" label="V. FALL." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="observacion_brigada" label="OBSERVACIÓN" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-              <th style={thStyle}>ACCIONES</th>
+              {!readOnly && <th style={thStyle}>ACCIONES</th>}
             </tr>
           </thead>
           <tbody>
@@ -185,68 +213,91 @@ export const BrigadasEditableTable = ({
               const isDirty = dirtyRows.has(row.id);
 
               return (
-                <tr key={row.id} style={{ ...tableBodyRowStyle, background: isDirty ? '#1e293b' : 'transparent' }}>
-                  <td style={getStickyCellZona(isDirty)}>
-                    <select value={row.zona} onChange={(e) => handleRowChange(row.id, 'zona', e.target.value)} style={selectStyle}>
-                      <option value="">Selec...</option>
-                      {zonas.map(z => <option key={z.zona} value={z.zona}>{z.zona}</option>)}
-                    </select>
+                <tr key={row.id} style={{ ...tableBodyRowStyle, background: isDirty && !readOnly ? '#1e293b' : 'transparent' }}>
+                  <td style={getStickyCellZona(isDirty && !readOnly)}>
+                    {readOnly ? row.zona : (
+                      <select value={row.zona} onChange={(e) => handleRowChange(row.id, 'zona', e.target.value)} style={selectStyle}>
+                        <option value="">Selec...</option>
+                        {zonas.map(z => <option key={z.zona} value={z.zona}>{z.zona}</option>)}
+                      </select>
+                    )}
                   </td>
-                  <td style={tdStyle}><input type="text" value={row.codigo_sap} onChange={(e) => handleRowChange(row.id, 'codigo_sap', e.target.value)} style={{ ...inputStyle, width: '70px' }} /></td>
-                  <td style={tdStyle}><input type="text" value={row.patente} onChange={(e) => handleRowChange(row.id, 'patente', e.target.value)} style={{ ...inputStyle, width: '70px' }} /></td>
-                  <td style={getStickyCellUsuario(isDirty)}><input type="text" value={row.usuario} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '80px' }} /></td>
+                  <td style={getStickyCellSap(isDirty && !readOnly)}>
+                    {readOnly ? row.codigo_sap : <input type="text" value={row.codigo_sap} onChange={(e) => handleRowChange(row.id, 'codigo_sap', e.target.value)} style={{ ...inputStyle, width: '70px' }} />}
+                  </td>
+                  <td style={getStickyCellCuenta(isDirty && !readOnly)}>
+                    <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={usuariosSap.find(u => u.codigo_sap === row.codigo_sap)?.cuenta || row.codigo_sap || ''}>
+                      {usuariosSap.find(u => u.codigo_sap === row.codigo_sap)?.cuenta || row.codigo_sap || '-'}
+                    </div>
+                  </td>
+                  <td style={tdStyle}>{readOnly ? row.patente : <input type="text" value={row.patente} onChange={(e) => handleRowChange(row.id, 'patente', e.target.value)} style={{ ...inputStyle, width: '70px' }} />}</td>
+                  <td style={tdStyle}>{readOnly ? row.usuario : <input type="text" value={row.usuario} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '80px' }} />}</td>
                   <td style={tdStyle}>
-                    <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af' }}>
-                      <option value="PXQ">PXQ</option>
-                      <option value="CF">CF</option>
-                      <option value="Convenio">Conv</option>
-                    </select>
+                    {readOnly ? (
+                      <span style={{ color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af', fontWeight: 500 }}>{row.tipo_brigada}</span>
+                    ) : (
+                      <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af' }}>
+                        <option value="PXQ">PXQ</option>
+                        <option value="CF">CF</option>
+                        <option value="Convenio">Conv</option>
+                      </select>
+                    )}
                   </td>
                   <td style={tdStyle}>
-                    <select value={row.estado_brigada} onChange={(e) => handleRowChange(row.id, 'estado_brigada', e.target.value)} style={{ ...selectStyle, width: '80px', ...(row.estado_brigada === 'Operativa' ? badgeOperativaStyle : badgeInactivaStyle) }}>
-                      <option value="Operativa">Operativa</option>
-                      <option value="Inactiva">Inactiva</option>
-                    </select>
+                    {readOnly ? (
+                      <span style={{ padding: '0.2rem 0.4rem', borderRadius: '4px', fontSize: '0.7rem', ...(row.estado_brigada === 'Operativa' ? badgeOperativaStyle : badgeInactivaStyle) }}>{row.estado_brigada}</span>
+                    ) : (
+                      <select value={row.estado_brigada} onChange={(e) => handleRowChange(row.id, 'estado_brigada', e.target.value)} style={{ ...selectStyle, width: '80px', ...(row.estado_brigada === 'Operativa' ? badgeOperativaStyle : badgeInactivaStyle) }}>
+                        <option value="Operativa">Operativa</option>
+                        <option value="Inactiva">Inactiva</option>
+                      </select>
+                    )}
                   </td>
-                  <td style={tdStyle}><input type="time" value={row.hora_primer_movimiento || ''} onChange={(e) => handleRowChange(row.id, 'hora_primer_movimiento', e.target.value)} style={inputStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.reconexiones_ejecutadas)} onChange={(e) => handleNumericChange(row.id, 'reconexiones_ejecutadas', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="time" value={row.primer_corte || ''} onChange={(e) => handleRowChange(row.id, 'primer_corte', e.target.value)} style={inputStyle} /></td>
-                  <td style={tdStyle}><input type="time" value={row.ultimo_corte || ''} onChange={(e) => handleRowChange(row.id, 'ultimo_corte', e.target.value)} style={inputStyle} /></td>
+                  <td style={tdStyle}>{readOnly ? row.hora_primer_movimiento : <input type="time" value={row.hora_primer_movimiento || ''} onChange={(e) => handleRowChange(row.id, 'hora_primer_movimiento', e.target.value)} style={inputStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.reconexiones_ejecutadas) : <input type="text" inputMode="numeric" value={displayNumber(row.reconexiones_ejecutadas)} onChange={(e) => handleNumericChange(row.id, 'reconexiones_ejecutadas', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? row.primer_corte : <input type="time" value={row.primer_corte || ''} onChange={(e) => handleRowChange(row.id, 'primer_corte', e.target.value)} style={inputStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? row.ultimo_corte : <input type="time" value={row.ultimo_corte || ''} onChange={(e) => handleRowChange(row.id, 'ultimo_corte', e.target.value)} style={inputStyle} />}</td>
 
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.acum_09)} onChange={(e) => handleNumericChange(row.id, 'acum_09', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.acum_10)} onChange={(e) => handleNumericChange(row.id, 'acum_10', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.acum_11)} onChange={(e) => handleNumericChange(row.id, 'acum_11', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.acum_12)} onChange={(e) => handleNumericChange(row.id, 'acum_12', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.acum_13)} onChange={(e) => handleNumericChange(row.id, 'acum_13', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.acum_14)} onChange={(e) => handleNumericChange(row.id, 'acum_14', e.target.value)} style={numberStyle} /></td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.acum_09) : <input type="text" inputMode="numeric" value={displayNumber(row.acum_09)} onChange={(e) => handleNumericChange(row.id, 'acum_09', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.acum_10) : <input type="text" inputMode="numeric" value={displayNumber(row.acum_10)} onChange={(e) => handleNumericChange(row.id, 'acum_10', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.acum_11) : <input type="text" inputMode="numeric" value={displayNumber(row.acum_11)} onChange={(e) => handleNumericChange(row.id, 'acum_11', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.acum_12) : <input type="text" inputMode="numeric" value={displayNumber(row.acum_12)} onChange={(e) => handleNumericChange(row.id, 'acum_12', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.acum_13) : <input type="text" inputMode="numeric" value={displayNumber(row.acum_13)} onChange={(e) => handleNumericChange(row.id, 'acum_13', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.acum_14) : <input type="text" inputMode="numeric" value={displayNumber(row.acum_14)} onChange={(e) => handleNumericChange(row.id, 'acum_14', e.target.value)} style={numberStyle} />}</td>
 
                   <td style={tdStyle}><input type="text" readOnly value={calcTotalCorte(row)} style={totalCorteStyle} tabIndex={-1} /></td>
 
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.corte_en_poste)} onChange={(e) => handleNumericChange(row.id, 'corte_en_poste', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.corte_en_empalme)} onChange={(e) => handleNumericChange(row.id, 'corte_en_empalme', e.target.value)} style={numberStyle} /></td>
-                  <td style={tdStyle}><input type="text" inputMode="numeric" value={displayNumber(row.visita_fallida)} onChange={(e) => handleNumericChange(row.id, 'visita_fallida', e.target.value)} style={numberStyle} /></td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.corte_en_poste) : <input type="text" inputMode="numeric" value={displayNumber(row.corte_en_poste)} onChange={(e) => handleNumericChange(row.id, 'corte_en_poste', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.corte_en_empalme) : <input type="text" inputMode="numeric" value={displayNumber(row.corte_en_empalme)} onChange={(e) => handleNumericChange(row.id, 'corte_en_empalme', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.visita_fallida) : <input type="text" inputMode="numeric" value={displayNumber(row.visita_fallida)} onChange={(e) => handleNumericChange(row.id, 'visita_fallida', e.target.value)} style={numberStyle} />}</td>
                   <td style={tdStyle}>
-                    <input type="text" value={row.observacion_brigada || ''} onChange={(e) => handleRowChange(row.id, 'observacion_brigada', e.target.value)} style={{ ...inputStyle, width: '100px' }} placeholder={row.estado_brigada === 'Inactiva' ? 'Obligatorio' : ''} />
+                    {readOnly ? (
+                      <span style={{ fontSize: '0.75rem', color: row.observacion_brigada ? '#1E293B' : '#94A3B8' }}>{row.observacion_brigada || '-'}</span>
+                    ) : (
+                      <input type="text" value={row.observacion_brigada || ''} onChange={(e) => handleRowChange(row.id, 'observacion_brigada', e.target.value)} style={{ ...inputStyle, width: '100px' }} placeholder={row.estado_brigada === 'Inactiva' ? 'Obligatorio' : ''} />
+                    )}
                   </td>
 
-                  <td style={tdStyle}>
-                    <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center' }}>
-                      {isDirty ? (
-                        <>
-                          <button type="button" style={{ ...actionBtnSmallStyle, background: '#0e7490', color: 'white', border: 'none' }} onClick={() => handleSaveRow(row.id)}>
-                            Guardar
+                  {!readOnly && (
+                    <td style={tdStyle}>
+                      <div style={{ display: 'flex', gap: '0.2rem', justifyContent: 'center' }}>
+                        {isDirty ? (
+                          <>
+                            <button type="button" style={{ ...actionBtnSmallStyle, background: '#0e7490', color: 'white', border: 'none' }} onClick={() => handleSaveRow(row.id)}>
+                              Guardar
+                            </button>
+                            <button type="button" style={{ ...actionBtnSmallStyle, background: '#475569', color: 'white', border: 'none' }} onClick={() => handleCancelRow(row.id)}>
+                              Cancelar
+                            </button>
+                          </>
+                        ) : (
+                          <button type="button" style={{ ...actionBtnSmallStyle, color: '#ef4444' }} onClick={() => handleDeleteRow(row.id)}>
+                            Eliminar
                           </button>
-                          <button type="button" style={{ ...actionBtnSmallStyle, background: '#475569', color: 'white', border: 'none' }} onClick={() => handleCancelRow(row.id)}>
-                            Cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <button type="button" style={{ ...actionBtnSmallStyle, color: '#ef4444' }} onClick={() => handleDeleteRow(row.id)}>
-                          Eliminar
-                        </button>
-                      )}
-                    </div>
-                  </td>
+                        )}
+                      </div>
+                    </td>
+                  )}
                 </tr>
               );
             })}

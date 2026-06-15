@@ -1,32 +1,21 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { BitacoraRow, ResumenZona } from './SupervisorBitacoraLogic';
 import { 
-  validarBitacoraCompleta, 
   validarFila,
   calcularResumenPorZona, 
-  SAP_CUENTA_TEMP, 
-  COMUNA_ZONA_TEMP,
   obtenerZonaPorComuna,
   obtenerSapPorCuenta
 } from './SupervisorBitacoraLogic';
 import { useAuth } from '../../auth/AuthContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-
-const fetchAPI = async (url: string, options?: RequestInit) => {
-  const res = await fetch(`${API_BASE}/api${url}`, {
-    ...options,
-    headers: { 'Content-Type': 'application/json', ...options?.headers }
-  });
-  if (!res.ok) throw new Error(`Error: ${res.status}`);
-  return res.json();
-};
+import { apiClient } from '../../api/client';
+import { getSupervisoresActivos, getComunasZonasBySupervisor, getUsuariosSapBySupervisor } from '../../api/supervisores.api';
+import type { Supervisor, SupervisorComunaZona, SupervisorUsuarioSAP } from '../../api/supervisores.api';
 
 interface SupervisorBitacoraViewProps {
   fechaOperacional: string;
   onChangeFecha: (fecha: string) => void;
-  activeSection: string;
-  onChangeSection: (section: string) => void;
+  activeSection?: string;
+  onChangeSection?: (section: string) => void;
 }
 
 const K = {
@@ -50,14 +39,12 @@ const initialForm: Omit<BitacoraRow, 'id' | '_errors'> = {
   brigada: '',
   pareja: '',
   comuna: '',
-  carga: '0',
-  reconexiones: '0',
+  carga: '',
+  reconexiones: '',
   observacion: '',
   estado: 'Operativa',
   tipoBrigada: 'PXQ'
 };
-
-// LocalStorage usage removed to use DB completely
 
 export const SupervisorBitacoraView = ({
   fechaOperacional,
@@ -67,52 +54,74 @@ export const SupervisorBitacoraView = ({
   const [rows, setRows] = useState<BitacoraRow[]>([]);
   const [form, setForm] = useState(initialForm);
   const [formErrors, setFormErrors] = useState<Partial<Record<keyof BitacoraRow, string>>>({});
-  const [asignacionCarga, setAsignacionCarga] = useState<Record<string, number>>({});
+  const [asignacionCarga, setAsignacionCarga] = useState<Record<string, string>>({});
+  const [saveStatus, setSaveStatus] = useState<Record<string, 'Guardando...' | 'Guardado' | 'Error al guardar' | undefined>>({});
+  const saveTimeouts = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
 
+  const [supervisores, setSupervisores] = useState<Supervisor[]>([]);
+  const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | ''>('');
+  const [comunasMap, setComunasMap] = useState<SupervisorComunaZona[]>([]);
+  const [sapMap, setSapMap] = useState<SupervisorUsuarioSAP[]>([]);
+
+  useEffect(() => {
+    getSupervisoresActivos().then(data => {
+      setSupervisores(data);
+      const juan = data.find(s => s.nombre === 'Juan Muñoz');
+      if (juan) setSelectedSupervisorId(juan.id);
+      else if (data.length > 0) setSelectedSupervisorId(data[0].id);
+    }).catch(console.error);
+  }, []);
+
+  useEffect(() => {
+    if (selectedSupervisorId) {
+      getComunasZonasBySupervisor(Number(selectedSupervisorId)).then(setComunasMap).catch(console.error);
+      getUsuariosSapBySupervisor(Number(selectedSupervisorId)).then(setSapMap).catch(console.error);
+    } else {
+      setComunasMap([]);
+      setSapMap([]);
+    }
+  }, [selectedSupervisorId]);
+
+  // Filtrar comunas según las zonas asignadas al supervisor
+  const comunasVisibles = useMemo(() =>
+    comunasMap.filter(c =>
+      !user?.zonasAsignadas || user.zonasAsignadas.includes(c.zona_principal)
+    ),
+  [user, comunasMap]);
+
   const fetchBrigadas = async (): Promise<BitacoraRow[] | undefined> => {
     try {
-      const data: any[] = await fetchAPI(`/brigadas-dia/?fecha=${fechaOperacional}`);
+      const res = await apiClient.get<any[]>(`/api/brigadas-dia/?fecha=${fechaOperacional}`);
+      const data = res.data;
       const mapped: BitacoraRow[] = data.map(b => ({
         id: String(b.id),
         patente: b.patente || '',
         usuarioSap: b.codigo_sap || '',
         cuenta: '',
-        brigada: b.usuario || '', // using usuario as brigada
+        brigada: b.usuario || '',
         pareja: '',
-        comuna: b.zona || '', // using zona as comuna
-        carga: String(b.corte_programado || 0),
-        reconexiones: String(b.reconexiones_programadas || 0),
+        comuna: b.zona || '',
+        carga: (!b.corte_programado || b.corte_programado === 0) ? '' : String(b.corte_programado),
+        reconexiones: (!b.reconexiones_programadas || b.reconexiones_programadas === 0) ? '' : String(b.reconexiones_programadas),
         observacion: b.observacion_brigada || '',
         estado: b.estado_brigada || 'Operativa',
         tipoBrigada: b.tipo_brigada || 'PXQ'
       }));
-      // Assign missing 'cuenta' dynamically using SAP
       mapped.forEach(m => {
-        const matchingSAP = SAP_CUENTA_TEMP.find(s => s.sap === m.usuarioSap);
+        const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
         if (matchingSAP) m.cuenta = matchingSAP.cuenta;
       });
       const filtered = mapped.filter(m => {
-        const zona = obtenerZonaPorComuna(m.comuna);
+        const zona = obtenerZonaPorComuna(m.comuna, comunasMap);
         const isAdmin = user?.rol === 'admin' || user?.rol === 'superadmin';
         const hasAll = user?.zonasAsignadas?.includes('TODAS');
         return isAdmin || hasAll || !user?.zonasAsignadas || (zona && user.zonasAsignadas.includes(zona));
       });
-      const finalRows = filtered.map(m => {
-        // Find existing data in state if we're not reloading from server just keeping local
-        const existing = rows.find(r => r.id === m.id);
-        if (existing) {
-          // If existing is present, we keep what the server gave us but if you were typing it could be saved. 
-          // Actually, now that it's in DB, we should just use what comes from `data`!
-          // m is already the mapped version of `data`, so it has the backend DB values.
-          return m;
-        }
-        return m;
-      });
-      setRows(finalRows);
-      return finalRows;
+      setRows(filtered);
+      return filtered;
     } catch (err) {
       console.error(err);
       setMessage({ text: 'Error al cargar brigadas desde servidor.', type: 'error' });
@@ -122,11 +131,12 @@ export const SupervisorBitacoraView = ({
 
   const fetchProgramacionZona = async () => {
     try {
-      const data: any[] = await fetchAPI(`/programacion-zona/?fecha=${fechaOperacional}`);
-      const cargas: Record<string, number> = {};
+      const res = await apiClient.get<any[]>(`/api/programacion-zona/?fecha=${fechaOperacional}`);
+      const data = res.data;
+      const cargas: Record<string, string> = {};
       data.forEach(p => {
         if (p.tipo_brigada === 'PXQ' && p.asignacion_carga !== undefined && p.asignacion_carga !== null) {
-          cargas[p.zona] = Number(p.asignacion_carga);
+          cargas[p.zona] = p.asignacion_carga === 0 ? '' : String(p.asignacion_carga);
         }
       });
       setAsignacionCarga(cargas);
@@ -136,10 +146,12 @@ export const SupervisorBitacoraView = ({
   };
 
   useEffect(() => {
-    fetchBrigadas();
-    fetchProgramacionZona();
+    if (comunasMap.length > 0 && sapMap.length > 0) {
+      fetchBrigadas();
+      fetchProgramacionZona();
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fechaOperacional]);
+  }, [fechaOperacional, comunasMap, sapMap]);
 
   const handleFormChange = (field: keyof typeof form, value: string) => {
     setForm(prev => {
@@ -147,15 +159,17 @@ export const SupervisorBitacoraView = ({
       if (field === 'patente') {
         finalValue = value.toUpperCase().slice(0, 6);
       }
+      if (field === 'carga' || field === 'reconexiones') {
+        let cleanVal = value;
+        if (cleanVal.startsWith('0') && cleanVal.length > 1) {
+          cleanVal = cleanVal.replace(/^0+/, '');
+        }
+        if (cleanVal === '0') cleanVal = '';
+        finalValue = cleanVal;
+      }
       const updated = { ...prev, [field]: finalValue };
       if (field === 'cuenta') {
-        updated.usuarioSap = obtenerSapPorCuenta(value);
-      }
-      if (field === 'comuna') {
-        const valLower = value.toLowerCase();
-        if (valLower !== 'coquimbo' && valLower !== 'talca' && prev.tipoBrigada === 'CF') {
-          updated.tipoBrigada = 'PXQ';
-        }
+        updated.usuarioSap = obtenerSapPorCuenta(value, sapMap);
       }
       return updated;
     });
@@ -166,11 +180,60 @@ export const SupervisorBitacoraView = ({
 
   const handleIncrement = (field: 'carga' | 'reconexiones', delta: number) => {
     setForm(prev => {
-      const current = parseInt(prev[field], 10) || 0;
+      const current = parseInt(prev[field] || '0', 10);
       const next = Math.max(0, current + delta);
-      return { ...prev, [field]: next.toString() };
+      return { ...prev, [field]: next === 0 ? '' : next.toString() };
     });
   };
+
+  const guardarAsignacionZona = async (zona: string, carga: number) => {
+    setSaveStatus(prev => ({ ...prev, [zona]: 'Guardando...' }));
+    try {
+      const r = resumen[zona];
+      if (!r) throw new Error("Zona no encontrada");
+
+      const payload = [{
+        zona: r.zona,
+        corte_programado: r.corteTotal,
+        reconexiones_programadas: r.reconexionesTotal,
+        asignacion_carga: carga,
+        tipo_brigada: 'PXQ' 
+      }];
+
+      await apiClient.post('/api/programacion-zona/bulk', {
+        fecha_operacional: fechaOperacional,
+        items: payload
+      });
+
+      setSaveStatus(prev => ({ ...prev, [zona]: 'Guardado' }));
+      setTimeout(() => {
+        setSaveStatus(prev => ({ ...prev, [zona]: undefined }));
+      }, 2000);
+    } catch (err) {
+      console.error(err);
+      setSaveStatus(prev => ({ ...prev, [zona]: 'Error al guardar' }));
+    }
+  };
+
+  const handleCargaZonaChange = (zona: string, val: string) => {
+    let cleanVal = val;
+    if (cleanVal.startsWith('0') && cleanVal.length > 1) {
+      cleanVal = cleanVal.replace(/^0+/, '');
+    }
+    if (cleanVal === '0') cleanVal = '';
+
+    setAsignacionCarga(prev => ({ ...prev, [zona]: cleanVal }));
+
+    if (saveTimeouts.current[zona]) {
+      clearTimeout(saveTimeouts.current[zona]);
+    }
+
+    saveTimeouts.current[zona] = setTimeout(() => {
+      const numValue = parseInt(cleanVal, 10) || 0;
+      guardarAsignacionZona(zona, numValue);
+    }, 500);
+  };
+
 
   const guardarFila = async () => {
     if (!user) {
@@ -179,12 +242,11 @@ export const SupervisorBitacoraView = ({
     }
 
     const tempRow = { ...form, id: 'temp' } as BitacoraRow;
-    const allSaps = editId ? rows.filter(r => r.id !== editId).map(r => r.usuarioSap) : rows.map(r => r.usuarioSap);
-    const errors = validarFila(tempRow, allSaps);
-    
-    const zonaComuna = obtenerZonaPorComuna(form.comuna);
+    const errors = validarFila(tempRow, rows, editId, fechaOperacional, comunasMap, sapMap);
+
+    const zonaDestino = obtenerZonaPorComuna(form.comuna, comunasMap);
     const hasAll = user.zonasAsignadas?.includes('TODAS');
-    if (user.rol === 'supervisor' && !hasAll && user.zonasAsignadas && zonaComuna && !user.zonasAsignadas.includes(zonaComuna)) {
+    if (user.rol === 'supervisor' && !hasAll && user.zonasAsignadas && zonaDestino && !user.zonasAsignadas.includes(zonaDestino)) {
       errors.comuna = `La comuna no pertenece a sus zonas asignadas (${user.zonasAsignadas.join(', ')}).`;
     }
 
@@ -196,13 +258,16 @@ export const SupervisorBitacoraView = ({
     setIsSaving(true);
     setMessage(null);
     try {
+      // Transformar comuna → zona antes de guardar
+      const zona = obtenerZonaPorComuna(form.comuna, comunasMap);
+
       const payload: any = {
         fecha_operacional: fechaOperacional,
-        zona: form.comuna,
+        zona: zona,
         codigo_sap: form.usuarioSap,
         patente: form.patente,
         usuario: form.brigada,
-        tipo_brigada: form.tipoBrigada,
+        tipo_brigada: 'PXQ',
         estado_brigada: form.estado,
         observacion_brigada: form.observacion,
         corte_programado: parseInt(form.carga, 10) || 0,
@@ -226,22 +291,12 @@ export const SupervisorBitacoraView = ({
       }
 
       if (editId) {
-        await fetchAPI(`/brigadas-dia/${editId}`, {
-          method: 'PATCH', // Changed to PATCH to avoid overwriting missing fields if backend supports it, or it will just process as partial
-          body: JSON.stringify(payload)
-        }).catch(async (err) => {
-           // Fallback to PUT if PATCH is not supported, hoping backend ignores missing fields
-           await fetchAPI(`/brigadas-dia/${editId}`, {
-             method: 'PUT',
-             body: JSON.stringify(payload)
-           });
-        });
+        // No enviar fecha_operacional en PUT (el schema BrigadaDiariaUpdate no lo incluye)
+        const { fecha_operacional: _, ...updatePayload } = payload;
+        await apiClient.put(`/api/brigadas-dia/${editId}`, updatePayload);
         setMessage({ text: 'Brigada actualizada en la BD.', type: 'success' });
       } else {
-        await fetchAPI(`/brigadas-dia/`, {
-          method: 'POST',
-          body: JSON.stringify(payload)
-        });
+        await apiClient.post('/api/brigadas-dia/', payload);
         setMessage({ text: 'Brigada guardada en la BD.', type: 'success' });
       }
 
@@ -254,7 +309,8 @@ export const SupervisorBitacoraView = ({
       }
     } catch (err: any) {
       console.error(err);
-      setMessage({ text: `Error al guardar: ${err.message}`, type: 'error' });
+      const detail = err.response?.data?.detail || err.message;
+      setMessage({ text: `Error al guardar: ${detail}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }
@@ -263,7 +319,7 @@ export const SupervisorBitacoraView = ({
   const eliminarFila = async (id: string) => {
     if (window.confirm('¿Eliminar esta brigada de la base de datos?')) {
       try {
-        await fetchAPI(`/brigadas-dia/${id}`, { method: 'DELETE' });
+        await apiClient.delete(`/api/brigadas-dia/${id}`);
         setMessage({ text: 'Brigada eliminada de la BD.', type: 'success' });
         const newRows = await fetchBrigadas();
         if (newRows) {
@@ -295,21 +351,21 @@ export const SupervisorBitacoraView = ({
   const actualizarBitacora = async (customRows?: BitacoraRow[]) => {
     const targetRows = customRows || rows;
     if (targetRows.length === 0 && !customRows) {
-      setMessage({ text: 'No hay brigadas registradas para actualizar el KPI.', type: 'error' });
+      setMessage({ text: 'No hay brigadas registradas para actualizar la programación.', type: 'error' });
       return;
     }
 
     setIsSaving(true);
-    if (!customRows) setMessage({ text: 'Subiendo...', type: 'success' });
+    if (!customRows) setMessage({ text: 'Actualizando bitácora...', type: 'success' });
 
     let targetResumen = resumen;
     if (customRows) {
-      const calc = calcularResumenPorZona(customRows);
+      const calc = calcularResumenPorZona(customRows, comunasMap);
       const completo: Record<string, ResumenZona> = {};
       const isAdminOrAll = user?.rol === 'admin' || user?.rol === 'superadmin' || user?.zonasAsignadas?.includes('TODAS');
 
       if (isAdminOrAll) {
-        const allZones = Array.from(new Set(COMUNA_ZONA_TEMP.map(c => c.zona)));
+        const allZones = Array.from(new Set(comunasMap.map(c => c.zona_principal)));
         allZones.forEach(z => {
           completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
         });
@@ -326,19 +382,16 @@ export const SupervisorBitacoraView = ({
         zona: r.zona,
         corte_programado: r.corteTotal,
         reconexiones_programadas: r.reconexionesTotal,
-        asignacion_carga: asignacionCarga[r.zona] || 0,
+        asignacion_carga: parseInt(asignacionCarga[r.zona] || '0', 10),
         tipo_brigada: 'PXQ' 
       }));
 
-      await fetchAPI(`/programacion-zona/bulk`, { 
-        method: 'POST', 
-        body: JSON.stringify({
-          fecha_operacional: fechaOperacional,
-          items: programacionBulkData
-        }) 
+      await apiClient.post('/api/programacion-zona/bulk', {
+        fecha_operacional: fechaOperacional,
+        items: programacionBulkData
       });
 
-      if (!customRows) setMessage({ text: 'KPIs zonales actualizados exitosamente en Torre de Control.', type: 'success' });
+      if (!customRows) setMessage({ text: 'Bitácora actualizada — Torre Control refleja los cambios.', type: 'success' });
     } catch (err: any) {
       console.error(err);
       if (!customRows) setMessage({ text: `Error al actualizar: ${err.message}`, type: 'error' });
@@ -348,23 +401,15 @@ export const SupervisorBitacoraView = ({
   };
 
   const resumen = useMemo(() => {
-    const calc = calcularResumenPorZona(rows);
-    if (!user?.zonasAsignadas) return calc;
-    
+    const calc = calcularResumenPorZona(rows, comunasMap);
     const completo: Record<string, ResumenZona> = {};
-    const isAdminOrAll = user.rol === 'admin' || user.rol === 'superadmin' || user.zonasAsignadas.includes('TODAS');
+    const zonasVisibles = user?.zonasAsignadas?.includes('TODAS')
+      ? Array.from(new Set(comunasMap.map(c => c.zona_principal)))
+      : (user?.zonasAsignadas || []);
 
-    if (isAdminOrAll) {
-      // Show all predefined zones for Superadmin/TODAS
-      const allZones = Array.from(new Set(COMUNA_ZONA_TEMP.map(c => c.zona)));
-      allZones.forEach(z => {
-        completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
-      });
-    } else {
-      user.zonasAsignadas.forEach(z => {
-        completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
-      });
-    }
+    zonasVisibles.forEach(z => {
+      completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
+    });
     return completo;
   }, [rows, user]);
 
@@ -374,7 +419,7 @@ export const SupervisorBitacoraView = ({
       .map(r => r.cuenta)
       .filter(Boolean);
       
-    const todas = Array.from(new Set(SAP_CUENTA_TEMP.map(s => s.cuenta))).sort();
+    const todas = Array.from(new Set(sapMap.map(s => s.cuenta))).sort();
     return todas.filter(c => !usadas.includes(c));
   }, [rows, editId]);
 
@@ -391,6 +436,16 @@ export const SupervisorBitacoraView = ({
           )}
         </div>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+          <select
+            value={selectedSupervisorId}
+            onChange={(e) => setSelectedSupervisorId(Number(e.target.value) || '')}
+            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText }}
+          >
+            <option value="">Seleccione supervisor...</option>
+            {supervisores.map(s => (
+              <option key={s.id} value={s.id}>{s.nombre}</option>
+            ))}
+          </select>
           <input 
             type="date" 
             value={fechaOperacional}
@@ -420,29 +475,42 @@ export const SupervisorBitacoraView = ({
           {Object.values(resumen).map(r => (
             <div key={r.zona} style={{ background: K.tertiaryMid, border: `1px solid ${K.border}`, borderRadius: '12px', padding: '1.25rem', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
               <h4 style={{ margin: '0 0 1rem', color: K.secondary, fontSize: '1.1rem' }}>Zona: {r.zona}</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: K.mutedText }}>Brigadas:</span>
-                  <span style={{ color: K.neutral, fontWeight: 600 }}>{r.totalBrigadas}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: K.mutedText }}>Corte Programado:</span>
-                  <span style={{ color: K.neutral, fontWeight: 600 }}>{r.corteTotal}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: K.mutedText }}>Rec. Programadas:</span>
-                  <span style={{ color: K.neutral, fontWeight: 600 }}>{r.reconexionesTotal}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: `1px solid ${K.border}` }}>
-                  <span style={{ color: K.mutedText, fontWeight: 600 }}>Asign. Carga Zona:</span>
-                  <input 
-                    type="number" 
-                    min="0"
-                    value={asignacionCarga[r.zona] ?? ''}
-                    onChange={(e) => setAsignacionCarga(prev => ({ ...prev, [r.zona]: parseInt(e.target.value, 10) || 0 }))}
-                    style={{ width: '80px', padding: '0.4rem', borderRadius: '6px', border: `1px solid ${K.border}`, background: K.tertiary, color: K.neutral, textAlign: 'center', fontWeight: 600 }}
-                  />
-                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: '0.75rem', fontSize: '0.875rem' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: K.mutedText }}>Brigadas:</span>
+                    <span style={{ color: K.neutral, fontWeight: 600 }}>{r.totalBrigadas}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: K.mutedText }}>Corte Programado:</span>
+                    <span style={{ color: K.neutral, fontWeight: 600 }}>{r.corteTotal}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ color: K.mutedText }}>Rec. Programadas:</span>
+                    <span style={{ color: K.neutral, fontWeight: 600 }}>{r.reconexionesTotal}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '0.5rem', paddingTop: '0.5rem', borderTop: `1px solid ${K.border}` }}>
+                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ color: K.mutedText, fontWeight: 600 }}>Asign. Carga Zona:</span>
+                      {saveStatus[r.zona] && (
+                        <span style={{ 
+                          fontSize: '0.7rem', 
+                          marginTop: '2px',
+                          color: saveStatus[r.zona] === 'Guardado' ? '#10b981' : 
+                                 saveStatus[r.zona] === 'Error al guardar' ? K.error : 
+                                 K.primary 
+                        }}>
+                          {saveStatus[r.zona]}
+                        </span>
+                      )}
+                    </div>
+                    <input 
+                      type="number" 
+                      min="0"
+                      value={asignacionCarga[r.zona] ?? ''}
+                      onChange={(e) => handleCargaZonaChange(r.zona, e.target.value)}
+                      style={{ width: '80px', padding: '0.4rem', borderRadius: '6px', border: `1px solid ${K.border}`, background: K.tertiary, color: K.neutral, textAlign: 'center', fontWeight: 600 }}
+                    />
+                  </div>
               </div>
             </div>
           ))}
@@ -484,12 +552,10 @@ export const SupervisorBitacoraView = ({
           </FormGroup>
 
           <FormGroup label="Comuna" error={formErrors.comuna}>
-            <select value={form.comuna} onChange={e => handleFormChange('comuna', e.target.value)} style={inputStyle(!!formErrors.comuna)}>
+            <select value={form.comuna} onChange={e => handleFormChange('comuna', e.target.value)} style={inputStyle(!!formErrors.comuna)} title="Seleccione la comuna. La zona se deriva automáticamente (ej: Coronel → Concepción)">
               <option value="" style={{ background: K.tertiary, color: K.neutral }}>Seleccione...</option>
-              {COMUNA_ZONA_TEMP
-                .filter(c => user?.rol === 'admin' || !user?.zonasAsignadas || user.zonasAsignadas.includes(c.zona))
-                .map(c => (
-                <option key={c.comuna} value={c.comuna} style={{ background: K.tertiary, color: K.neutral }}>{c.comuna} ({c.zona})</option>
+              {comunasVisibles.map(c => (
+                <option key={c.comuna} value={c.comuna} style={{ background: K.tertiary, color: K.neutral }}>{c.comuna} → {c.zona_principal}</option>
               ))}
             </select>
           </FormGroup>
@@ -511,12 +577,7 @@ export const SupervisorBitacoraView = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <FormGroup label="Tipo Brigada">
-                <select value={form.tipoBrigada} onChange={e => handleFormChange('tipoBrigada', e.target.value as any)} style={inputStyle(false)}>
-                  <option value="PXQ" style={{ background: K.tertiary, color: K.neutral }}>PXQ</option>
-                  {(form.comuna.toLowerCase() === 'coquimbo' || form.comuna.toLowerCase() === 'talca') && (
-                    <option value="CF" style={{ background: K.tertiary, color: K.neutral }}>CF</option>
-                  )}
-                </select>
+                <input value="PXQ" readOnly style={{ ...inputStyle(false), opacity: 0.7, background: '#E2E8F0' }} />
               </FormGroup>
               <FormGroup label="Estado">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', ...inputStyle(false) }}>
@@ -552,10 +613,15 @@ export const SupervisorBitacoraView = ({
 
       {/* 4. Lista de brigadas ingresadas */}
       <div style={{ background: K.tertiaryMid, borderRadius: '12px', border: `1px solid ${K.border}`, overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-        <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${K.border}`, background: K.tertiaryMid, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <h4 style={{ margin: 0, color: K.neutral, fontSize: '1.1rem' }}>Lista de Brigadas Ingresadas ({rows.length})</h4>
-          <div style={{ fontSize: '0.85rem', color: K.mutedText }}>Revise o edite las brigadas antes de subir la bitácora</div>
+      <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${K.border}`, background: K.tertiaryMid, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <h4 style={{ margin: 0, color: K.neutral, fontSize: '1.1rem' }}>Lista de Brigadas Ingresadas ({rows.length})</h4>
+        <div style={{ fontSize: '0.85rem', color: K.mutedText, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          Revise o edite las brigadas antes de subir la bitácora
+          <span title="La columna 'Comuna' muestra la zona derivada (ej: Concepción). 
+                    No se puede mostrar la comuna específica (ej: Coronel) porque el backend solo almacena zona." 
+                style={{ cursor: 'help', color: K.secondary, fontWeight: 600 }}>ℹ️</span>
         </div>
+      </div>
         <div style={{ overflowX: 'auto' }}>
           {rows.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: K.mutedText }}>
@@ -566,7 +632,7 @@ export const SupervisorBitacoraView = ({
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
               <thead style={{ background: K.tertiary }}>
                 <tr>
-                  {['Patente', 'Cuenta', 'SAP', 'Brigada', 'Tipo', 'Pareja', 'Comuna', 'Cortes', 'Reconex.', 'Estado', 'Acciones'].map((h, i) => (
+                  {['Patente', 'Cuenta', 'SAP / Nombre', 'Brigada', 'Tipo', 'Pareja', 'Zona', 'Cortes', 'Reconex.', 'Estado', 'Acciones'].map((h, i) => (
                     <th key={i} style={{ padding: '0.85rem 1rem', color: K.mutedText, fontSize: '0.75rem', textTransform: 'uppercase', fontWeight: 600, borderBottom: `1px solid ${K.border}` }}>{h}</th>
                   ))}
                 </tr>
@@ -576,11 +642,14 @@ export const SupervisorBitacoraView = ({
                   <tr key={row.id} style={{ background: i % 2 === 0 ? 'transparent' : K.tertiary, transition: 'background 0.2s' }}>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.patente}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.cuenta}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.usuarioSap}</td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <div>{row.usuarioSap}</div>
+                      <div style={{ fontSize: '0.75rem', color: K.mutedText }}>{sapMap.find(s => s.codigo_sap === row.usuarioSap)?.cuenta || ''}</div>
+                    </td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.brigada}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.tipoBrigada}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.pareja || '-'}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.comuna}</td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{obtenerZonaPorComuna(row.comuna, comunasMap)}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.carga}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.reconexiones}</td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: row.estado === 'Operativa' ? K.secondary : K.error }}>{row.estado}</td>
@@ -609,14 +678,15 @@ const FormGroup = ({ label, error, children }: { label: string, error?: string, 
 
 const NumberStepper = ({ value, onChange, onIncrement, hasError }: { value: string, onChange: (val: string) => void, onIncrement: (d: number) => void, hasError: boolean }) => (
   <div style={{ display: 'flex', alignItems: 'center', background: K.tertiary, border: `1px solid ${hasError ? K.error : K.border}`, borderRadius: '4px', overflow: 'hidden' }}>
-    <button onClick={() => onIncrement(-1)} style={{ background: 'transparent', color: K.mutedText, border: 'none', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '1rem' }}>−</button>
+    <button type="button" onClick={() => onIncrement(-1)} style={{ background: 'transparent', color: K.mutedText, border: 'none', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '1rem' }}>−</button>
     <input 
       type="number" 
+      min="0"
       value={value} 
       onChange={e => onChange(e.target.value)} 
       style={{ width: '40px', textAlign: 'center', background: 'transparent', color: K.neutral, border: 'none', outline: 'none', appearance: 'none', padding: '0.5rem 0' }} 
     />
-    <button onClick={() => onIncrement(1)} style={{ background: 'transparent', color: K.mutedText, border: 'none', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '1rem' }}>+</button>
+    <button type="button" onClick={() => onIncrement(1)} style={{ background: 'transparent', color: K.mutedText, border: 'none', padding: '0.5rem 0.75rem', cursor: 'pointer', fontSize: '1rem' }}>+</button>
   </div>
 );
 

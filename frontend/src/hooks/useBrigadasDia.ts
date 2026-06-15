@@ -3,6 +3,7 @@ import { getBrigadas, deleteBrigada, createBrigada, updateBrigada } from '../api
 import { getZonasActivas } from '../api/parametros.api';
 import type { BrigadaDiaria, BrigadaDiariaCreate } from '../types/brigadaDia';
 import type { ParametroZona } from '../types/programacionZona';
+import { getAllUsuariosSap, type SupervisorUsuarioSAP } from '../api/supervisores.api';
 
 export type EditableBrigada = Omit<BrigadaDiaria, 'id'> & {
   id: number | string;
@@ -40,19 +41,22 @@ export const useBrigadasDia = (fechaOperacional: string) => {
   const [rows, setRows] = useState<EditableBrigada[]>([]);
   const [dirtyRows, setDirtyRows] = useState<Set<number | string>>(new Set());
   const [zonas, setZonas] = useState<ParametroZona[]>([]);
+  const [usuariosSap, setUsuariosSap] = useState<SupervisorUsuarioSAP[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchBrigadasData = useCallback(async () => {
     setLoading(true);
     try {
-      const [brigadasData, zonasData] = await Promise.all([
+      const [brigadasData, zonasData, sapData] = await Promise.all([
         getBrigadas(fechaOperacional),
         getZonasActivas(),
+        getAllUsuariosSap(),
       ]);
       setOriginalBrigadas(brigadasData);
       setRows(brigadasData);
       setZonas(zonasData);
+      setUsuariosSap(sapData);
       setDirtyRows(new Set());
       setError(null);
     } catch (err) {
@@ -189,5 +193,6 @@ export const useBrigadasDia = (fechaOperacional: string) => {
     handleSaveRow,
     handleSaveAll,
     originalBrigadas,
+    usuariosSap,
   };
 };

@@ -14,6 +14,7 @@ interface DashboardHeaderProps {
   saving: boolean;
   onRefresh?: () => void;
   onSaveAll?: () => void;
+  readOnly?: boolean;
 }
 
 export const DashboardHeader = ({
@@ -23,6 +24,7 @@ export const DashboardHeader = ({
   saving,
   onRefresh,
   onSaveAll,
+  readOnly,
 }: DashboardHeaderProps) => {
   return (
     <header style={headerStyle}>
@@ -70,21 +72,23 @@ export const DashboardHeader = ({
           ↓ Exportar
         </button>
 
-        <button
-          type="button"
-          onClick={onSaveAll}
-          disabled={saving}
-          style={{
-            ...actionBtnStyle,
-            background: saving ? '#0056b3' : '#007BFF',
-            color: '#FFFFFF',
-            border: 'none',
-            fontWeight: 'bold',
-            cursor: saving ? 'not-allowed' : 'pointer',
-          }}
-        >
-          {saving ? 'Guardando...' : '💾 Guardar Todo'}
-        </button>
+        {!readOnly && (
+          <button
+            type="button"
+            onClick={onSaveAll}
+            disabled={saving}
+            style={{
+              ...actionBtnStyle,
+              background: saving ? '#0056b3' : '#007BFF',
+              color: '#FFFFFF',
+              border: 'none',
+              fontWeight: 'bold',
+              cursor: saving ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {saving ? 'Guardando...' : '💾 Guardar Todo'}
+          </button>
+        )}
       </div>
     </header>
   );

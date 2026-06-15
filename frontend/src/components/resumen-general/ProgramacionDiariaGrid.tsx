@@ -22,11 +22,12 @@ const K = {
 interface ProgramacionDiariaGridProps {
   data: ProgramacionZona[];
   onChange: (zona: string, tipo_brigada: string, field: keyof ProgramacionZona, value: string) => void;
+  readOnly?: boolean;
 }
 
 type TabType = 'PXQ' | 'CF';
 
-export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGridProps) => {
+export const ProgramacionDiariaGrid = ({ data, onChange, readOnly }: ProgramacionDiariaGridProps) => {
   const [activeTab, setActiveTab] = useState<TabType>('PXQ');
 
   const filteredData = useMemo(() => data.filter(d => d.tipo_brigada === activeTab), [data, activeTab]);
@@ -171,15 +172,16 @@ export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGri
                   <input 
                     type="number"
                     value={item.asignacion_carga === 0 ? '' : item.asignacion_carga}
-                    onChange={(e) => onChange(item.zona, item.tipo_brigada, 'asignacion_carga', e.target.value)}
+                    onChange={(e) => !readOnly && onChange(item.zona, item.tipo_brigada, 'asignacion_carga', e.target.value)}
+                    readOnly={readOnly}
                     style={{
                       width: '100px', padding: '0.4rem 0.5rem', borderRadius: '6px',
                       border: `1px solid ${K.border}`, textAlign: 'right', fontSize: '0.9rem',
-                      background: K.bgMain, color: K.textMain, fontWeight: 600,
-                      outline: 'none', transition: 'border-color 0.2s'
+                      background: readOnly ? K.bgMain : '#FFFFFF', color: readOnly ? K.textMuted : K.textMain, fontWeight: 600,
+                      outline: 'none', transition: 'border-color 0.2s', cursor: readOnly ? 'not-allowed' : 'text'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = K.primary}
-                    onBlur={(e) => e.target.style.borderColor = K.border}
+                    onFocus={(e) => !readOnly && (e.target.style.borderColor = K.primary)}
+                    onBlur={(e) => !readOnly && (e.target.style.borderColor = K.border)}
                   />
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -187,15 +189,16 @@ export const ProgramacionDiariaGrid = ({ data, onChange }: ProgramacionDiariaGri
                   <input 
                     type="number"
                     value={item.reconexiones_programadas === 0 ? '' : item.reconexiones_programadas}
-                    onChange={(e) => onChange(item.zona, item.tipo_brigada, 'reconexiones_programadas', e.target.value)}
+                    onChange={(e) => !readOnly && onChange(item.zona, item.tipo_brigada, 'reconexiones_programadas', e.target.value)}
+                    readOnly={readOnly}
                     style={{
                       width: '100px', padding: '0.4rem 0.5rem', borderRadius: '6px',
                       border: `1px solid ${K.border}`, textAlign: 'right', fontSize: '0.9rem',
-                      background: K.bgMain, color: K.textMain, fontWeight: 600,
-                      outline: 'none', transition: 'border-color 0.2s'
+                      background: readOnly ? K.bgMain : '#FFFFFF', color: readOnly ? K.textMuted : K.textMain, fontWeight: 600,
+                      outline: 'none', transition: 'border-color 0.2s', cursor: readOnly ? 'not-allowed' : 'text'
                     }}
-                    onFocus={(e) => e.target.style.borderColor = K.primary}
-                    onBlur={(e) => e.target.style.borderColor = K.border}
+                    onFocus={(e) => !readOnly && (e.target.style.borderColor = K.primary)}
+                    onBlur={(e) => !readOnly && (e.target.style.borderColor = K.border)}
                   />
                 </div>
               </div>

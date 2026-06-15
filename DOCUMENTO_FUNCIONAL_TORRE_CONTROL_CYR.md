@@ -8,8 +8,8 @@ La plataforma Torre de Control CyR es una herramienta web diseñada para digital
 | Rol | Usuario ejemplo | Acceso | Restricciones |
 | --- | --------------- | ------ | ------------- |
 | Superadmin / Admin | torre.control@cyr.cl | Todas las pantallas y configuraciones. | Ninguna. |
+| Torre de Control | analista@cyr.cl, claudio@cyr.cl | Inicio del Día, Resumen General, Resumen por Zona. | No accede a la bitácora directa del supervisor. Puede editar y manejar datos en Resumen General. |
 | Supervisor | juan.munoz@cyr.cl | Bitácora Supervisor. | Solo ve la pantalla de Bitácora. No accede a la edición de Torre de Control ni Reportes globales. |
-| Torre de Control | analista@cyr.cl | Inicio del Día, Resumen General, Resumen por Zona. | No debería acceder a la bitácora directa del supervisor (aunque administrativamente lo puede suplir). |
 | Gerencia | gerente@cyr.cl | Reporte Gerencial. | Rol proyectado de solo lectura (actualmente entra en Reporte Gerencial). |
 
 ## 3. Mapa de navegación

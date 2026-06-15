@@ -195,7 +195,11 @@ export const SidebarNav = () => {
         </button>
 
         {NAV_ITEMS
-          .filter(item => user?.rol === 'supervisor' ? item.route === '/supervisor/bitacora' : true)
+          .filter(item => {
+            if (user?.rol === 'supervisor') return item.route === '/supervisor/bitacora';
+            if (user?.rol === 'torre_control') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona';
+            return true;
+          })
           .map(({ route, label, Icon, external }) => (
           <button
             key={route}

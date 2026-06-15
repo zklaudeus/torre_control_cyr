@@ -1,0 +1,44 @@
+import { apiClient } from './client';
+
+export interface Supervisor {
+  id: number;
+  nombre: string;
+  activo: boolean;
+}
+
+export interface SupervisorComunaZona {
+  id: number;
+  supervisor_id: number;
+  comuna: string;
+  zona_principal: string;
+  activo: boolean;
+}
+
+export interface SupervisorUsuarioSAP {
+  id: number;
+  supervisor_id: number;
+  codigo_sap: string;
+  cuenta: string;
+  tipo_brigada: string;
+  activo: boolean;
+}
+
+export const getSupervisoresActivos = async (): Promise<Supervisor[]> => {
+  const { data } = await apiClient.get<Supervisor[]>('/api/supervisores/');
+  return data;
+};
+
+export const getComunasZonasBySupervisor = async (supervisorId: number): Promise<SupervisorComunaZona[]> => {
+  const { data } = await apiClient.get<SupervisorComunaZona[]>(`/api/supervisores/${supervisorId}/comunas-zonas`);
+  return data;
+};
+
+export const getUsuariosSapBySupervisor = async (supervisorId: number): Promise<SupervisorUsuarioSAP[]> => {
+  const { data } = await apiClient.get<SupervisorUsuarioSAP[]>(`/api/supervisores/${supervisorId}/usuarios-sap`);
+  return data;
+};
+
+export const getAllUsuariosSap = async (): Promise<SupervisorUsuarioSAP[]> => {
+  const { data } = await apiClient.get<SupervisorUsuarioSAP[]>('/api/supervisores/usuarios-sap/todos');
+  return data;
+};

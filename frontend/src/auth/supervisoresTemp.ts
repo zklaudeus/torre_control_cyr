@@ -3,7 +3,7 @@ export interface UsuarioApp {
   nombre: string;
   usuario: string;
   password?: string;
-  rol: 'supervisor' | 'admin' | 'superadmin';
+  rol: 'supervisor' | 'admin' | 'superadmin' | 'torre_control';
   zonasAsignadas?: string[];
 }
 
@@ -23,5 +23,12 @@ export const USUARIOS_TEMP: UsuarioApp[] = [
     password: "123", // simplificado para pruebas
     rol: "supervisor" as const,
     zonasAsignadas: ["Concepción", "Los Ángeles", "Chillán"]
+  },
+  {
+    id: "torre-control-claudio",
+    nombre: "Claudio",
+    usuario: "claudio",
+    password: btoa("admin123"), // Ofuscado temporalmente, backend no usa hash todavía
+    rol: "torre_control" as const,
   }
 ];

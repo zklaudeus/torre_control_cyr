@@ -177,3 +177,44 @@ class DimTipoBrigadaUsuario(Base):
     __table_args__ = (
         CheckConstraint("tipo_brigada IN ('PXQ', 'CF')", name='chk_dim_tipo_brigada'),
     )
+
+class ControlSupervisores(Base):
+    __tablename__ = "control_supervisores"
+
+    id = Column(Integer, primary_key=True, index=True)
+    nombre = Column(String(100), nullable=False)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+class ControlSupervisorComunasZonas(Base):
+    __tablename__ = "control_supervisor_comunas_zonas"
+
+    id = Column(Integer, primary_key=True, index=True)
+    supervisor_id = Column(Integer, nullable=False)
+    comuna = Column(String(100), nullable=False)
+    zona_principal = Column(String(100), nullable=False)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+    __table_args__ = (
+        UniqueConstraint('supervisor_id', 'comuna', name='uq_supervisor_comuna'),
+    )
+
+class ControlSupervisorUsuariosSAP(Base):
+    __tablename__ = "control_supervisor_usuarios_sap"
+
+    id = Column(Integer, primary_key=True, index=True)
+    supervisor_id = Column(Integer, nullable=False)
+    codigo_sap = Column(String(50), nullable=False)
+    cuenta = Column(String(100), nullable=False)
+    tipo_brigada = Column(String(50), default='PXQ')
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+    __table_args__ = (
+        UniqueConstraint('supervisor_id', 'codigo_sap', name='uq_supervisor_sap'),
+        UniqueConstraint('supervisor_id', 'cuenta', name='uq_supervisor_cuenta'),
+    )

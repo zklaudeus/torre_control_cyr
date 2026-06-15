@@ -31,15 +31,18 @@ const AppContent = () => {
         <Route path="/reporte-gerencial" element={<ReporteGerencialPage />} />
 
         {/* Default route redirect */}
-        <Route path="/" element={<Navigate to={user ? (user.rol === 'supervisor' ? '/supervisor/bitacora' : '/torre-control/inicio-dia') : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={user ? (user.rol === 'supervisor' ? '/supervisor/bitacora' : user.rol === 'torre_control' ? '/torre-control/dashboard-cyr' : '/torre-control/inicio-dia') : '/login'} replace />} />
 
         {/* Dashboard Layout Routes */}
         <Route element={<DashboardPage />}>
           
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin']} />}>
-            <Route path="/torre-control/inicio-dia" element={<InicioDiaDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="inicio-dia" onChangeSection={() => {}} />} />
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control']} />}>
             <Route path="/torre-control/dashboard-cyr" element={<ResumenGeneralPanel fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-general" onChangeSection={() => {}} />} />
             <Route path="/torre-control/resumen-zona" element={<ResumenZonaDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-zona" onChangeSection={() => {}} />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin']} />}>
+            <Route path="/torre-control/inicio-dia" element={<InicioDiaDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="inicio-dia" onChangeSection={() => {}} />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'supervisor']} />}>

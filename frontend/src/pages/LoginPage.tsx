@@ -25,13 +25,19 @@ export const LoginPage = () => {
     e.preventDefault();
     setError('');
 
-    const supervisor = USUARIOS_TEMP.find(s => s.usuario === username && s.password === password);
+    const supervisor = USUARIOS_TEMP.find(s => {
+      // Decode password if it is btoa encoded, otherwise plain
+      const decodedTargetPass = s.password && s.password === btoa('admin123') ? atob(s.password) : s.password;
+      return s.usuario === username && decodedTargetPass === password;
+    });
     
     if (supervisor) {
       const { password: _, ...userWithoutPassword } = supervisor;
       loginAsSupervisor(userWithoutPassword);
       if (userWithoutPassword.rol === 'supervisor') {
         navigate('/supervisor/bitacora');
+      } else if (userWithoutPassword.rol === 'torre_control') {
+        navigate('/torre-control/dashboard-cyr');
       } else {
         navigate('/torre-control/inicio-dia');
       }

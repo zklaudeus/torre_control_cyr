@@ -1,12 +1,12 @@
 export interface BitacoraRow {
-  id: string; // unique local ID for the table
+  id: string;
   patente: string;
   usuarioSap: string;
   cuenta: string;
   brigada: string;
   pareja: string;
   comuna: string;
-  carga: string; // string initially for input, parsed to number
+  carga: string;
   reconexiones: string;
   observacion: string;
   estado: 'Operativa' | 'Inactiva';
@@ -19,53 +19,25 @@ export interface ResumenZona {
   totalBrigadas: number;
   corteTotal: number;
   reconexionesTotal: number;
-  totalEnBandeja: number; // calculated from carga
+  totalEnBandeja: number;
 }
 
-export const SAP_CUENTA_TEMP = [
-  { sap: "P004952", cuenta: "Claudio Escobar" },
-  { sap: "P000375", cuenta: "David Guevara" },
-  { sap: "P004950", cuenta: "Erick Oyarce" },
-  { sap: "P004956", cuenta: "Fabian Lopez" },
-  { sap: "P004984", cuenta: "Fabian Saavedra" },
-  { sap: "P004984", cuenta: "Felipe Lopez" },
-  { sap: "P003383", cuenta: "Gabriel Flores" },
-  { sap: "P004953", cuenta: "Ignacio Salas" },
-  { sap: "P003457", cuenta: "José Bravo" },
-  { sap: "P004981", cuenta: "Jose Oliva" },
-  { sap: "P002752", cuenta: "Juan Medina" },
-  { sap: "P003372", cuenta: "Marck Sanhueza" },
-  { sap: "P004949", cuenta: "Marco Candia" },
-  { sap: "P004986", cuenta: "Marlon Cartes" },
-  { sap: "P004951", cuenta: "Martin Sepulveda" },
-  { sap: "P004983", cuenta: "Paulo Soto" },
-  { sap: "P004561", cuenta: "Victor Faundez" },
-  { sap: "P004985", cuenta: "Boris Cerro" },
-  { sap: "P004985", cuenta: "Victor Gonzalez" },
-  { sap: "P004954", cuenta: "Manuel Olivera" },
-  { sap: "P004115", cuenta: "Miguel Bello" },
-  { sap: "P003823", cuenta: "Rodrigo Muñoz" },
-  { sap: "P003014", cuenta: "Andres Gatica" },
-  { sap: "P002754", cuenta: "Cristian Ulloa" },
-  { sap: "P004560", cuenta: "Sergio Castillo" }
-];
-
-export const COMUNA_ZONA_TEMP = [
-  { comuna: "Concepción", zona: "Concepción" },
-  { comuna: "Los Ángeles", zona: "Los Ángeles" },
-  { comuna: "Chillán", zona: "Chillán" }
-];
+import type { SupervisorComunaZona, SupervisorUsuarioSAP } from '../../api/supervisores.api';
 
 export const normalizeStr = (str: string) => str.trim().toLowerCase();
 
-export const obtenerZonaPorComuna = (comuna: string): string => {
-  const match = COMUNA_ZONA_TEMP.find(c => normalizeStr(c.comuna) === normalizeStr(comuna));
-  return match ? match.zona : '';
+export const obtenerZonaPorComuna = (comuna: string, comunasMap: SupervisorComunaZona[]): string => {
+  const norm = normalizeStr(comuna);
+  const matchZona = comunasMap.find(c => normalizeStr(c.zona_principal) === norm);
+  if (matchZona) return matchZona.zona_principal;
+
+  const matchComuna = comunasMap.find(c => normalizeStr(c.comuna) === norm);
+  return matchComuna ? matchComuna.zona_principal : '';
 };
 
-export const obtenerSapPorCuenta = (cuenta: string): string => {
-  const match = SAP_CUENTA_TEMP.find(c => normalizeStr(c.cuenta) === normalizeStr(cuenta));
-  return match ? match.sap : '';
+export const obtenerSapPorCuenta = (cuenta: string, sapMap: SupervisorUsuarioSAP[]): string => {
+  const match = sapMap.find(c => normalizeStr(c.cuenta) === normalizeStr(cuenta));
+  return match ? match.codigo_sap : '';
 };
 
 export const validarPatente = (patente: string): boolean => {
@@ -73,12 +45,24 @@ export const validarPatente = (patente: string): boolean => {
   return regex.test(patente);
 };
 
+export const validarSap = (sap: string): boolean => {
+  const regex = /^P\d{6}$/;
+  return regex.test(sap);
+};
+
 export const parseNumber = (val: string): number => {
   const num = parseInt(val, 10);
   return isNaN(num) ? 0 : num;
 };
 
-export const validarFila = (row: BitacoraRow, allSaps: string[]): Partial<Record<keyof BitacoraRow, string>> => {
+export const validarFila = (
+  row: BitacoraRow,
+  existingRows: BitacoraRow[],
+  editId: string | null,
+  fechaOperacional: string,
+  comunasMap: SupervisorComunaZona[],
+  sapMap: SupervisorUsuarioSAP[]
+): Partial<Record<keyof BitacoraRow, string>> => {
   const errors: Partial<Record<keyof BitacoraRow, string>> = {};
 
   if (!row.patente) {
@@ -92,9 +76,25 @@ export const validarFila = (row: BitacoraRow, allSaps: string[]): Partial<Record
   }
 
   if (!row.usuarioSap) {
-    errors.usuarioSap = 'SAP no encontrado para la cuenta seleccionada';
-  } else if (allSaps.filter(s => s.toUpperCase() === row.usuarioSap.toUpperCase()).length > 1) {
-    errors.usuarioSap = 'SAP duplicado en la bitácora del día';
+    errors.usuarioSap = 'Obligatorio - seleccione una Cuenta';
+  } else if (!validarSap(row.usuarioSap)) {
+    errors.usuarioSap = 'Formato inválido (P + 6 números, ej: P004952)';
+  } else {
+    if (row.cuenta && row.usuarioSap) {
+      const validSap = obtenerSapPorCuenta(row.cuenta, sapMap);
+      if (validSap.toUpperCase() !== row.usuarioSap.toUpperCase()) {
+        errors.usuarioSap = 'La combinación SAP/Cuenta no es válida';
+      }
+    }
+    
+    const dup = existingRows.find(r =>
+      r.id !== editId &&
+      r.usuarioSap.toUpperCase() === row.usuarioSap.toUpperCase() &&
+      r.tipoBrigada === row.tipoBrigada
+    );
+    if (dup) {
+      errors.usuarioSap = `SAP ya registrado para ${row.tipoBrigada} el día de hoy (${dup.patente})`;
+    }
   }
 
   if (!row.brigada) {
@@ -103,7 +103,7 @@ export const validarFila = (row: BitacoraRow, allSaps: string[]): Partial<Record
 
   if (!row.comuna) {
     errors.comuna = 'Obligatorio';
-  } else if (!obtenerZonaPorComuna(row.comuna)) {
+  } else if (!obtenerZonaPorComuna(row.comuna, comunasMap)) {
     errors.comuna = 'Comuna sin zona asociada';
   }
 
@@ -120,20 +120,25 @@ export const validarFila = (row: BitacoraRow, allSaps: string[]): Partial<Record
   return errors;
 };
 
-export const validarBitacoraCompleta = (rows: BitacoraRow[]): BitacoraRow[] => {
-  const allSaps = rows.map(r => r.usuarioSap?.trim()).filter(Boolean);
+export const validarBitacoraCompleta = (
+  rows: BitacoraRow[], 
+  editId: string | null, 
+  fechaOperacional: string,
+  comunasMap: SupervisorComunaZona[],
+  sapMap: SupervisorUsuarioSAP[]
+): BitacoraRow[] => {
   return rows.map(row => {
-    const rowErrors = validarFila(row, allSaps);
+    const rowErrors = validarFila(row, rows, editId, fechaOperacional, comunasMap, sapMap);
     return { ...row, _errors: Object.keys(rowErrors).length > 0 ? rowErrors : undefined };
   });
 };
 
-export const calcularResumenPorZona = (rows: BitacoraRow[]): Record<string, ResumenZona> => {
+export const calcularResumenPorZona = (rows: BitacoraRow[], comunasMap: SupervisorComunaZona[]): Record<string, ResumenZona> => {
   const resumen: Record<string, ResumenZona> = {};
 
   rows.forEach(row => {
-    const zona = obtenerZonaPorComuna(row.comuna);
-    if (!zona) return; // ignorar si no tiene zona
+    const zona = obtenerZonaPorComuna(row.comuna, comunasMap);
+    if (!zona) return; 
 
     if (!resumen[zona]) {
       resumen[zona] = {
@@ -148,7 +153,7 @@ export const calcularResumenPorZona = (rows: BitacoraRow[]): Record<string, Resu
     resumen[zona].totalBrigadas += 1;
     resumen[zona].corteTotal += parseNumber(row.carga);
     resumen[zona].reconexionesTotal += parseNumber(row.reconexiones);
-    resumen[zona].totalEnBandeja += parseNumber(row.carga); // En las reglas dice "Total en bandeja = carga por zona"
+    resumen[zona].totalEnBandeja += parseNumber(row.carga); 
   });
 
   return resumen;

@@ -14,9 +14,10 @@ export const ProtectedRoute = ({ allowedRoles }: ProtectedRouteProps) => {
   }
 
   if (!allowedRoles.includes(user.rol)) {
-    // If not authorized, redirect to their default home
     if (user.rol === 'supervisor') {
       return <Navigate to="/supervisor/bitacora" replace />;
+    } else if (user.rol === 'torre_control') {
+      return <Navigate to="/torre-control/dashboard-cyr" replace />;
     } else {
       return <Navigate to="/torre-control/inicio-dia" replace />;
     }
