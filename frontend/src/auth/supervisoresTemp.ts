@@ -27,7 +27,7 @@ export const USUARIOS_TEMP: UsuarioApp[] = [
   {
     // Temporal, se migrará a auth real en backend
     id: "supervisor-talca-piloto",
-    nombre: "Supervisor Talca Piloto",
+    nombre: "Jose Masso",
     usuario: "supervisor.talca",
     password: "admin123",
     rol: "supervisor" as const,

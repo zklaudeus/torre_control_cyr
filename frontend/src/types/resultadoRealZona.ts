@@ -5,6 +5,7 @@ export interface ResultadoRealZonaCalculado {
   total_cortes: number;
   corte_en_poste: number;
   corte_en_empalme: number;
+  corte_fuera_de_rango: number;
   visita_fallida: number;
   primer_corte: string | null;
   ultimo_corte: string | null;

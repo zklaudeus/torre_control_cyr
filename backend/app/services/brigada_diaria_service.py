@@ -43,7 +43,6 @@ class BrigadaDiariaService:
                     zona=zona,
                     brigadas_pxq=0,
                     brigadas_cf=0,
-                    brigadas_convenio=0,
                     total_brigadas_reportadas=0,
                     brigadas_operativas=0,
                     brigadas_inactivas=0,
@@ -58,8 +57,6 @@ class BrigadaDiariaService:
                 res.brigadas_pxq += 1
             elif b.tipo_brigada == "CF":
                 res.brigadas_cf += 1
-            elif b.tipo_brigada == "Convenio":
-                res.brigadas_convenio += 1
                 
             # Contar por estado
             if b.estado_brigada == "Operativa":
@@ -78,8 +75,8 @@ class BrigadaDiariaService:
 
     def _validate_brigada(self, item):
         from fastapi import HTTPException
-        if item.tipo_brigada not in ["PXQ", "CF", "Convenio"]:
-            raise HTTPException(status_code=400, detail="tipo_brigada debe ser PXQ, CF o Convenio")
+        if item.tipo_brigada not in ["PXQ", "CF"]:
+            raise HTTPException(status_code=400, detail="tipo_brigada debe ser PXQ o CF")
         if item.estado_brigada not in ["Operativa", "Inactiva"]:
             raise HTTPException(status_code=400, detail="estado_brigada debe ser Operativa o Inactiva")
         if item.estado_brigada == "Inactiva" and not item.observacion_brigada:

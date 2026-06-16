@@ -26,10 +26,12 @@ class ResultadoRealZonaService:
                 func.sum(func.coalesce(ControlBrigadasDiario.reconexiones_ejecutadas, 0)).label("total_reconexiones_ejecutadas"),
                 func.sum(
                     func.coalesce(ControlBrigadasDiario.corte_en_poste, 0) +
-                    func.coalesce(ControlBrigadasDiario.corte_en_empalme, 0)
+                    func.coalesce(ControlBrigadasDiario.corte_en_empalme, 0) +
+                    func.coalesce(ControlBrigadasDiario.corte_fuera_de_rango, 0)
                 ).label("total_cortes"),
                 func.sum(func.coalesce(ControlBrigadasDiario.corte_en_poste, 0)).label("corte_en_poste"),
                 func.sum(func.coalesce(ControlBrigadasDiario.corte_en_empalme, 0)).label("corte_en_empalme"),
+                func.sum(func.coalesce(ControlBrigadasDiario.corte_fuera_de_rango, 0)).label("corte_fuera_de_rango"),
                 func.sum(func.coalesce(ControlBrigadasDiario.visita_fallida, 0)).label("visita_fallida"),
                 func.min(ControlBrigadasDiario.primer_corte).label("primer_corte"),
                 func.max(ControlBrigadasDiario.ultimo_corte).label("ultimo_corte"),
@@ -64,6 +66,7 @@ class ResultadoRealZonaService:
                     total_cortes=int(row.total_cortes),
                     corte_en_poste=int(row.corte_en_poste),
                     corte_en_empalme=int(row.corte_en_empalme),
+                    corte_fuera_de_rango=int(row.corte_fuera_de_rango),
                     visita_fallida=int(row.visita_fallida),
                     primer_corte=row.primer_corte,
                     ultimo_corte=row.ultimo_corte,
@@ -83,6 +86,7 @@ class ResultadoRealZonaService:
                     total_cortes=0,
                     corte_en_poste=0,
                     corte_en_empalme=0,
+                    corte_fuera_de_rango=0,
                     visita_fallida=0,
                     primer_corte=None,
                     ultimo_corte=None,

@@ -13,7 +13,7 @@ import type { ParametroZona } from '../../types/programacionZona';
 import { useDataTableControls } from '../../hooks/useDataTableControls';
 import { DataTableToolbar } from '../common/DataTableToolbar';
 import { SortableHeaderCell } from '../common/SortableHeaderCell';
-import type { SupervisorUsuarioSAP } from '../../api/supervisores.api';
+
 
 const displayNumber = (value: number | null | undefined): string => {
   return value === 0 || value === null || value === undefined ? '' : String(value);
@@ -42,7 +42,6 @@ interface BrigadasEditableTableProps {
   handleCancelRow: (id: number | string) => void;
   handleDeleteRow: (id: number | string) => void;
   handleSaveRow: (id: number | string) => void;
-  usuariosSap?: SupervisorUsuarioSAP[];
   readOnly?: boolean;
 }
 
@@ -54,7 +53,6 @@ export const BrigadasEditableTable = ({
   handleCancelRow,
   handleDeleteRow,
   handleSaveRow,
-  usuariosSap = [],
   readOnly = false,
 }: BrigadasEditableTableProps) => {
   const inputStyle = {
@@ -185,9 +183,8 @@ export const BrigadasEditableTable = ({
             <tr style={{ ...tableHeadRowStyle, background: '#F8FAFC', fontSize: '0.65rem' }}>
               <SortableHeaderCell column="zona" label="ZONA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyZonaHeaderStyle} />
               <SortableHeaderCell column="codigo_sap" label="SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickySapHeaderStyle} />
-              <th style={{ ...thStyle, ...stickyCuentaHeaderStyle }}>CUENTA SAP</th>
+              <SortableHeaderCell column="usuario" label="CUENTA SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyCuentaHeaderStyle} />
               <SortableHeaderCell column="patente" label="PATENTE" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
-              <SortableHeaderCell column="usuario" label="USUARIO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="tipo_brigada" label="TIPO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="estado_brigada" label="ESTADO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="hora_primer_movimiento" label="HORA GPS" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
@@ -203,6 +200,7 @@ export const BrigadasEditableTable = ({
               <th style={{ ...thStyle, color: '#67e8f9' }}>T. CORTE</th>
               <SortableHeaderCell column="corte_en_poste" label="C. POSTE" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="corte_en_empalme" label="C. EMP." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeaderCell column="corte_fuera_de_rango" label="C. F. RANGO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="visita_fallida" label="V. FALL." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="observacion_brigada" label="OBSERVACIÓN" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               {!readOnly && <th style={thStyle}>ACCIONES</th>}
@@ -226,20 +224,22 @@ export const BrigadasEditableTable = ({
                     {readOnly ? row.codigo_sap : <input type="text" value={row.codigo_sap} onChange={(e) => handleRowChange(row.id, 'codigo_sap', e.target.value)} style={{ ...inputStyle, width: '70px' }} />}
                   </td>
                   <td style={getStickyCellCuenta(isDirty && !readOnly)}>
-                    <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={usuariosSap.find(u => u.codigo_sap === row.codigo_sap)?.cuenta || row.codigo_sap || ''}>
-                      {usuariosSap.find(u => u.codigo_sap === row.codigo_sap)?.cuenta || row.codigo_sap || '-'}
-                    </div>
+                    {readOnly ? (
+                      <div style={{ fontSize: '0.75rem', color: '#64748B', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '140px' }} title={row.usuario || row.codigo_sap || ''}>
+                        {row.usuario || row.codigo_sap || '-'}
+                      </div>
+                    ) : (
+                      <input type="text" value={row.usuario || ''} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '100%', minWidth: '130px', fontWeight: 600, color: '#64748B' }} title={row.usuario || ''} />
+                    )}
                   </td>
                   <td style={tdStyle}>{readOnly ? row.patente : <input type="text" value={row.patente} onChange={(e) => handleRowChange(row.id, 'patente', e.target.value)} style={{ ...inputStyle, width: '70px' }} />}</td>
-                  <td style={tdStyle}>{readOnly ? row.usuario : <input type="text" value={row.usuario} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '80px' }} />}</td>
                   <td style={tdStyle}>
                     {readOnly ? (
-                      <span style={{ color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af', fontWeight: 500 }}>{row.tipo_brigada}</span>
+                      <span style={{ color: row.tipo_brigada === 'CF' ? '#d97706' : '#1e40af', fontWeight: 500 }}>{row.tipo_brigada}</span>
                     ) : (
-                      <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#d97706' : row.tipo_brigada === 'Convenio' ? '#0d9488' : '#1e40af' }}>
+                      <select value={row.tipo_brigada} onChange={(e) => handleRowChange(row.id, 'tipo_brigada', e.target.value)} style={{ ...selectStyle, width: '60px', color: row.tipo_brigada === 'CF' ? '#d97706' : '#1e40af' }}>
                         <option value="PXQ">PXQ</option>
                         <option value="CF">CF</option>
-                        <option value="Convenio">Conv</option>
                       </select>
                     )}
                   </td>
@@ -269,6 +269,7 @@ export const BrigadasEditableTable = ({
 
                   <td style={tdStyle}>{readOnly ? displayNumber(row.corte_en_poste) : <input type="text" inputMode="numeric" value={displayNumber(row.corte_en_poste)} onChange={(e) => handleNumericChange(row.id, 'corte_en_poste', e.target.value)} style={numberStyle} />}</td>
                   <td style={tdStyle}>{readOnly ? displayNumber(row.corte_en_empalme) : <input type="text" inputMode="numeric" value={displayNumber(row.corte_en_empalme)} onChange={(e) => handleNumericChange(row.id, 'corte_en_empalme', e.target.value)} style={numberStyle} />}</td>
+                  <td style={tdStyle}>{readOnly ? displayNumber(row.corte_fuera_de_rango) : <input type="text" inputMode="numeric" value={displayNumber(row.corte_fuera_de_rango)} onChange={(e) => handleNumericChange(row.id, 'corte_fuera_de_rango', e.target.value)} style={numberStyle} />}</td>
                   <td style={tdStyle}>{readOnly ? displayNumber(row.visita_fallida) : <input type="text" inputMode="numeric" value={displayNumber(row.visita_fallida)} onChange={(e) => handleNumericChange(row.id, 'visita_fallida', e.target.value)} style={numberStyle} />}</td>
                   <td style={tdStyle}>
                     {readOnly ? (

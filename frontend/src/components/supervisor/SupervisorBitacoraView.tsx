@@ -107,8 +107,8 @@ export const SupervisorBitacoraView = ({
         id: String(b.id),
         patente: b.patente || '',
         usuarioSap: b.codigo_sap || '',
-        cuenta: '',
-        brigada: b.usuario || '',
+        cuenta: b.usuario || '',
+        brigada: '',
         pareja: '',
         comuna: b.zona || '',
         zona: b.zona || '',
@@ -120,7 +120,13 @@ export const SupervisorBitacoraView = ({
       }));
       mapped.forEach(m => {
         const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
-        if (matchingSAP) m.cuenta = matchingSAP.cuenta;
+        if (matchingSAP) {
+          m.cuenta = matchingSAP.cuenta || m.cuenta;
+          m.brigada = matchingSAP.brigada || matchingSAP.cuenta;
+          m.pareja = matchingSAP.pareja || '';
+        } else {
+          m.brigada = m.cuenta;
+        }
       });
       const filtered = mapped.filter(m => {
         // Validación estricta: Cada supervisor solo ve sus propios usuarios SAP
@@ -283,8 +289,8 @@ export const SupervisorBitacoraView = ({
         zona: zona,
         codigo_sap: form.usuarioSap,
         patente: form.patente,
-        usuario: form.brigada,
-        tipo_brigada: 'PXQ',
+        usuario: form.cuenta,
+        tipo_brigada: form.tipoBrigada || 'PXQ',
         estado_brigada: form.estado,
         observacion_brigada: form.observacion,
         corte_programado: parseInt(form.carga, 10) || 0,
@@ -376,27 +382,11 @@ export const SupervisorBitacoraView = ({
     setIsSaving(true);
     if (!customRows) setMessage({ text: 'Actualizando bitácora...', type: 'success' });
 
-    let targetResumen = resumen;
-    if (customRows) {
-      const calc = calcularResumenPorZona(customRows, comunasMap);
-      const completo: Record<string, ResumenZona> = {};
-      const isAdminOrAll = user?.rol === 'admin' || user?.rol === 'superadmin' || user?.zonasAsignadas?.includes('TODAS');
-
-      if (isAdminOrAll) {
-        const allZones = Array.from(new Set(comunasMap.map(c => c.zona_principal)));
-        allZones.forEach(z => {
-          completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
-        });
-      } else {
-        user?.zonasAsignadas?.forEach(z => {
-          completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
-        });
-      }
-      targetResumen = completo;
-    }
-
     try {
-      const programacionBulkData = Object.values(targetResumen).map(r => ({
+      // 1. Actualizar programación PXQ
+      const pxqRows = targetRows.filter(r => r.tipoBrigada !== 'CF');
+      const calcPXQ = calcularResumenPorZona(pxqRows, comunasMap);
+      const pxqBulkData = Object.values(calcPXQ).map(r => ({
         zona: r.zona,
         corte_programado: r.corteTotal,
         reconexiones_programadas: r.reconexionesTotal,
@@ -404,10 +394,27 @@ export const SupervisorBitacoraView = ({
         tipo_brigada: 'PXQ' 
       }));
 
-      await apiClient.post('/api/programacion-zona/bulk', {
-        fecha_operacional: fechaOperacional,
-        items: programacionBulkData
-      });
+      if (pxqBulkData.length > 0) {
+        await apiClient.post('/api/programacion-zona/bulk', {
+          fecha_operacional: fechaOperacional,
+          items: pxqBulkData
+        });
+      }
+
+      // 2. Actualizar programación CF
+      const cfRows = targetRows.filter(r => r.tipoBrigada === 'CF');
+      if (cfRows.length > 0) {
+        const calcCF = calcularResumenPorZona(cfRows, comunasMap);
+        const cfBulkData = Object.values(calcCF).map(r => ({
+          zona: r.zona,
+          cortes_programados: r.corteTotal,
+          reconexiones_programadas: r.reconexionesTotal
+        }));
+        await apiClient.post('/api/programacion-cf-zona/bulk', {
+          fecha_operacional: fechaOperacional,
+          items: cfBulkData
+        });
+      }
 
       if (!customRows) setMessage({ text: 'Bitácora actualizada — Torre Control refleja los cambios.', type: 'success' });
     } catch (err: any) {
@@ -455,8 +462,12 @@ export const SupervisorBitacoraView = ({
     setIsSaving(true);
     setMessage(null);
 
-    const actualesSap = rows.map(r => r.usuarioSap);
-    const faltantes = sapMap.filter(s => s.activo && !actualesSap.includes(s.codigo_sap));
+    const actualesSap = rows.map(r => `${r.usuarioSap}_${r.tipoBrigada}`);
+    const faltantes = sapMap.filter(s => {
+      if (!s.activo) return false;
+      const key = `${s.codigo_sap}_${s.tipo_brigada || 'PXQ'}`;
+      return !actualesSap.includes(key);
+    });
 
     if (faltantes.length === 0) {
       setMessage({ text: 'Todas las brigadas frecuentes ya están cargadas en la tabla.', type: 'success' });
@@ -467,8 +478,14 @@ export const SupervisorBitacoraView = ({
     try {
       const payloads: any[] = [];
       const invalidas: string[] = [];
+      const sinCuenta: string[] = [];
 
       faltantes.forEach(s => {
+        if (!s.cuenta || s.cuenta.trim() === '') {
+          sinCuenta.push(s.codigo_sap);
+          return; // No cargar si no tiene cuenta válida
+        }
+
         const comuna_hab = s.comuna_habitual || '';
         const zona = s.zona_principal || obtenerZonaPorComuna(comuna_hab, comunasMap);
         
@@ -482,7 +499,7 @@ export const SupervisorBitacoraView = ({
           zona: zona,
           codigo_sap: s.codigo_sap,
           patente: s.patente_habitual || '',
-          usuario: s.brigada || '',
+          usuario: s.cuenta,
           tipo_brigada: s.tipo_brigada || 'PXQ',
           estado_brigada: 'Operativa',
           observacion_brigada: '',
@@ -507,11 +524,21 @@ export const SupervisorBitacoraView = ({
       // Insert missing ones via multiple parallel requests
       await Promise.all(payloads.map(p => apiClient.post('/api/brigadas-dia/', p)));
 
-      if (invalidas.length > 0) {
-        setMessage({ text: `Se cargaron ${payloads.length} brigadas. Faltan por configurar zona: ${invalidas.join(', ')}`, type: 'error' });
-      } else {
-        setMessage({ text: `Se cargaron ${payloads.length} brigadas frecuentes.`, type: 'success' });
+      let msg = '';
+      if (payloads.length > 0) {
+        msg += `Se cargaron ${payloads.length} brigadas frecuentes. `;
       }
+      if (sinCuenta.length > 0) {
+        msg += `⚠ Error: ${sinCuenta.length} brigadas (${sinCuenta.join(', ')}) omitidas por no tener Cuenta SAP válida. `;
+      }
+      if (invalidas.length > 0) {
+        msg += `⚠ Faltan por configurar zona: ${invalidas.join(', ')}`;
+      }
+
+      setMessage({ 
+        text: msg || 'No se cargaron nuevas brigadas.', 
+        type: (sinCuenta.length > 0 || invalidas.length > 0) ? 'error' : 'success' 
+      });
       
       const newRows = await fetchBrigadas();
       if (newRows) {
@@ -687,7 +714,10 @@ export const SupervisorBitacoraView = ({
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <FormGroup label="Tipo Brigada">
-                <input value="PXQ" readOnly style={{ ...inputStyle(false), opacity: 0.7, background: '#E2E8F0' }} />
+                <select value={form.tipoBrigada} onChange={e => handleFormChange('tipoBrigada', e.target.value as any)} style={{ ...inputStyle(false), flex: 1 }}>
+                  <option value="PXQ" style={{ background: K.tertiary, color: K.neutral }}>PXQ</option>
+                  <option value="CF" style={{ background: K.tertiary, color: K.neutral }}>CF</option>
+                </select>
               </FormGroup>
               <FormGroup label="Estado">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', ...inputStyle(false) }}>

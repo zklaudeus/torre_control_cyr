@@ -23,6 +23,7 @@ export interface ResultadoRealCFZonaCalculado {
   total_cortes_cf: number;
   corte_en_poste_cf: number;
   corte_en_empalme_cf: number;
+  corte_fuera_de_rango_cf: number;
   visita_fallida_cf: number;
   primer_corte_cf: string | null;
   ultimo_corte_cf: string | null;

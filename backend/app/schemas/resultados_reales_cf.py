@@ -9,6 +9,7 @@ class ResultadoRealCFZonaCalculado(BaseModel):
     total_cortes_cf: int
     corte_en_poste_cf: int
     corte_en_empalme_cf: int
+    corte_fuera_de_rango_cf: int
     visita_fallida_cf: int
     primer_corte_cf: Optional[time] = None
     ultimo_corte_cf: Optional[time] = None

@@ -33,7 +33,7 @@ export const parseBrigadasIniciales = (text: string): BrigadaParseada[] => {
     const usuario = idxUsuario >= 0 ? cols[idxUsuario] : '';
     const patente = idxPatente >= 0 ? cols[idxPatente] : '';
     let tipo_brigada = idxTipo >= 0 ? cols[idxTipo] : 'PXQ';
-    if (!['PXQ', 'CF', 'Convenio'].includes(tipo_brigada)) {
+    if (!['PXQ', 'CF'].includes(tipo_brigada)) {
       tipo_brigada = 'PXQ';
     }
 

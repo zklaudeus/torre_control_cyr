@@ -68,11 +68,43 @@ BEGIN
 
         -- SAP -> Cuenta
         INSERT INTO control_supervisor_usuarios_sap (supervisor_id, codigo_sap, cuenta) VALUES
+        -- Iquique
+        (v_supervisor_id, 'P003861', 'Esteban Gavilan'),
+        (v_supervisor_id, 'P003863', 'Gabriel Lira'),
+        (v_supervisor_id, 'P003862', 'Holguer Moy'),
+        -- Coquimbo
+        (v_supervisor_id, 'P003865', 'Camilo Cisternas'),
+        (v_supervisor_id, 'P003884', 'Danison Tapia'),
+        (v_supervisor_id, 'P003885', 'David Mendez'),
+        (v_supervisor_id, 'P004933', 'Eduardo Gonzalez'),
+        (v_supervisor_id, 'P003867', 'Emanuel San Francisco'),
+        (v_supervisor_id, 'P004937', 'Jear Guerrero'),
+        (v_supervisor_id, 'P003866', 'Gonzalo Donoso'),
+        (v_supervisor_id, 'P004935', 'Kevin Carrizo'),
+        (v_supervisor_id, 'P004934', 'Mirko Mendez'),
+        (v_supervisor_id, 'P003886', 'Nicolas Barrera'),
+        (v_supervisor_id, 'P004936', 'Nicolas Olguin'),
+        -- Santa Cruz
+        (v_supervisor_id, 'P004929', 'Erick Valenzuela'),
+        (v_supervisor_id, 'P004546', 'Benjamin Díaz'),
+        (v_supervisor_id, 'P004957', 'Bastian Saavedra'),
+        (v_supervisor_id, 'P004958', 'Gonzalo Vivanco'),
+        -- Talca
+        (v_supervisor_id, 'P003870', 'Alberto Sepulveda'),
+        (v_supervisor_id, 'P004947', 'Angel Guerrero'),
+        (v_supervisor_id, 'P004944', 'Carlos Oyarzun'),
+        (v_supervisor_id, 'P004948', 'Eduardo Muñoz'),
+        (v_supervisor_id, 'P004946', 'Francisco Oyarzun'),
+        (v_supervisor_id, 'P003868', 'Juan Mondaca'),
+        (v_supervisor_id, 'P004945', 'Victor Rojas'),
+        -- Concepción
+        (v_supervisor_id, 'P004985', 'Boris Cerro'),
         (v_supervisor_id, 'P004952', 'Claudio Escobar'),
         (v_supervisor_id, 'P000375', 'David Guevara'),
         (v_supervisor_id, 'P004950', 'Erick Oyarce'),
         (v_supervisor_id, 'P004956', 'Fabian Lopez'),
         (v_supervisor_id, 'P004984', 'Fabian Saavedra'),
+        (v_supervisor_id, 'P004984', 'Felipe Lopez'),
         (v_supervisor_id, 'P003383', 'Gabriel Flores'),
         (v_supervisor_id, 'P004953', 'Ignacio Salas'),
         (v_supervisor_id, 'P003457', 'José Bravo'),
@@ -83,11 +115,14 @@ BEGIN
         (v_supervisor_id, 'P004986', 'Marlon Cartes'),
         (v_supervisor_id, 'P004951', 'Martin Sepulveda'),
         (v_supervisor_id, 'P004983', 'Paulo Soto'),
+        (v_supervisor_id, 'P004542', 'Sebastian Rodriguez'),
         (v_supervisor_id, 'P004561', 'Victor Faundez'),
         (v_supervisor_id, 'P004985', 'Victor Gonzalez'),
+        -- Los Ángeles
         (v_supervisor_id, 'P004954', 'Manuel Olivera'),
         (v_supervisor_id, 'P004115', 'Miguel Bello'),
         (v_supervisor_id, 'P003823', 'Rodrigo Muñoz'),
+        -- Chillán
         (v_supervisor_id, 'P003014', 'Andres Gatica'),
         (v_supervisor_id, 'P002754', 'Cristian Ulloa'),
         (v_supervisor_id, 'P004560', 'Sergio Castillo')

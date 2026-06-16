@@ -26,6 +26,7 @@ class BrigadaDiariaBase(BaseModel):
     acum_14: int = 0
     corte_en_poste: int = 0
     corte_en_empalme: int = 0
+    corte_fuera_de_rango: int = 0
     visita_fallida: int = 0
 
 
@@ -55,6 +56,7 @@ class BrigadaDiariaUpdate(BaseModel):
     acum_14: Optional[int] = None
     corte_en_poste: Optional[int] = None
     corte_en_empalme: Optional[int] = None
+    corte_fuera_de_rango: Optional[int] = None
     visita_fallida: Optional[int] = None
 
 
@@ -70,7 +72,6 @@ class ResumenBrigadasZona(BaseModel):
     zona: str
     brigadas_pxq: int
     brigadas_cf: int
-    brigadas_convenio: int
     total_brigadas_reportadas: int
     brigadas_operativas: int
     brigadas_inactivas: int

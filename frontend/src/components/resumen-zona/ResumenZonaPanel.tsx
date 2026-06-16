@@ -33,6 +33,42 @@ const tipoBadge = (tipo: string) => {
   );
 };
 
+const stickyZonaTh = {
+  position: 'sticky' as const,
+  left: 0,
+  zIndex: 10,
+  background: '#F8FAFC',
+  minWidth: '130px',
+  boxShadow: 'none',
+};
+
+const stickyTipoTh = {
+  position: 'sticky' as const,
+  left: '130px',
+  zIndex: 10,
+  background: '#F8FAFC',
+  minWidth: '70px',
+  boxShadow: '4px 0 6px -2px rgba(0,0,0,0.08)',
+};
+
+const stickyZonaTd = (isTotal?: boolean) => ({
+  position: 'sticky' as const,
+  left: 0,
+  zIndex: 5,
+  background: isTotal ? '#F1F5F9' : '#FFFFFF',
+  minWidth: '130px',
+  whiteSpace: 'nowrap' as const,
+});
+
+const stickyTipoTd = (isTotal?: boolean) => ({
+  position: 'sticky' as const,
+  left: '130px',
+  zIndex: 5,
+  background: isTotal ? '#F1F5F9' : '#FFFFFF',
+  minWidth: '70px',
+  boxShadow: '4px 0 6px -2px rgba(0,0,0,0.06)',
+});
+
 const FilaResumen = ({ fila, isTotal }: { fila: ResumenZonaFila; isTotal?: boolean }) => {
   const bgStyle = isTotal
     ? { background: '#F1F5F9', color: '#0A192F', fontWeight: 'bold' as const }
@@ -40,10 +76,10 @@ const FilaResumen = ({ fila, isTotal }: { fila: ResumenZonaFila; isTotal?: boole
 
   return (
     <tr style={{ ...tableBodyRowStyle, ...bgStyle }}>
-      <td style={{ ...tdStyle, textAlign: 'left', fontWeight: isTotal ? 'bold' : 'normal' }}>
+      <td style={{ ...tdStyle, textAlign: 'left', fontWeight: isTotal ? 'bold' : 'normal', ...stickyZonaTd(isTotal) }}>
         {fila.zona}
       </td>
-      <td style={tdStyle}>{tipoBadge(fila.tipo_brigada)}</td>
+      <td style={{ ...tdStyle, ...stickyTipoTd(isTotal) }}>{tipoBadge(fila.tipo_brigada)}</td>
       <td style={{ ...tdStyle, fontWeight: 'bold' }}>{fila.brigadas_reportadas}</td>
       <td style={tdStyle}>{fila.brigadas_contrato}</td>
       <td style={{ ...tdStyle, color: fila.porcentaje_brigadas_efectivas >= 1 ? '#48bb78' : '#fc8181' }}>
@@ -124,8 +160,22 @@ export const ResumenZonaPanel = ({ fechaOperacional, refreshKey }: ResumenZonaPa
               <table style={tableStyle}>
                 <thead>
                   <tr style={tableHeadRowStyle}>
-                    <SortableHeaderCell column="zona" label="Zona" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} width="120px" />
-                    <SortableHeaderCell column="tipo_brigada" label="Tipo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                    <SortableHeaderCell
+                      column="zona"
+                      label="Zona"
+                      sortColumn={sortColumn}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                      style={stickyZonaTh}
+                    />
+                    <SortableHeaderCell
+                      column="tipo_brigada"
+                      label="Tipo"
+                      sortColumn={sortColumn}
+                      sortDirection={sortDirection}
+                      onSort={handleSort}
+                      style={stickyTipoTh}
+                    />
                     <SortableHeaderCell column="brigadas_reportadas" label="B. Rep." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="brigadas_contrato" label="B. Ctto" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                     <SortableHeaderCell column="porcentaje_brigadas_efectivas" label="% B. Efect." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />

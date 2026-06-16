@@ -23,6 +23,7 @@ export interface BrigadaDiaria {
   acum_14: number;
   corte_en_poste: number;
   corte_en_empalme: number;
+  corte_fuera_de_rango: number;
   visita_fallida: number;
 }
 
@@ -50,6 +51,7 @@ export interface BrigadaDiariaCreate {
   acum_14: number;
   corte_en_poste: number;
   corte_en_empalme: number;
+  corte_fuera_de_rango: number;
   visita_fallida: number;
 }
 

@@ -62,10 +62,12 @@ class CFService:
                 ControlBrigadasDiario.zona,
                 func.sum(
                     func.coalesce(ControlBrigadasDiario.corte_en_poste, 0) +
-                    func.coalesce(ControlBrigadasDiario.corte_en_empalme, 0)
+                    func.coalesce(ControlBrigadasDiario.corte_en_empalme, 0) +
+                    func.coalesce(ControlBrigadasDiario.corte_fuera_de_rango, 0)
                 ).label("total_cortes_cf"),
                 func.sum(func.coalesce(ControlBrigadasDiario.corte_en_poste, 0)).label("corte_en_poste_cf"),
                 func.sum(func.coalesce(ControlBrigadasDiario.corte_en_empalme, 0)).label("corte_en_empalme_cf"),
+                func.sum(func.coalesce(ControlBrigadasDiario.corte_fuera_de_rango, 0)).label("corte_fuera_de_rango_cf"),
                 func.sum(func.coalesce(ControlBrigadasDiario.visita_fallida, 0)).label("visita_fallida_cf"),
                 func.min(ControlBrigadasDiario.primer_corte).label("primer_corte_cf"),
                 func.max(ControlBrigadasDiario.ultimo_corte).label("ultimo_corte_cf"),
@@ -95,6 +97,7 @@ class CFService:
                     total_cortes_cf=int(row.total_cortes_cf),
                     corte_en_poste_cf=int(row.corte_en_poste_cf),
                     corte_en_empalme_cf=int(row.corte_en_empalme_cf),
+                    corte_fuera_de_rango_cf=int(row.corte_fuera_de_rango_cf),
                     visita_fallida_cf=int(row.visita_fallida_cf),
                     primer_corte_cf=row.primer_corte_cf,
                     ultimo_corte_cf=row.ultimo_corte_cf,
@@ -113,6 +116,7 @@ class CFService:
                     total_cortes_cf=0,
                     corte_en_poste_cf=0,
                     corte_en_empalme_cf=0,
+                    corte_fuera_de_rango_cf=0,
                     visita_fallida_cf=0,
                     primer_corte_cf=None,
                     ultimo_corte_cf=None,

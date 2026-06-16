@@ -71,11 +71,26 @@ export const ResultadosRealesZonaPanel = ({ fechaOperacional, refreshKey }: Resu
                   <table style={tableStyle}>
                     <thead>
                       <tr style={tableHeadRowStyle}>
-                        <SortableHeaderCell column="zona" label="Zona" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} width="120px" />
+                        <SortableHeaderCell
+                          column="zona"
+                          label="Zona"
+                          sortColumn={sortColumn}
+                          sortDirection={sortDirection}
+                          onSort={handleSort}
+                          style={{
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 10,
+                            background: '#F8FAFC',
+                            minWidth: '130px',
+                            boxShadow: '4px 0 6px -2px rgba(0,0,0,0.08)',
+                          }}
+                        />
                         <SortableHeaderCell column="total_reconexiones_ejecutadas" label="Rec. Ejec." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                         <SortableHeaderCell column="total_cortes" label="Total Cortes" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                         <SortableHeaderCell column="corte_en_poste" label="C. Poste" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                         <SortableHeaderCell column="corte_en_empalme" label="C. Empalme" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+                        <SortableHeaderCell column="corte_fuera_de_rango" label="C. F. Rango" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                         <SortableHeaderCell column="visita_fallida" label="V. Fallida" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
                       </tr>
                     </thead>
@@ -85,7 +100,18 @@ export const ResultadosRealesZonaPanel = ({ fechaOperacional, refreshKey }: Resu
                           key={z.zona}
                           style={{ ...tableBodyRowStyle, opacity: z.tiene_brigadas ? 1 : 0.5 }}
                         >
-                          <td style={{ ...tdStyle, textAlign: 'left', fontWeight: 'bold' }}>
+                          <td style={{
+                            ...tdStyle,
+                            textAlign: 'left',
+                            fontWeight: 'bold',
+                            position: 'sticky',
+                            left: 0,
+                            zIndex: 5,
+                            background: '#FFFFFF',
+                            minWidth: '130px',
+                            boxShadow: '4px 0 6px -2px rgba(0,0,0,0.06)',
+                            whiteSpace: 'nowrap',
+                          }}>
                             {z.zona}
                             {!z.tiene_brigadas && (
                               <span style={{ marginLeft: '0.5rem', fontSize: '0.65rem', color: '#d97706', fontWeight: 'normal' }}>
@@ -97,6 +123,7 @@ export const ResultadosRealesZonaPanel = ({ fechaOperacional, refreshKey }: Resu
                           <td style={{ ...tdStyle, fontWeight: 'bold', color: '#fb923c' }}>{z.total_cortes}</td>
                           <td style={tdStyle}>{z.corte_en_poste}</td>
                           <td style={tdStyle}>{z.corte_en_empalme}</td>
+                          <td style={{ ...tdStyle, color: z.corte_fuera_de_rango > 0 ? '#a78bfa' : undefined }}>{z.corte_fuera_de_rango}</td>
                           <td style={tdStyle}>{z.visita_fallida}</td>
                         </tr>
                       ))}

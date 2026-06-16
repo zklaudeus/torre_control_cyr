@@ -80,7 +80,7 @@ class ResumenZonaService:
                             observaciones_inactivas.append(b.observacion_brigada)
                             
                     rec_ejec += b.reconexiones_ejecutadas or 0
-                    cortes += (b.corte_en_poste or 0) + (b.corte_en_empalme or 0)
+                    cortes += (b.corte_en_poste or 0) + (b.corte_en_empalme or 0) + (b.corte_fuera_de_rango or 0)
                 
                 actividades = rec_ejec + cortes
                 

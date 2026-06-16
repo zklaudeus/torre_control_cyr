@@ -11,6 +11,7 @@ class ResultadoRealZonaCalculado(BaseModel):
     total_cortes: int
     corte_en_poste: int
     corte_en_empalme: int
+    corte_fuera_de_rango: int
     visita_fallida: int
     primer_corte: Optional[time] = None
     ultimo_corte: Optional[time] = None

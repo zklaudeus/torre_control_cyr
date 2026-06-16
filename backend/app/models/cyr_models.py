@@ -38,6 +38,7 @@ class ControlBrigadasDiario(Base):
     acum_14 = Column(Integer, default=0)
     corte_en_poste = Column(Integer, default=0)
     corte_en_empalme = Column(Integer, default=0)
+    corte_fuera_de_rango = Column(Integer, default=0)
     visita_fallida = Column(Integer, default=0)
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))

@@ -10,8 +10,18 @@ router = APIRouter()
 
 @router.get("/", response_model=List[Supervisor])
 def get_supervisores(db: Session = Depends(get_db)):
-    """Obtiene los supervisores activos"""
-    return db.query(ControlSupervisores).filter(ControlSupervisores.activo == True).order_by(ControlSupervisores.nombre).all()
+    """Obtiene los supervisores activos, sin duplicados por nombre"""
+    todos = db.query(ControlSupervisores).filter(
+        ControlSupervisores.activo == True
+    ).order_by(ControlSupervisores.nombre, ControlSupervisores.id).all()
+    # Deduplicar por nombre, conservando el primer registro (menor id)
+    vistos: set[str] = set()
+    unicos = []
+    for s in todos:
+        if s.nombre not in vistos:
+            vistos.add(s.nombre)
+            unicos.append(s)
+    return unicos
 
 @router.get("/{id}/comunas-zonas", response_model=List[SupervisorComunaZona])
 def get_comunas_zonas(id: int, db: Session = Depends(get_db)):
