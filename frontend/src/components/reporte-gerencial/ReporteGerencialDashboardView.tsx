@@ -54,7 +54,25 @@ export const ReporteGerencialDashboardView = ({
   onChangeSection
 }: ReporteGerencialDashboardViewProps) => {
   const [filtro, setFiltro] = useState<FiltroBrigada>('Todo');
+  const [filtroZona, setFiltroZona] = useState<string>('Todas');
   const { reporte, loading, error, fetchReporte } = useReporteGerencial(fechaOperacional, filtro);
+
+  // Zonas disponibles según datos cargados
+  const zonasDisponibles = reporte ? Array.from(new Set(reporte.zonas.map(z => z.zona))).sort() : [];
+
+  // Datos filtrados por zona
+  const zonasFiltradas = reporte
+    ? (filtroZona === 'Todas' ? reporte.zonas : reporte.zonas.filter(z => z.zona === filtroZona))
+    : [];
+
+  // Recalcular total según zonas filtradas
+  const totalFiltrado = (() => {
+    if (!reporte) return reporte?.total;
+    if (filtroZona === 'Todas') return reporte.total;
+    // Para una sola zona, usar sus datos directamente como "total"
+    const z = zonasFiltradas[0];
+    return z ? { ...z, zona: z.zona } : reporte.total;
+  })();
 
   useEffect(() => {
     fetchReporte();
@@ -71,12 +89,12 @@ export const ReporteGerencialDashboardView = ({
       'Corte Prog', 'Corte Ejec', 'Corte Poste', 'Corte Empalme', 'Visitas Fallidas',
       'Prom Reconexiones', 'Prom Cortes', 'Prom Actividad', 'Cumplimiento Meta %', 'Cumplimiento Corte %'
     ];
-    const rows = reporte.zonas.map(z => [
+    const rows = zonasFiltradas.map(z => [
       z.zona, z.brigadas_operativas, z.reconexiones_programadas, z.reconexiones_ejecutadas,
       z.corte_programado, z.cortes_ejecutados, z.corte_en_poste, z.corte_en_empalme, z.visitas_fallidas,
       z.promedio_reconexiones, z.promedio_cortes, z.promedio_actividad, z.cumplimiento_meta_pct, z.cumplimiento_corte_pct
     ]);
-    const t = reporte.total;
+    const t = totalFiltrado!;
     rows.push([
       t.zona, t.brigadas_operativas, t.reconexiones_programadas, t.reconexiones_ejecutadas,
       t.corte_programado, t.cortes_ejecutados, t.corte_en_poste, t.corte_en_empalme, t.visitas_fallidas,
@@ -266,6 +284,29 @@ export const ReporteGerencialDashboardView = ({
             <h2 style={titleStyle}>Reporte Operativo de Brigadas</h2>
           </div>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+            {/* Filtro Zona */}
+            <select
+              value={filtroZona}
+              onChange={(e) => setFiltroZona(e.target.value)}
+              style={{
+                background: '#1e293b',
+                color: '#e2e8f0',
+                border: '1px solid #334155',
+                padding: '6px 12px',
+                borderRadius: '4px',
+                fontSize: '12px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: THEME.fontMain,
+                outline: 'none',
+              }}
+            >
+              <option value="Todas">Todas las zonas</option>
+              {zonasDisponibles.map(z => (
+                <option key={z} value={z}>{z}</option>
+              ))}
+            </select>
+            {/* Filtro Tipo */}
             <div style={{ display: 'flex', background: THEME.border, padding: '4px', borderRadius: '4px', gap: '4px' }}>
               {(['Todo', 'PXQ', 'CF'] as FiltroBrigada[]).map(f => (
                 <button 
@@ -301,31 +342,31 @@ export const ReporteGerencialDashboardView = ({
             <div style={kpiGridStyle}>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Brigadas Operativas</div>
-                <div style={kpiValueStyle}>{reporte.total.brigadas_operativas}</div>
+                <div style={kpiValueStyle}>{totalFiltrado!.brigadas_operativas}</div>
                 <div style={kpiSubValueStyle}>Total activas hoy</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Reconexiones Ejec.</div>
-                <div style={kpiValueStyle}>{reporte.total.reconexiones_ejecutadas}</div>
-                <div style={kpiSubValueStyle}>de {reporte.total.reconexiones_programadas} programadas</div>
+                <div style={kpiValueStyle}>{totalFiltrado!.reconexiones_ejecutadas}</div>
+                <div style={kpiSubValueStyle}>de {totalFiltrado!.reconexiones_programadas} programadas</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Cortes Ejec.</div>
-                <div style={kpiValueStyle}>{reporte.total.cortes_ejecutados}</div>
-                <div style={kpiSubValueStyle}>de {reporte.total.corte_programado} programados</div>
+                <div style={kpiValueStyle}>{totalFiltrado!.cortes_ejecutados}</div>
+                <div style={kpiSubValueStyle}>de {totalFiltrado!.corte_programado} programados</div>
               </div>
               <div style={{...cardStyle, border: `1px solid ${THEME.primary}`}}>
                 <div style={kpiTitleStyle}>Cumpl. % Prom. según Meta</div>
-                <div style={kpiValueStyle}>{reporte.total.cumplimiento_meta_pct}%</div>
+                <div style={kpiValueStyle}>{totalFiltrado!.cumplimiento_meta_pct}%</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Cumpl. Corte s/Carga</div>
-                <div style={kpiValueStyle}>{reporte.total.cumplimiento_corte_pct}%</div>
+                <div style={kpiValueStyle}>{totalFiltrado!.cumplimiento_corte_pct}%</div>
                 <div style={kpiSubValueStyle}>Eficiencia</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Visitas Fallidas</div>
-                <div style={{...kpiValueStyle, color: THEME.error}}>{reporte.total.visitas_fallidas}</div>
+                <div style={{...kpiValueStyle, color: THEME.error}}>{totalFiltrado!.visitas_fallidas}</div>
                 <div style={kpiSubValueStyle}>Atención requerida</div>
               </div>
             </div>
@@ -338,7 +379,7 @@ export const ReporteGerencialDashboardView = ({
                 <div style={chartTitleStyle}>Cumpl. % Prom. según Meta por Zona</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart layout="vertical" data={reporte.zonas} margin={{ left: 20, right: 30, top: 0, bottom: 0 }}>
+                    <BarChart layout="vertical" data={zonasFiltradas} margin={{ left: 20, right: 30, top: 0, bottom: 0 }}>
                       <XAxis type="number" domain={[0, 100]} hide />
                       <YAxis dataKey="zona" type="category" width={60} {...axisProps} axisLine={false} tickLine={false} />
                       <Tooltip cursor={{fill: THEME.bg}} contentStyle={{ borderRadius: 4, border: `1px solid ${THEME.border}` }} />
@@ -355,7 +396,7 @@ export const ReporteGerencialDashboardView = ({
                 <div style={chartTitleStyle}>Corte: Poste vs Empalme</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reporte.zonas} margin={{ top: 20, bottom: 20 }}>
+                    <BarChart data={zonasFiltradas} margin={{ top: 20, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.bg} />
                       <XAxis dataKey="zona" {...axisProps} tickMargin={10} />
                       <YAxis hide />
@@ -377,7 +418,7 @@ export const ReporteGerencialDashboardView = ({
                 <div style={chartTitleStyle}>Corte Programado vs Ejecutado</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reporte.zonas} margin={{ top: 20, bottom: 20 }}>
+                    <BarChart data={zonasFiltradas} margin={{ top: 20, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.bg} />
                       <XAxis dataKey="zona" {...axisProps} tickMargin={10} />
                       <YAxis hide />
@@ -399,7 +440,7 @@ export const ReporteGerencialDashboardView = ({
                 <div style={chartTitleStyle}>Reconexiones: Prog. vs Ejec.</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reporte.zonas} margin={{ top: 20, bottom: 20 }}>
+                    <BarChart data={zonasFiltradas} margin={{ top: 20, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.bg} />
                       <XAxis dataKey="zona" {...axisProps} tickMargin={10} />
                       <YAxis hide />
@@ -421,7 +462,7 @@ export const ReporteGerencialDashboardView = ({
                 <div style={chartTitleStyle}>Promedio Actividad Diaria por Zona</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart layout="vertical" data={reporte.zonas} margin={{ left: 20, right: 30, top: 0, bottom: 0 }}>
+                    <BarChart layout="vertical" data={zonasFiltradas} margin={{ left: 20, right: 30, top: 0, bottom: 0 }}>
                       <XAxis type="number" hide />
                       <YAxis dataKey="zona" type="category" width={60} {...axisProps} axisLine={false} tickLine={false} />
                       <Tooltip cursor={{fill: THEME.bg}} />
@@ -438,7 +479,7 @@ export const ReporteGerencialDashboardView = ({
                 <div style={chartTitleStyle}>Visitas Fallidas</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={reporte.zonas} margin={{ top: 20, bottom: 20 }}>
+                    <BarChart data={zonasFiltradas} margin={{ top: 20, bottom: 20 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={THEME.bg} />
                       <XAxis dataKey="zona" {...axisProps} tickMargin={10} />
                       <YAxis hide />
@@ -479,7 +520,7 @@ export const ReporteGerencialDashboardView = ({
                     </tr>
                   </thead>
                   <tbody>
-                    {reporte.zonas.map((z, idx) => (
+                    {zonasFiltradas.map((z, idx) => (
                       <tr key={idx}>
                         <td style={tableCellStyle}>{z.zona}</td>
                         <td style={tableCellStyle}>{z.brigadas_operativas}</td>
@@ -498,20 +539,20 @@ export const ReporteGerencialDashboardView = ({
                       </tr>
                     ))}
                     <tr style={{ background: '#f2f4f6' }}>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.zona}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.brigadas_operativas}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.reconexiones_programadas}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.reconexiones_ejecutadas}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.corte_programado}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.cortes_ejecutados}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.corte_en_poste}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.corte_en_empalme}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.visitas_fallidas}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.promedio_reconexiones}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.promedio_cortes}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700}}>{reporte.total.promedio_actividad}</td>
-                      <td style={{...tableCellStyle, fontWeight: 700, color: THEME.primary}}>{reporte.total.cumplimiento_meta_pct}%</td>
-                      <td style={{...tableCellStyle, fontWeight: 700, color: THEME.primary}}>{reporte.total.cumplimiento_corte_pct}%</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{filtroZona === 'Todas' ? totalFiltrado!.zona : totalFiltrado!.zona}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.brigadas_operativas}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.reconexiones_programadas}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.reconexiones_ejecutadas}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.corte_programado}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.cortes_ejecutados}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.corte_en_poste}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.corte_en_empalme}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.visitas_fallidas}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.promedio_reconexiones}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.promedio_cortes}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado!.promedio_actividad}</td>
+                      <td style={{...tableCellStyle, fontWeight: 700, color: THEME.primary}}>{totalFiltrado!.cumplimiento_meta_pct}%</td>
+                      <td style={{...tableCellStyle, fontWeight: 700, color: THEME.primary}}>{totalFiltrado!.cumplimiento_corte_pct}%</td>
                     </tr>
                   </tbody>
                 </table>

@@ -10,6 +10,7 @@ import {
 } from '../../styles/dashboardStyles';
 import type { EditableBrigada } from '../../hooks/useBrigadasDia';
 import type { ParametroZona } from '../../types/programacionZona';
+import type { SupervisorUsuarioSAP } from '../../api/supervisores.api';
 import { useDataTableControls } from '../../hooks/useDataTableControls';
 import { DataTableToolbar } from '../common/DataTableToolbar';
 import { SortableHeaderCell } from '../common/SortableHeaderCell';
@@ -42,6 +43,7 @@ interface BrigadasEditableTableProps {
   handleCancelRow: (id: number | string) => void;
   handleDeleteRow: (id: number | string) => void;
   handleSaveRow: (id: number | string) => void;
+  usuariosSap?: SupervisorUsuarioSAP[];
   readOnly?: boolean;
 }
 
@@ -89,6 +91,24 @@ export const BrigadasEditableTable = ({
 
   const handleNumericChange = (rowId: number | string, field: keyof EditableBrigada, rawValue: string) => {
     handleRowChange(rowId, field, normalizeNumber(rawValue));
+  };
+
+  // Patente: 4 letras + 2 números, todo mayúsculas (formato chileno LLLLNN)
+  const handlePatenteChange = (rowId: number | string, rawValue: string) => {
+    let val = rawValue.toUpperCase();
+    // Construir string válido carácter a carácter
+    let result = '';
+    for (let i = 0; i < val.length && result.length < 6; i++) {
+      const ch = val[i];
+      if (result.length < 4) {
+        // Posiciones 0-3: solo letras
+        if (/[A-Z]/.test(ch)) result += ch;
+      } else {
+        // Posiciones 4-5: solo dígitos
+        if (/[0-9]/.test(ch)) result += ch;
+      }
+    }
+    handleRowChange(rowId, 'patente', result);
   };
 
   const {
@@ -232,7 +252,22 @@ export const BrigadasEditableTable = ({
                       <input type="text" value={row.usuario || ''} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '100%', minWidth: '130px', fontWeight: 600, color: '#64748B' }} title={row.usuario || ''} />
                     )}
                   </td>
-                  <td style={tdStyle}>{readOnly ? row.patente : <input type="text" value={row.patente} onChange={(e) => handleRowChange(row.id, 'patente', e.target.value)} style={{ ...inputStyle, width: '70px' }} />}</td>
+                  <td style={tdStyle}>
+                    {readOnly
+                      ? row.patente
+                      : (
+                        <input
+                          type="text"
+                          value={row.patente}
+                          onChange={(e) => handlePatenteChange(row.id, e.target.value)}
+                          maxLength={6}
+                          placeholder="LLLL12"
+                          title="4 letras + 2 números (ej: VSKT23)"
+                          style={{ ...inputStyle, width: '70px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                        />
+                      )
+                    }
+                  </td>
                   <td style={tdStyle}>
                     {readOnly ? (
                       <span style={{ color: row.tipo_brigada === 'CF' ? '#d97706' : '#1e40af', fontWeight: 500 }}>{row.tipo_brigada}</span>

@@ -97,7 +97,7 @@ class ResumenZonaService:
                 # Fórmulas
                 porc_brig_efectivas = (b_rep / brig_contrato) if brig_contrato > 0 else 0.0
                 prom_rec = (rec_ejec / b_rep) if b_rep > 0 else 0.0
-                cumpl_corte_porc = (cortes / asig_carga) if asig_carga > 0 else 0.0
+                cumpl_corte_porc = (cortes / corte_prog) if corte_prog > 0 else 0.0
                 prom_cortes = (cortes / b_rep) if b_rep > 0 else 0.0
                 prom_actividades = (actividades / b_rep) if b_rep > 0 else 0.0
                 cumpl_prom_meta = (cortes / (b_rep * meta_diaria)) if (b_rep * meta_diaria) > 0 else 0.0
@@ -140,7 +140,7 @@ class ResumenZonaService:
                 
             porc_brig_efectivas_tot = (t["b_rep"] / t["b_ctto"]) if t["b_ctto"] > 0 else 0.0
             prom_rec_tot = (t["rec_ejec"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
-            cumpl_corte_porc_tot = (t["cortes"] / t["asig_carga"]) if t["asig_carga"] > 0 else 0.0
+            cumpl_corte_porc_tot = (t["cortes"] / t["corte_prog"]) if t["corte_prog"] > 0 else 0.0
             prom_cortes_tot = (t["cortes"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
             prom_actividades_tot = (t["actividades"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
             cumpl_prom_meta_tot = (t["cortes"] / (t["b_rep"] * meta_diaria)) if (t["b_rep"] * meta_diaria) > 0 else 0.0

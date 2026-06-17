@@ -105,9 +105,11 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
         const reconexiones_ejecutadas = bFiltradas.reduce((sum, b) => sum + (Number(b.reconexiones_ejecutadas) || 0), 0);
         const corte_en_poste = bFiltradas.reduce((sum, b) => sum + (Number(b.corte_en_poste) || 0), 0);
         const corte_en_empalme = bFiltradas.reduce((sum, b) => sum + (Number(b.corte_en_empalme) || 0), 0);
+        const corte_fuera_de_rango = bFiltradas.reduce((sum, b) => sum + (Number((b as any).corte_fuera_de_rango) || 0), 0);
         const visitas_fallidas = bFiltradas.reduce((sum, b) => sum + (Number(b.visita_fallida) || 0), 0);
 
-        const cortes_ejecutados = corte_en_poste + corte_en_empalme;
+        // Total cortes = poste + empalme + fuera_de_rango (igual que resumen_zona_service)
+        const cortes_ejecutados = corte_en_poste + corte_en_empalme + corte_fuera_de_rango;
 
         const promedio_reconexiones = brigadas_operativas > 0 ? (reconexiones_ejecutadas / brigadas_operativas) : 0;
         const promedio_cortes = brigadas_operativas > 0 ? (cortes_ejecutados / brigadas_operativas) : 0;
@@ -117,8 +119,9 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
         const meta_diaria = 30; // Using 30 to match backend default
         const base_meta_calc = brigadas_operativas * meta_diaria;
         
+        // cumpl_corte = total_cortes / corte_programado (igual que resumen_zona_service)
         const cumplimiento_meta_pct = base_meta_calc > 0 ? (cortes_ejecutados / base_meta_calc) * 100 : 0;
-        const cumplimiento_corte_pct = asignacion_carga > 0 ? (cortes_ejecutados / asignacion_carga) * 100 : 0;
+        const cumplimiento_corte_pct = corte_programado > 0 ? (cortes_ejecutados / corte_programado) * 100 : 0;
 
         return {
           zona,
@@ -172,7 +175,6 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
 
       // Calcular promedios y porcentajes del total
       const bo = totalGlobal.brigadas_operativas;
-      const asigCargaTot = totalGlobal.asignacion_carga;
       const meta_diaria_tot = 30;
       const baseM = bo * meta_diaria_tot;
 
@@ -180,7 +182,8 @@ export const useReporteGerencial = (fechaOperacional: string, filtro: FiltroBrig
       totalGlobal.promedio_cortes = bo > 0 ? formatNumber(totalGlobal.cortes_ejecutados / bo) : 0;
       totalGlobal.promedio_actividad = bo > 0 ? formatNumber((totalGlobal.reconexiones_ejecutadas + totalGlobal.cortes_ejecutados + totalGlobal.visitas_fallidas) / bo) : 0;
       totalGlobal.cumplimiento_meta_pct = baseM > 0 ? formatNumber((totalGlobal.cortes_ejecutados / baseM) * 100) : 0;
-      totalGlobal.cumplimiento_corte_pct = asigCargaTot > 0 ? formatNumber((totalGlobal.cortes_ejecutados / asigCargaTot) * 100) : 0;
+      // cumpl_corte total = total_cortes / corte_programado (igual que resumen_zona_service)
+      totalGlobal.cumplimiento_corte_pct = totalGlobal.corte_programado > 0 ? formatNumber((totalGlobal.cortes_ejecutados / totalGlobal.corte_programado) * 100) : 0;
 
       setReporte({
         fecha_operacional: fechaOperacional,
