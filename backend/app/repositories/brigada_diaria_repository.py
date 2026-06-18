@@ -30,6 +30,7 @@ class BrigadaDiariaRepository:
             reconexiones_programadas=item.reconexiones_programadas,
             # Nuevos campos (Ajuste 5.1)
             reconexiones_ejecutadas=item.reconexiones_ejecutadas,
+            total_cortes=item.total_cortes,
             primer_corte=item.primer_corte,
             ultimo_corte=item.ultimo_corte,
             acum_09=item.acum_09,

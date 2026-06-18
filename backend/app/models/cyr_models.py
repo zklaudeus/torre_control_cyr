@@ -28,6 +28,7 @@ class ControlBrigadasDiario(Base):
     reconexiones_programadas = Column(Integer, default=0)
     # Columnas de resultados por brigada (ajuste Fase 5.1)
     reconexiones_ejecutadas = Column(Integer, default=0)
+    total_cortes = Column(Integer, default=0)
     primer_corte = Column(Time)
     ultimo_corte = Column(Time)
     acum_09 = Column(Integer, default=0)

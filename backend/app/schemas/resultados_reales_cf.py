@@ -13,12 +13,12 @@ class ResultadoRealCFZonaCalculado(BaseModel):
     visita_fallida_cf: int
     primer_corte_cf: Optional[time] = None
     ultimo_corte_cf: Optional[time] = None
-    acum_09: int
-    acum_10: int
-    acum_11: int
-    acum_12: int
-    acum_13: int
-    acum_14: int
+    acum_09: Optional[int] = None
+    acum_10: Optional[int] = None
+    acum_11: Optional[int] = None
+    acum_12: Optional[int] = None
+    acum_13: Optional[int] = None
+    acum_14: Optional[int] = None
     tiene_brigadas_cf: bool = True
 
     class Config:

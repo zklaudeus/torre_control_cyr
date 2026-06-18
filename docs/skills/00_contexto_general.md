@@ -92,11 +92,11 @@ Base de datos (PostgreSQL):
 
 - Medición - registro de mediciones
 - Empalme - control de empalmes
-- Módulos CF - gestión separada de Corte Fijo
 
 ## Estado actual
 
 ### ✅ Completado
+
 - Autenticación de usuarios (supervisor/admin)
 - Navegación entre módulos
 - Gestión de brigadas diarias
@@ -105,11 +105,12 @@ Base de datos (PostgreSQL):
 - Sincronización en tiempo real
 
 ### 🔄 En desarrollo
-- Módulo Bitácora Supervisor
+
 - Reporte Gerencial avanzado
 - Validaciones mejoradas
 
 ### 📋 Documentación
+
 - Diagrama ER completo
 - Modelo de datos
 - Especificaciones de API
@@ -127,18 +128,21 @@ Base de datos (PostgreSQL):
 ## Cómo usar este skill
 
 ### Para desarrolladores
+
 - Entender la arquitectura general del sistema
 - Comprender el flujo de datos entre frontend y backend
 - Identificar dónde encaja su trabajo
 - Evitar trabajar en áreas no asignadas
 
 ### Para stakeholders
+
 - Entender qué funcionalidades existen
 - Saber qué está completo vs en desarrollo
 - Planificar nuevas características
 - Evaluar el estado actual del proyecto
 
 ### Para nuevos equipos
+
 - Punto de partida para onboarding
 - Documentación de referencia rápida
 - Guía para mantener consistencia

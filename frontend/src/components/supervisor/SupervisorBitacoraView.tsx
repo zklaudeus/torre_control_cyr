@@ -72,15 +72,24 @@ export const SupervisorBitacoraView = ({
     getSupervisoresActivos().then(data => {
       let supervisoresVisibles = data;
       if (user?.rol === 'supervisor') {
-        supervisoresVisibles = data.filter(s => s.nombre === user.nombre);
+        // Filtrar por supervisorId si disponible, sino por nombre como fallback
+        if ((user as any).supervisorId) {
+          supervisoresVisibles = data.filter(s => s.id === (user as any).supervisorId);
+        } else {
+          supervisoresVisibles = data.filter(s => s.nombre === user.nombre);
+        }
       }
       setSupervisores(supervisoresVisibles);
       
-      const matched = supervisoresVisibles.find(s => s.nombre === user?.nombre);
-      if (matched) setSelectedSupervisorId(matched.id);
+      // Auto-selección: priorizar supervisorId, luego nombre, luego primero de la lista
+      const matchedById = supervisoresVisibles.find(s => s.id === (user as any)?.supervisorId);
+      const matchedByName = supervisoresVisibles.find(s => s.nombre === user?.nombre);
+      const autoSelect = matchedById || matchedByName;
+      if (autoSelect) setSelectedSupervisorId(autoSelect.id);
       else if (supervisoresVisibles.length > 0) setSelectedSupervisorId(supervisoresVisibles[0].id);
     }).catch(console.error);
   }, [user]);
+
 
   useEffect(() => {
     if (selectedSupervisorId) {
@@ -129,15 +138,17 @@ export const SupervisorBitacoraView = ({
         }
       });
       const filtered = mapped.filter(m => {
-        // Validación estricta: Cada supervisor solo ve sus propios usuarios SAP
-        if (selectedSupervisorId) {
+        const isAdmin = user?.rol === 'admin' || user?.rol === 'superadmin';
+        const hasAll = user?.zonasAsignadas?.includes('TODAS');
+
+        // Si hay sapMap cargado, filtrar estrictamente por usuarios SAP del supervisor
+        if (selectedSupervisorId && sapMap.length > 0) {
           const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
           if (!matchingSAP) return false;
         }
 
-        const zona = obtenerZonaPorComuna(m.comuna, comunasMap);
-        const isAdmin = user?.rol === 'admin' || user?.rol === 'superadmin';
-        const hasAll = user?.zonasAsignadas?.includes('TODAS');
+        // Filtrar por zona asignada al supervisor
+        const zona = m.zona || obtenerZonaPorComuna(m.comuna, comunasMap);
         return isAdmin || hasAll || !user?.zonasAsignadas || (zona && user.zonasAsignadas.includes(zona));
       });
       setRows(filtered);
@@ -166,7 +177,10 @@ export const SupervisorBitacoraView = ({
   };
 
   useEffect(() => {
-    if (comunasMap.length > 0 && sapMap.length > 0) {
+    // Disparar fetch cuando ya se cargaron las comunas del supervisor.
+    // No se requiere sapMap: supervisores nuevos sin SAP configurado
+    // igual pueden ver las brigadas de sus zonas.
+    if (comunasMap.length > 0) {
       fetchBrigadas();
       fetchProgramacionZona();
     }
@@ -267,10 +281,16 @@ export const SupervisorBitacoraView = ({
     const tempRow = { ...form, id: 'temp' } as BitacoraRow;
     const errors = validarFila(tempRow, rows, editId, fechaOperacional, comunasMap, sapMap);
 
-    const zonaDestino = obtenerZonaPorComuna(form.comuna, comunasMap);
+    const zonaDestino = form.zona || obtenerZonaPorComuna(form.comuna, comunasMap);
     const hasAll = user.zonasAsignadas?.includes('TODAS');
     if (user.rol === 'supervisor' && !hasAll && user.zonasAsignadas && zonaDestino && !user.zonasAsignadas.includes(zonaDestino)) {
       errors.comuna = `La comuna no pertenece a sus zonas asignadas (${user.zonasAsignadas.join(', ')}).`;
+    }
+
+    // Validar permiso de CF
+    const puedeUsarCF = !(user.rol === 'supervisor') || (user as any)?.tiposBrigadaPermitidos?.includes('CF');
+    if (!puedeUsarCF && form.tipoBrigada === 'CF') {
+      errors.tipoBrigada = 'No tiene permiso para registrar brigadas de tipo CF.';
     }
 
     if (Object.keys(errors).length > 0) {
@@ -444,9 +464,21 @@ export const SupervisorBitacoraView = ({
       .map(r => r.cuenta)
       .filter(Boolean);
       
-    const todas = Array.from(new Set(sapMap.map(s => s.cuenta))).sort();
+    const hasAll = user?.zonasAsignadas?.includes('TODAS');
+    const sapFiltrado = sapMap.filter(s => {
+      // Filtrar estrictamente por zonas permitidas del usuario actual
+      if (hasAll || !user?.zonasAsignadas) return true;
+      
+      const zona = s.zona_principal || obtenerZonaPorComuna(s.comuna_habitual || '', comunasMap);
+      if (!zona) return false;
+      
+      const normZona = zona.trim().toLowerCase();
+      return user.zonasAsignadas.some(za => za.trim().toLowerCase() === normZona);
+    });
+
+    const todas = Array.from(new Set(sapFiltrado.map(s => s.cuenta))).sort();
     return todas.filter(c => !usadas.includes(c));
-  }, [rows, editId]);
+  }, [rows, editId, sapMap, user, comunasMap]);
 
   const cargarBrigadasFrecuentes = async () => {
     if (!selectedSupervisorId) {
@@ -463,8 +495,21 @@ export const SupervisorBitacoraView = ({
     setMessage(null);
 
     const actualesSap = rows.map(r => `${r.usuarioSap}_${r.tipoBrigada}`);
-    const faltantes = sapMap.filter(s => {
+    const puedeCargarCF = !(user?.rol === 'supervisor') || (user as any)?.tiposBrigadaPermitidos?.includes('CF');
+    
+    const hasAll = user?.zonasAsignadas?.includes('TODAS');
+    const sapZonificados = sapMap.filter(s => {
+      if (hasAll || !user?.zonasAsignadas) return true;
+      const zona = s.zona_principal || obtenerZonaPorComuna(s.comuna_habitual || '', comunasMap);
+      if (!zona) return false;
+      const normZona = zona.trim().toLowerCase();
+      return user.zonasAsignadas.some(za => za.trim().toLowerCase() === normZona);
+    });
+
+    const faltantes = sapZonificados.filter(s => {
       if (!s.activo) return false;
+      // Si supervisor no tiene permiso CF, omitir sus brigadas CF
+      if (!puedeCargarCF && (s.tipo_brigada === 'CF')) return false;
       const key = `${s.codigo_sap}_${s.tipo_brigada || 'PXQ'}`;
       return !actualesSap.includes(key);
     });
@@ -716,7 +761,10 @@ export const SupervisorBitacoraView = ({
               <FormGroup label="Tipo Brigada">
                 <select value={form.tipoBrigada} onChange={e => handleFormChange('tipoBrigada', e.target.value as any)} style={{ ...inputStyle(false), flex: 1 }}>
                   <option value="PXQ" style={{ background: K.tertiary, color: K.neutral }}>PXQ</option>
-                  <option value="CF" style={{ background: K.tertiary, color: K.neutral }}>CF</option>
+                  {/* CF solo disponible para supervisores con permiso explícito */}
+                  {(!(user?.rol === 'supervisor') || (user as any)?.tiposBrigadaPermitidos?.includes('CF')) && (
+                    <option value="CF" style={{ background: K.tertiary, color: K.neutral }}>CF</option>
+                  )}
                 </select>
               </FormGroup>
               <FormGroup label="Estado">

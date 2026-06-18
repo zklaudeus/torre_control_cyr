@@ -4,6 +4,7 @@ import { DashboardHeader } from '../dashboard/DashboardHeader';
 import { AlertMessage } from '../dashboard/AlertMessage';
 import { BrigadasDiaAccordion } from './BrigadasDiaAccordion';
 import { ProgramacionDiariaGrid } from './ProgramacionDiariaGrid';
+import { ProcesadorOperacional } from './ProcesadorOperacional';
 import { contentStackStyle } from '../../styles/dashboardStyles';
 import { useResumenGeneralDashboard } from '../../hooks/useResumenGeneralDashboard';
 import type { FormularioActivo } from '../../pages/DashboardPage';
@@ -68,6 +69,11 @@ export const ResumenGeneralPanel = ({
         </div>
       ) : (
         <section style={contentStackStyle}>
+          <ProcesadorOperacional 
+            fechaOperacional={fechaOperacional} 
+            onProcessingComplete={fetchAll} 
+          />
+
           <BrigadasDiaAccordion hook={brigadasHook} readOnly={isReadOnly} />
 
           <ProgramacionDiariaGrid 
