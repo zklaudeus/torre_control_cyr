@@ -83,6 +83,7 @@ export const useInicioDiaBrigadas = (fechaOperacional: string) => {
             acum_14: 0,
             corte_en_poste: 0,
             corte_en_empalme: 0,
+            corte_fuera_de_rango: 0,
             visita_fallida: 0,
           };
           await createBrigada(payload);

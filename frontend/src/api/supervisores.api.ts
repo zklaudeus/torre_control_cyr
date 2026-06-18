@@ -47,3 +47,34 @@ export const getAllUsuariosSap = async (): Promise<SupervisorUsuarioSAP[]> => {
   const { data } = await apiClient.get<SupervisorUsuarioSAP[]>('/api/supervisores/usuarios-sap/todos');
   return data;
 };
+
+export interface ZonaResumenOut {
+  zona: string;
+  tipo_brigada: string;
+  total_brigadas: number;
+  corte_programado: number;
+  reconexiones_programadas: number;
+  total_en_bandeja: number;
+}
+
+export interface BitacoraResumenPreviewRes {
+  fecha_operacional: string;
+  supervisor_id: number;
+  total_brigadas: number;
+  total_corte_programado: number;
+  total_reconexiones_programadas: number;
+  zonas: ZonaResumenOut[];
+  errores: string[];
+  advertencias: string[];
+}
+
+export const getResumenBitacoraPreview = async (
+  supervisorId: number, 
+  payload: any
+): Promise<BitacoraResumenPreviewRes> => {
+  const { data } = await apiClient.post<BitacoraResumenPreviewRes>(
+    `/api/supervisores/${supervisorId}/bitacora/resumen-preview`,
+    payload
+  );
+  return data;
+};

@@ -1,113 +1,222 @@
-Ejecutar solo Fase 2 de migración frontend → backend, trabajando en una rama nueva de Git.
+# Skill — Fase 3 pequeña: Resumen Bitácora Supervisor por Zona en Backend
 
-Antes de modificar archivos:
+Actúa como backend senior, frontend engineer y QA.
 
-1. Verificar estado actual:
-   - `git status`
+Modo ahorro de créditos y ejecución controlada.
 
-2. Crear rama nueva desde la rama actual:
-   - `git checkout -b feature/backend-supervisor-sap-seguro`
+No analices todo el proyecto.
+No hagas refactor masivo.
+No hagas merge.
+No toques Reporte Gerencial, Resumen General global, Resumen por Zona global, Medición ni Empalme.
+No cambies reglas globales PXQ/CF.
+No modifiques BD salvo que sea estrictamente necesario.
+No elimines lógica funcionando hasta validar reemplazo.
 
-3. Confirmar rama activa:
-   - `git branch`
+## Objetivo
 
-Modo ejecución controlada.
-No hacer refactor masivo.
-No tocar KPIs.
-No tocar Reporte Gerencial.
-No tocar Resumen General.
-No tocar Medición.
-No tocar Empalme.
-No modificar lógica PXQ/CF salvo lo necesario para filtrar supervisor.
-No trabajar directo en `master` ni en la rama principal.
+Mover al backend el cálculo oficial del resumen de Bitácora Supervisor por zona.
 
-Objetivo:
-Mover al backend la obtención segura de usuarios SAP por supervisor, para que el frontend no use `getAllUsuariosSap()` ni filtre usuarios sensibles localmente.
+El frontend puede seguir mostrando la tabla editable, pero el resumen oficial ya no debe calcularse en React con `calcularResumenPorZona(...)`.
 
-Problema actual:
-La Bitácora Supervisor puede traer todos los usuarios SAP y luego filtrar en frontend. Eso no es correcto por seguridad ni buenas prácticas.
+## Rama
 
-Implementar endpoint seguro:
+Antes de modificar:
 
-Preferido si existe auth con usuario actual:
-GET `/api/supervisores/me/usuarios-sap`
+```bash
+git status
+git checkout -b feature/backend-resumen-bitacora-zona
+git branch
+```
 
-Si todavía no existe auth backend real:
-GET `/api/supervisores/{supervisor_id}/usuarios-sap`
+Si la rama ya existe, usarla.
 
-El endpoint debe:
+## Alcance exacto
 
-- Filtrar por `supervisor_id`
-- Filtrar `activo = true`
-- Devolver solo usuarios asociados a ese supervisor
-- Hacer join con `control_supervisor_comunas_zonas`
-- Devolver `zona_principal`
-- No devolver usuarios de otros supervisores
-- No devolver datos globales
+Implementar solo una vista previa/resumen de Bitácora Supervisor por zona.
 
-Response esperado:
+Debe calcular:
 
-- id
-- supervisor_id
-- codigo_sap
-- cuenta
-- tipo_brigada
-- patente_habitual
-- brigada
-- pareja
-- comuna_habitual
-- zona_principal
-- activo
+- total_brigadas
+- corte_programado_total
+- reconexiones_programadas_total
+- total_en_bandeja por zona si viene informado
+- desglose por zona
+- desglose por tipo_brigada PXQ/CF
+- errores de validación
+- advertencias por comuna sin zona
 
-Backend:
+## Endpoint requerido
 
-- Revisar modelos existentes de supervisores.
-- Revisar routes actuales de supervisores.
-- Crear o ajustar repository/service si corresponde.
-- No borrar endpoint global si otra parte lo usa, pero no usarlo en Bitácora Supervisor.
-- Agregar validación: si no existe supervisor, responder 404.
-- Si usuario no tiene zona_principal, devolverlo con `zona_principal = null`.
+Crear endpoint:
 
-Frontend:
+```txt
+POST /api/supervisores/{supervisor_id}/bitacora/resumen-preview
+```
 
-- En Bitácora Supervisor, reemplazar uso de `getAllUsuariosSap()` por endpoint filtrado por supervisor.
-- El botón “Cargar brigadas frecuentes” debe usar solo usuarios del supervisor actual.
-- Si no hay supervisor seleccionado/autenticado, bloquear carga y mostrar error.
-- No mezclar usuarios entre supervisores.
-- Mantener la UI actual.
-- Mantener Juan Muñoz funcionando.
-- Mantener Supervisor Talca funcionando.
-- Supervisor Talca debe cargar solo Talca.
-- Juan Muñoz debe cargar solo Concepción, Chillán y Los Ángeles.
+Este endpoint solo calcula resumen.
+No guarda datos.
+No crea brigadas.
+No actualiza programación.
 
-Validaciones manuales:
+## Request esperado
 
-1. Login Juan Muñoz:
-   - Cargar brigadas frecuentes.
-   - Debe ver solo sus usuarios.
-   - No debe ver Talca, Coquimbo, Iquique ni Santa Cruz.
+```json
+{
+  "fecha_operacional": "2026-06-18",
+  "filas": [
+    {
+      "codigo_sap": "P003372",
+      "cuenta": "Jose Bravo",
+      "patente": "VSXK79",
+      "brigada": "Brigada 1",
+      "pareja": "Nombre pareja",
+      "comuna": "Concepcion",
+      "tipo_brigada": "PXQ",
+      "carga": 10,
+      "reconexiones": 2,
+      "estado_brigada": "Operativa",
+      "observacion": ""
+    }
+  ],
+  "total_en_bandeja_por_zona": {
+    "Concepción": 100,
+    "Chillán": 40,
+    "Los Ángeles": 30
+  }
+}
+```
 
-2. Login Supervisor Talca:
-   - Cargar brigadas frecuentes.
-   - Debe ver solo usuarios Talca.
-   - Debe permitir CF y PXQ.
-   - No debe ver usuarios de Juan Muñoz.
+## Response esperado
 
-3. Login Admin:
-   - No debe romper flujo actual.
+```json
+{
+  "fecha_operacional": "2026-06-18",
+  "supervisor_id": 1,
+  "total_brigadas": 10,
+  "total_corte_programado": 120,
+  "total_reconexiones_programadas": 15,
+  "zonas": [
+    {
+      "zona": "Concepción",
+      "tipo_brigada": "PXQ",
+      "total_brigadas": 6,
+      "corte_programado": 80,
+      "reconexiones_programadas": 10,
+      "total_en_bandeja": 100
+    }
+  ],
+  "errores": [],
+  "advertencias": []
+}
+```
 
-Al finalizar:
+## Reglas backend
 
-- Ejecutar `git status`
-- No hacer merge.
-- No cambiar de rama.
-- No borrar la rama.
+Para cada fila:
 
-Entrega final:
+- `carga` = corte_programado
+- `reconexiones` = reconexiones_programadas
+- resolver `comuna` → `zona` desde `control_supervisor_comunas_zonas`
+- siempre filtrar por `supervisor_id`
+- validar que el SAP pertenezca al supervisor
+- validar que la comuna pertenezca al supervisor
+- validar que el tipo_brigada sea permitido
+- carga y reconexiones deben ser >= 0
+- si comuna no tiene zona, devolver error o advertencia
+- si SAP pertenece a otro supervisor, devolver error
+- no incluir filas inválidas en el resumen válido
 
-- Rama creada.
-- Archivos modificados.
-- Endpoints creados/modificados.
-- Comandos ejecutados.
-- Comandos para probar.
-- Resumen breve.
+## Archivos permitidos
+
+Revisar/modificar solo si corresponde:
+
+```txt
+backend/app/api/routes/supervisores.py
+backend/app/services/supervisor_bitacora_service.py
+backend/app/repositories/supervisor_repository.py
+backend/app/schemas/supervisor_bitacora.py
+frontend/src/api/supervisores.api.ts
+frontend/src/components/supervisor/SupervisorBitacoraView.tsx
+frontend/src/components/supervisor/SupervisorBitacoraLogic.ts
+```
+
+Usar nombres reales si difieren.
+
+## Frontend
+
+Actualizar Bitácora Supervisor para usar el endpoint nuevo.
+
+Reglas:
+
+- crear función API `getResumenBitacoraPreview` o similar
+- al presionar “Validar bitácora”, llamar al backend
+- antes de “Guardar bitácora de hoy”, validar con backend
+- no llamar backend en cada tecla
+- mantener UI actual
+- mostrar errores/advertencias devueltos por backend
+- no volver a usar `getAllUsuariosSap()`
+- dejar la lógica local solo como fallback temporal si es necesario
+
+## Pruebas obligatorias
+
+Validar manualmente:
+
+1. Juan Muñoz:
+
+- cargar brigadas frecuentes
+- modificar carga/reconexiones
+- validar bitácora
+- resumen solo debe mostrar Concepción, Chillán y Los Ángeles
+- no debe aparecer Talca
+
+2. Jose Masso / Talca:
+
+- cargar brigadas frecuentes
+- validar bitácora
+- resumen solo debe mostrar Talca
+- debe soportar PXQ y CF
+
+3. Error controlado:
+
+- poner comuna inválida
+- backend debe devolver error/advertencia
+- frontend debe mostrarlo sin romper pantalla
+
+4. Seguridad:
+
+- enviar SAP de otro supervisor
+- backend debe marcar error
+- no debe incluirlo en resumen válido
+
+## Validaciones técnicas
+
+Ejecutar:
+
+```bash
+git status
+npm run build
+```
+
+Si existe:
+
+```bash
+pytest
+```
+
+## Entrega final
+
+Entregar solo:
+
+- rama activa
+- archivos modificados
+- endpoint creado
+- request/response final
+- comandos ejecutados
+- resultado de build
+- pruebas realizadas o sugeridas
+- problemas encontrados
+- si está listo para commit o no
+
+No mostrar código completo salvo archivo nuevo.
+No entregar explicación larga.
+No hacer merge.

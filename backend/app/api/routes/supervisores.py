@@ -5,6 +5,8 @@ from typing import List
 from app.core.database import get_db
 from app.models.cyr_models import ControlSupervisores, ControlSupervisorComunasZonas, ControlSupervisorUsuariosSAP
 from app.schemas.supervisor import Supervisor, SupervisorComunaZona, SupervisorUsuarioSAP
+from app.schemas.supervisor_bitacora import BitacoraResumenPreviewReq, BitacoraResumenPreviewRes
+from app.services.supervisor_bitacora_service import calcular_resumen_preview
 
 router = APIRouter()
 
@@ -69,3 +71,12 @@ def get_todos_usuarios_sap(db: Session = Depends(get_db)):
     return db.query(ControlSupervisorUsuariosSAP).filter(
         ControlSupervisorUsuariosSAP.activo == True
     ).order_by(ControlSupervisorUsuariosSAP.cuenta).all()
+
+@router.post("/{id}/bitacora/resumen-preview", response_model=BitacoraResumenPreviewRes)
+def post_resumen_preview(id: int, req: BitacoraResumenPreviewReq, db: Session = Depends(get_db)):
+    """Calcula y devuelve un preview del resumen de la bitacora de un supervisor por zonas"""
+    try:
+        res = calcular_resumen_preview(db, id, req)
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))

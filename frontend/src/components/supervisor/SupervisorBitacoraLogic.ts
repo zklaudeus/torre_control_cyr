@@ -60,7 +60,6 @@ export const validarFila = (
   row: BitacoraRow,
   existingRows: BitacoraRow[],
   editId: string | null,
-  fechaOperacional: string,
   comunasMap: SupervisorComunaZona[],
   sapMap: SupervisorUsuarioSAP[]
 ): Partial<Record<keyof BitacoraRow, string>> => {
@@ -131,12 +130,11 @@ export const validarFila = (
 export const validarBitacoraCompleta = (
   rows: BitacoraRow[], 
   editId: string | null, 
-  fechaOperacional: string,
   comunasMap: SupervisorComunaZona[],
   sapMap: SupervisorUsuarioSAP[]
 ): BitacoraRow[] => {
   return rows.map(row => {
-    const rowErrors = validarFila(row, rows, editId, fechaOperacional, comunasMap, sapMap);
+    const rowErrors = validarFila(row, rows, editId, comunasMap, sapMap);
     return { ...row, _errors: Object.keys(rowErrors).length > 0 ? rowErrors : undefined };
   });
 };

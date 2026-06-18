@@ -2,14 +2,13 @@ import React, { useState, useEffect, useMemo, useRef } from 'react';
 import type { BitacoraRow, ResumenZona } from './SupervisorBitacoraLogic';
 import { 
   validarFila,
-  calcularResumenPorZona, 
   obtenerZonaPorComuna,
   obtenerSapPorCuenta
 } from './SupervisorBitacoraLogic';
 import { useAuth } from '../../auth/AuthContext';
 import { apiClient } from '../../api/client';
-import { getSupervisoresActivos, getComunasZonasBySupervisor, getUsuariosSapBySupervisor } from '../../api/supervisores.api';
-import type { Supervisor, SupervisorComunaZona, SupervisorUsuarioSAP } from '../../api/supervisores.api';
+import { getSupervisoresActivos, getComunasZonasBySupervisor, getUsuariosSapBySupervisor, getResumenBitacoraPreview } from '../../api/supervisores.api';
+import type { Supervisor, SupervisorComunaZona, SupervisorUsuarioSAP, BitacoraResumenPreviewRes } from '../../api/supervisores.api';
 
 interface SupervisorBitacoraViewProps {
   fechaOperacional: string;
@@ -62,6 +61,7 @@ export const SupervisorBitacoraView = ({
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
   const [editId, setEditId] = useState<string | null>(null);
+  const [backendResumen, setBackendResumen] = useState<BitacoraResumenPreviewRes | null>(null);
 
   const [supervisores, setSupervisores] = useState<Supervisor[]>([]);
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | ''>('');
@@ -279,7 +279,7 @@ export const SupervisorBitacoraView = ({
     }
 
     const tempRow = { ...form, id: 'temp' } as BitacoraRow;
-    const errors = validarFila(tempRow, rows, editId, fechaOperacional, comunasMap, sapMap);
+    const errors = validarFila(tempRow, rows, editId, comunasMap, sapMap);
 
     const zonaDestino = form.zona || obtenerZonaPorComuna(form.comuna, comunasMap);
     const hasAll = user.zonasAsignadas?.includes('TODAS');
@@ -392,24 +392,82 @@ export const SupervisorBitacoraView = ({
     setFormErrors({});
   };
 
-  const actualizarBitacora = async (customRows?: BitacoraRow[]) => {
+  const validarBitacora = async (customRows?: BitacoraRow[]) => {
+    if (!selectedSupervisorId) {
+      setMessage({ text: 'Debe seleccionar un supervisor.', type: 'error' });
+      return null;
+    }
     const targetRows = customRows || rows;
-    if (targetRows.length === 0 && !customRows) {
-      setMessage({ text: 'No hay brigadas registradas para actualizar la programación.', type: 'error' });
-      return;
+    if (targetRows.length === 0) {
+      setMessage({ text: 'No hay brigadas para validar.', type: 'error' });
+      return null;
+    }
+    
+    setIsSaving(true);
+    try {
+      const payload = {
+        fecha_operacional: fechaOperacional,
+        filas: targetRows.map(r => ({
+          codigo_sap: r.usuarioSap,
+          cuenta: r.cuenta,
+          patente: r.patente,
+          brigada: r.brigada,
+          pareja: r.pareja,
+          comuna: r.comuna,
+          tipo_brigada: r.tipoBrigada,
+          carga: parseFloat(r.carga || '0'),
+          reconexiones: parseFloat(r.reconexiones || '0'),
+          estado_brigada: r.estado,
+          observacion: r.observacion
+        })),
+        total_en_bandeja_por_zona: asignacionCarga
+      };
+      
+      const res = await getResumenBitacoraPreview(Number(selectedSupervisorId), payload);
+      setBackendResumen(res);
+      
+      let msg = 'Bitácora validada exitosamente. Revise el resumen actualizado.';
+      let type: 'success' | 'error' = 'success';
+      if (res.errores.length > 0) {
+        msg = `Errores encontrados: ${res.errores.join(' | ')}`;
+        type = 'error';
+      } else if (res.advertencias.length > 0) {
+        msg = `Advertencias: ${res.advertencias.join(' | ')}`;
+        type = 'error';
+      }
+      
+      if (!customRows) {
+        setMessage({ text: msg, type });
+      }
+      return res;
+    } catch (err: any) {
+      console.error(err);
+      setMessage({ text: `Error al validar bitácora: ${err.message}`, type: 'error' });
+      return null;
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const actualizarBitacora = async (customRows?: BitacoraRow[]) => {
+    const res = await validarBitacora(customRows);
+    if (!res || res.errores.length > 0) {
+      if (!customRows && (!res || res.errores.length > 0)) {
+        // Mensaje ya fue seteado por validarBitacora
+        return;
+      }
     }
 
     setIsSaving(true);
     if (!customRows) setMessage({ text: 'Actualizando bitácora...', type: 'success' });
 
     try {
-      // 1. Actualizar programación PXQ
-      const pxqRows = targetRows.filter(r => r.tipoBrigada !== 'CF');
-      const calcPXQ = calcularResumenPorZona(pxqRows, comunasMap);
-      const pxqBulkData = Object.values(calcPXQ).map(r => ({
+      // 1. Actualizar programación PXQ usando los datos del backend preview
+      const pxqZonas = res!.zonas.filter(z => z.tipo_brigada !== 'CF');
+      const pxqBulkData = pxqZonas.map(r => ({
         zona: r.zona,
-        corte_programado: r.corteTotal,
-        reconexiones_programadas: r.reconexionesTotal,
+        corte_programado: r.corte_programado,
+        reconexiones_programadas: r.reconexiones_programadas,
         asignacion_carga: parseInt(asignacionCarga[r.zona] || '0', 10),
         tipo_brigada: 'PXQ' 
       }));
@@ -422,13 +480,12 @@ export const SupervisorBitacoraView = ({
       }
 
       // 2. Actualizar programación CF
-      const cfRows = targetRows.filter(r => r.tipoBrigada === 'CF');
-      if (cfRows.length > 0) {
-        const calcCF = calcularResumenPorZona(cfRows, comunasMap);
-        const cfBulkData = Object.values(calcCF).map(r => ({
+      const cfZonas = res!.zonas.filter(z => z.tipo_brigada === 'CF');
+      if (cfZonas.length > 0) {
+        const cfBulkData = cfZonas.map(r => ({
           zona: r.zona,
-          cortes_programados: r.corteTotal,
-          reconexiones_programadas: r.reconexionesTotal
+          cortes_programados: r.corte_programado,
+          reconexiones_programadas: r.reconexiones_programadas
         }));
         await apiClient.post('/api/programacion-cf-zona/bulk', {
           fecha_operacional: fechaOperacional,
@@ -445,18 +502,32 @@ export const SupervisorBitacoraView = ({
     }
   };
 
+  // Convertimos el backendResumen en el formato que usaba el frontend temporalmente para no reescribir toda la UI
   const resumen = useMemo(() => {
-    const calc = calcularResumenPorZona(rows, comunasMap);
     const completo: Record<string, ResumenZona> = {};
-    const zonasVisibles = user?.zonasAsignadas?.includes('TODAS')
-      ? Array.from(new Set(comunasMap.map(c => c.zona_principal)))
-      : (user?.zonasAsignadas || []);
+    if (backendResumen) {
+      // Agrupamos por zona (sumando PXQ y CF si estuvieran separados, aunque el UI original parece no separarlos visualmente en KPIs)
+      backendResumen.zonas.forEach(z => {
+        if (!completo[z.zona]) {
+          completo[z.zona] = { zona: z.zona, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
+        }
+        completo[z.zona].totalBrigadas += z.total_brigadas;
+        completo[z.zona].corteTotal += z.corte_programado;
+        completo[z.zona].reconexionesTotal += z.reconexiones_programadas;
+        completo[z.zona].totalEnBandeja = Math.max(completo[z.zona].totalEnBandeja, z.total_en_bandeja);
+      });
+    } else {
+      // Mostrar vacías las zonas permitidas inicialmente
+      const zonasVisibles = user?.zonasAsignadas?.includes('TODAS')
+        ? Array.from(new Set(comunasMap.map(c => c.zona_principal)))
+        : (user?.zonasAsignadas || []);
 
-    zonasVisibles.forEach(z => {
-      completo[z] = calc[z] || { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
-    });
+      zonasVisibles.forEach(z => {
+        completo[z] = { zona: z, totalBrigadas: 0, corteTotal: 0, reconexionesTotal: 0, totalEnBandeja: 0 };
+      });
+    }
     return completo;
-  }, [rows, user]);
+  }, [backendResumen, user, comunasMap]);
 
   const cuentasDisponibles = useMemo(() => {
     const usadas = rows
@@ -630,8 +701,11 @@ export const SupervisorBitacoraView = ({
           <button onClick={cargarBrigadasFrecuentes} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: '#FF9800', color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
             {isSaving ? 'Cargando...' : 'Cargar brigadas frecuentes'}
           </button>
+          <button onClick={() => validarBitacora()} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: '#2C3E50', color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
+            {isSaving ? 'Validando...' : 'Validar bitácora'}
+          </button>
           <button onClick={() => actualizarBitacora()} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: K.primary, color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
-            {isSaving ? 'Subiendo...' : 'Actualizar bitácora del día de hoy'}
+            {isSaving ? 'Subiendo...' : 'Guardar bitácora de hoy'}
           </button>
         </div>
       </div>
