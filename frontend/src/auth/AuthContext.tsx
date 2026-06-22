@@ -44,6 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('torreControlUser');
+    localStorage.removeItem('torreControlToken');
     window.location.hash = '#/login';
   };
 

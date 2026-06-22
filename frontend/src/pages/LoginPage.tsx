@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
 import { USUARIOS_TEMP } from '../auth/supervisoresTemp';
 import { useNavigate } from 'react-router-dom';
+import { apiClient } from '../api/client';
 
 // Kinetic Analytics palette
 const K = {
@@ -21,28 +22,62 @@ export const LoginPage = () => {
   const [error, setError] = useState('');
   const navigate = useNavigate();
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
-    const supervisor = USUARIOS_TEMP.find(s => {
-      // Decode password if it is btoa encoded, otherwise plain
-      const decodedTargetPass = s.password && s.password === btoa('admin123') ? atob(s.password) : s.password;
-      return s.usuario === username && decodedTargetPass === password;
-    });
-    
-    if (supervisor) {
-      const { password: _, ...userWithoutPassword } = supervisor;
-      loginAsSupervisor(userWithoutPassword);
-      if (userWithoutPassword.rol === 'supervisor') {
+    try {
+      // 1. Intentar login en el backend
+      const response = await apiClient.post('/api/auth/login', {
+        usuario: username,
+        password: password
+      });
+
+      const { access_token, user } = response.data;
+      
+      // Guardar token
+      localStorage.setItem('torreControlToken', access_token);
+      
+      // Mapear user del backend a UsuarioApp del frontend
+      const mappedUser = {
+        id: String(user.id),
+        nombre: user.usuario, // El backend por ahora devuelve el usuario
+        usuario: user.usuario,
+        rol: user.rol,
+        supervisorId: user.supervisor_id
+      };
+
+      loginAsSupervisor(mappedUser as any);
+      
+      if (mappedUser.rol === 'supervisor') {
         navigate('/supervisor/bitacora');
-      } else if (userWithoutPassword.rol === 'torre_control') {
+      } else if (mappedUser.rol === 'torre_control') {
         navigate('/torre-control/dashboard-cyr');
       } else {
         navigate('/torre-control/inicio-dia');
       }
-    } else {
-      setError('Credenciales incorrectas');
+      return;
+    } catch (err: any) {
+      console.warn("Backend login falló, intentando fallback local", err);
+      // 2. Fallback a USUARIOS_TEMP si el backend falla o el usuario no está en BD
+      const supervisor = USUARIOS_TEMP.find(s => {
+        const decodedTargetPass = s.password && s.password === btoa('admin123') ? atob(s.password) : s.password;
+        return s.usuario === username && decodedTargetPass === password;
+      });
+      
+      if (supervisor) {
+        const { password: _, ...userWithoutPassword } = supervisor;
+        loginAsSupervisor(userWithoutPassword);
+        if (userWithoutPassword.rol === 'supervisor') {
+          navigate('/supervisor/bitacora');
+        } else if (userWithoutPassword.rol === 'torre_control') {
+          navigate('/torre-control/dashboard-cyr');
+        } else {
+          navigate('/torre-control/inicio-dia');
+        }
+      } else {
+        setError('Credenciales incorrectas');
+      }
     }
   };
 

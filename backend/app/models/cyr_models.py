@@ -224,3 +224,16 @@ class ControlSupervisorUsuariosSAP(Base):
         UniqueConstraint('supervisor_id', 'codigo_sap', name='uq_supervisor_sap'),
         UniqueConstraint('supervisor_id', 'cuenta', name='uq_supervisor_cuenta'),
     )
+
+class ControlUsuarios(Base):
+    __tablename__ = "control_usuarios"
+
+    id = Column(Integer, primary_key=True, index=True)
+    usuario = Column(String(100), unique=True, index=True, nullable=False)
+    password_hash = Column(String(255), nullable=False)
+    rol = Column(String(50), nullable=False, default='supervisor')
+    supervisor_id = Column(Integer, nullable=True)
+    activo = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+    updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
