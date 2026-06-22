@@ -1,20 +1,10 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 
-// ─── Kinetic Analytics palette ───────────────────────────────────────────────
-const K = {
-  primary:     '#0B7BFF',   // electric blue
-  primaryGlow: '#0B7BFF33', // blue glow (20% alpha)
-  secondary:   '#08E5FF',   // cyan
-  tertiary:    '#0A192F',   // deep navy
-  tertiaryMid: '#102240',   // mid navy (sidebar body)
-  tertiaryHi:  '#152E55',   // lighter navy (hover)
-  neutral:     '#F8FAFC',   // white
-  mutedText:   '#64849F',   // muted blue-grey
-  dimText:     '#3B5068',   // very muted
-  border:      '#1C3454',   // subtle border
-  comingSoon:  '#061529',   // badge bg
-};
+// ─── Variables for CSS (formerly local K object) ───────────────────────────
+// Using CSS variables globally defined in index.css
+// var(--primary), var(--secondary), var(--bg-main), var(--bg-panel), var(--bg-panel-sec)
+// var(--text-main), var(--text-muted), var(--border)
 
 // ─── SVG icons ─────────────────────────────────────────────────────────────
 const IconSun = () => (
@@ -61,7 +51,7 @@ const IconGitMerge = () => (
   </svg>
 );
 const IconChevron = ({ open }: { open: boolean }) => (
-  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={K.mutedText} strokeWidth="2.5" strokeLinecap="round">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round">
     <polyline points={open ? "6 15 12 9 18 15" : "6 9 12 15 18 9"}/>
   </svg>
 );
@@ -81,7 +71,12 @@ const COMING_ITEMS = [
   { label: 'Empalme',  Icon: IconGitMerge },
 ];
 
-export const SidebarNav = () => {
+interface SidebarNavProps {
+  isOpen?: boolean;
+  onClose?: () => void;
+}
+
+export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -92,6 +87,7 @@ export const SidebarNav = () => {
       return;
     }
     navigate(route);
+    if (onClose) onClose();
   };
 
   const navItem = (route: string): React.CSSProperties => {
@@ -109,10 +105,10 @@ export const SidebarNav = () => {
       fontSize: '0.875rem',
       fontWeight: isActive ? 600 : 400,
       background: isActive
-        ? `linear-gradient(90deg, ${K.primary}22 0%, ${K.primary}0a 100%)`
+        ? `linear-gradient(90deg, rgba(0, 123, 255, 0.15) 0%, rgba(0, 123, 255, 0.05) 100%)`
         : 'transparent',
-      color: isActive ? K.neutral : K.mutedText,
-      borderLeft: isActive ? `3px solid ${K.primary}` : '3px solid transparent',
+      color: isActive ? 'var(--text-main)' : 'var(--text-muted)',
+      borderLeft: isActive ? `3px solid var(--primary)` : '3px solid transparent',
       transition: 'all 0.15s',
       boxSizing: 'border-box',
     };
@@ -134,44 +130,78 @@ export const SidebarNav = () => {
         .sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
           background: #475569;
         }
+        .sidebar-container {
+          width: 240px;
+          min-width: 240px;
+          height: 100vh;
+          background: var(--bg-panel-sec);
+          display: flex;
+          flex-direction: column;
+          border-right: 1px solid var(--border);
+          position: sticky;
+          top: 0;
+          overflow-y: auto;
+          transition: transform 0.3s ease;
+          z-index: 1001;
+        }
+        .sidebar-overlay {
+          display: none;
+          position: fixed;
+          inset: 0;
+          background: rgba(0, 0, 0, 0.5);
+          z-index: 1000;
+        }
+        @media (max-width: 768px) {
+          .sidebar-container {
+            position: fixed;
+            left: 0;
+            transform: translateX(-100%);
+          }
+          .sidebar-container.open {
+            transform: translateX(0);
+          }
+          .sidebar-overlay.open {
+            display: block;
+          }
+        }
       `}</style>
-    <aside 
-      className="sidebar-scrollbar"
-      style={{
-      width: '240px',
-      minWidth: '240px',
-      height: '100vh',
-      background: K.tertiaryMid,
-      display: 'flex',
-      flexDirection: 'column',
-      borderRight: `1px solid ${K.border}`,
-      position: 'sticky',
-      top: 0,
-      overflowY: 'auto',
-    }}>
+      
+    <div className={`sidebar-overlay ${isOpen ? 'open' : ''}`} onClick={onClose} />
+    <aside className={`sidebar-scrollbar sidebar-container ${isOpen ? 'open' : ''}`}>
 
       {/* ── Header ── */}
       <div style={{
         padding: '1.25rem 1.25rem 1rem',
-        borderBottom: `1px solid ${K.border}`,
+        borderBottom: `1px solid var(--border)`,
+        display: 'flex',
+        flexDirection: 'column'
       }}>
-        {/* Cyan accent dot */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
-          <span style={{
-            width: '6px', height: '6px', borderRadius: '50%',
-            background: K.secondary,
-            boxShadow: `0 0 8px ${K.secondary}`,
-            display: 'inline-block',
-          }} />
-          <span style={{ fontSize: '0.65rem', color: K.secondary, letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 600 }}>
-            Operaciones
-          </span>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          {/* Cyan accent dot */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.4rem' }}>
+            <span style={{
+              width: '6px', height: '6px', borderRadius: '50%',
+              background: 'var(--secondary)',
+              boxShadow: `0 0 8px var(--secondary)`,
+              display: 'inline-block',
+            }} />
+            <span style={{ fontSize: '0.65rem', color: 'var(--secondary)', letterSpacing: '1.5px', textTransform: 'uppercase', fontWeight: 600 }}>
+              EISESA
+            </span>
+          </div>
+          {onClose && (
+            <button className="mobile-close-btn" onClick={onClose} style={{
+              background: 'transparent', border: 'none', color: 'var(--text-main)', cursor: 'pointer', padding: '0.2rem'
+            }}>
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <line x1="18" y1="6" x2="6" y2="18"></line>
+                <line x1="6" y1="6" x2="18" y2="18"></line>
+              </svg>
+            </button>
+          )}
         </div>
-        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: K.neutral, lineHeight: 1.2 }}>
-          Torre de Control
-        </div>
-        <div style={{ fontSize: '0.7rem', color: K.dimText, marginTop: '0.15rem', letterSpacing: '0.5px' }}>
-          v2 — CyR
+        <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', lineHeight: 1.2 }}>
+          Torre Control CyR
         </div>
       </div>
 
@@ -185,7 +215,7 @@ export const SidebarNav = () => {
             display: 'flex', alignItems: 'center', justifyContent: 'space-between',
             padding: '0.5rem 0.875rem',
             border: 'none', background: 'transparent', width: '100%', cursor: 'pointer',
-            color: K.dimText,
+            color: 'var(--text-muted)',
             fontSize: '0.7rem', fontWeight: 700, letterSpacing: '1.5px', textTransform: 'uppercase',
             marginBottom: '0.25rem',
           }}
@@ -208,7 +238,7 @@ export const SidebarNav = () => {
             onClick={() => handleClick(route, external)}
           >
             <span style={{
-              color: location.pathname === route ? K.primary : K.dimText,
+              color: location.pathname === route ? 'var(--primary)' : 'var(--text-muted)',
               display: 'flex', alignItems: 'center',
             }}>
               <Icon />
@@ -219,8 +249,8 @@ export const SidebarNav = () => {
               <span style={{
                 marginLeft: 'auto',
                 width: '5px', height: '5px', borderRadius: '50%',
-                background: K.primary,
-                boxShadow: `0 0 6px ${K.primary}`,
+                background: 'var(--primary)',
+                boxShadow: `0 0 6px var(--primary)`,
               }} />
             )}
           </button>
@@ -231,11 +261,11 @@ export const SidebarNav = () => {
       {user?.rol !== 'supervisor' && (
       <div style={{
         padding: '0.5rem 0.625rem 1rem',
-        borderTop: `1px solid ${K.border}`,
+        borderTop: `1px solid var(--border)`,
         display: 'flex', flexDirection: 'column', gap: '0',
       }}>
         <div style={{
-          fontSize: '0.65rem', color: K.dimText,
+          fontSize: '0.65rem', color: 'var(--text-muted)',
           padding: '0.3rem 0.875rem', letterSpacing: '1px', textTransform: 'uppercase', fontWeight: 600,
           marginBottom: '0.2rem',
         }}>
@@ -253,7 +283,7 @@ export const SidebarNav = () => {
               width: '100%', textAlign: 'left',
               fontSize: '0.875rem',
               background: 'transparent',
-              color: K.dimText,
+              color: 'var(--text-muted)',
               cursor: 'not-allowed',
               borderLeft: '3px solid transparent',
             }}
@@ -263,13 +293,13 @@ export const SidebarNav = () => {
             <span style={{
               marginLeft: 'auto',
               fontSize: '0.6rem',
-              background: K.comingSoon,
-              color: K.secondary,
+              background: 'rgba(0,0,0,0.2)',
+              color: 'var(--secondary)',
               padding: '2px 8px',
               borderRadius: '20px',
               fontWeight: 600,
               letterSpacing: '0.5px',
-              border: `1px solid ${K.secondary}33`,
+              border: `1px solid rgba(0, 229, 255, 0.2)`,
             }}>Beta</span>
           </button>
         ))}
@@ -280,26 +310,26 @@ export const SidebarNav = () => {
       <div style={{
         marginTop: 'auto',
         padding: '1rem',
-        borderTop: `1px solid ${K.border}`,
+        borderTop: `1px solid var(--border)`,
         flexShrink: 0,
       }}>
-        <div style={{ fontSize: '0.8rem', color: K.neutral, fontWeight: 600, marginBottom: '0.5rem' }}>
+        <div style={{ fontSize: '0.8rem', color: 'var(--text-main)', fontWeight: 600, marginBottom: '0.5rem' }}>
           {user?.nombre || 'Administrador'}
         </div>
         {user?.zonasAsignadas && (
-          <div style={{ fontSize: '0.7rem', color: K.secondary, marginBottom: '0.5rem', lineHeight: 1.3 }}>
+          <div style={{ fontSize: '0.7rem', color: 'var(--secondary)', marginBottom: '0.5rem', lineHeight: 1.3 }}>
             Zonas: {user.zonasAsignadas.join(', ')}
           </div>
         )}
         <button
           onClick={logout}
           style={{
-            width: '100%', padding: '0.5rem', background: 'transparent', color: K.mutedText,
-            border: `1px solid ${K.border}`, borderRadius: '6px', fontSize: '0.8rem',
+            width: '100%', padding: '0.5rem', background: 'transparent', color: 'var(--text-muted)',
+            border: `1px solid var(--border)`, borderRadius: '6px', fontSize: '0.8rem',
             cursor: 'pointer', transition: 'all 0.2s'
           }}
-          onMouseEnter={e => e.currentTarget.style.color = K.neutral}
-          onMouseLeave={e => e.currentTarget.style.color = K.mutedText}
+          onMouseEnter={e => e.currentTarget.style.color = 'var(--text-main)'}
+          onMouseLeave={e => e.currentTarget.style.color = 'var(--text-muted)'}
         >
           Cerrar Sesión
         </button>

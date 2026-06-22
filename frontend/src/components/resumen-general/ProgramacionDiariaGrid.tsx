@@ -2,21 +2,21 @@ import { useState, useMemo } from 'react';
 import type { ProgramacionZona } from '../../types/programacionZona';
 
 const K = {
-  primary: '#0B7BFF',
-  secondary: '#00BFFF',
-  tertiary: '#16202B',
-  neutral: '#F8FAFC',
-  textMain: '#1A2B4A',
-  textMuted: '#64748B',
-  bgMain: '#F4F5F7',
-  bgCard: '#FFFFFF',
-  border: '#E2E8F0',
-  success: '#10B981',
-  successBg: '#D1FAE5',
-  warning: '#F59E0B',
-  warningBg: '#FEF3C7',
-  info: '#3B82F6',
-  infoBg: '#DBEAFE',
+  primary: 'var(--primary)',
+  secondary: 'var(--secondary)',
+  tertiary: 'var(--text-main)',
+  neutral: 'var(--bg-main)',
+  textMain: 'var(--text-main)',
+  textMuted: 'var(--text-muted)',
+  bgMain: 'var(--bg-main)',
+  bgCard: 'var(--bg-panel)',
+  border: 'var(--border)',
+  success: 'var(--success)',
+  successBg: 'var(--bg-main)',
+  warning: 'var(--warning)',
+  warningBg: 'var(--bg-main)',
+  info: 'var(--primary)',
+  infoBg: 'var(--bg-main)',
 };
 
 interface ProgramacionDiariaGridProps {
@@ -177,7 +177,7 @@ export const ProgramacionDiariaGrid = ({ data, onChange, readOnly }: Programacio
                     style={{
                       width: '100px', padding: '0.4rem 0.5rem', borderRadius: '6px',
                       border: `1px solid ${K.border}`, textAlign: 'right', fontSize: '0.9rem',
-                      background: readOnly ? K.bgMain : '#FFFFFF', color: readOnly ? K.textMuted : K.textMain, fontWeight: 600,
+                      background: readOnly ? K.bgMain : 'var(--bg-panel)', color: readOnly ? K.textMuted : K.textMain, fontWeight: 600,
                       outline: 'none', transition: 'border-color 0.2s', cursor: readOnly ? 'not-allowed' : 'text'
                     }}
                     onFocus={(e) => !readOnly && (e.target.style.borderColor = K.primary)}
@@ -194,7 +194,7 @@ export const ProgramacionDiariaGrid = ({ data, onChange, readOnly }: Programacio
                     style={{
                       width: '100px', padding: '0.4rem 0.5rem', borderRadius: '6px',
                       border: `1px solid ${K.border}`, textAlign: 'right', fontSize: '0.9rem',
-                      background: readOnly ? K.bgMain : '#FFFFFF', color: readOnly ? K.textMuted : K.textMain, fontWeight: 600,
+                      background: readOnly ? K.bgMain : 'var(--bg-panel)', color: readOnly ? K.textMuted : K.textMain, fontWeight: 600,
                       outline: 'none', transition: 'border-color 0.2s', cursor: readOnly ? 'not-allowed' : 'text'
                     }}
                     onFocus={(e) => !readOnly && (e.target.style.borderColor = K.primary)}

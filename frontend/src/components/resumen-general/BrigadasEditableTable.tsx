@@ -236,7 +236,7 @@ export const BrigadasEditableTable = ({
                     {readOnly ? row.zona : (
                       <select value={row.zona} onChange={(e) => handleRowChange(row.id, 'zona', e.target.value)} style={selectStyle}>
                         <option value="">Selec...</option>
-                        {zonas.map(z => <option key={z.zona} value={z.zona}>{z.zona}</option>)}
+                        {Array.from(new Set(zonas.map(z => z.zona).filter(Boolean))).map(zona => <option key={zona} value={zona}>{zona}</option>)}
                       </select>
                     )}
                   </td>

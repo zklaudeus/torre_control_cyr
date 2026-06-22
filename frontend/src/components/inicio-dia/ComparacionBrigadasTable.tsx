@@ -29,10 +29,10 @@ export const ComparacionBrigadasTable = ({ comparacion, onToggleAplicar }: Compa
   };
 
   return (
-    <div style={{ width: '100%', overflowX: 'auto' }}>
+    <div className="table-responsive">
       <table style={tableStyle}>
         <thead>
-          <tr style={{ ...tableHeadRowStyle, background: '#F8FAFC', fontSize: '0.65rem' }}>
+          <tr style={{ ...tableHeadRowStyle, background: 'var(--bg-panel-sec)', fontSize: '0.65rem' }}>
             <th style={thStyle}>APLICAR</th>
             <th style={thStyle}>ESTADO</th>
             <th style={thStyle}>ACCIÓN SUGERIDA</th>

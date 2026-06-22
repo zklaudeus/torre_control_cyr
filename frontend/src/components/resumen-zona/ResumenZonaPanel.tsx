@@ -37,7 +37,7 @@ const stickyZonaTh = {
   position: 'sticky' as const,
   left: 0,
   zIndex: 10,
-  background: '#F8FAFC',
+  background: 'var(--bg-panel-sec)',
   minWidth: '130px',
   boxShadow: 'none',
 };
@@ -46,7 +46,7 @@ const stickyTipoTh = {
   position: 'sticky' as const,
   left: '130px',
   zIndex: 10,
-  background: '#F8FAFC',
+  background: 'var(--bg-panel-sec)',
   minWidth: '70px',
   boxShadow: '4px 0 6px -2px rgba(0,0,0,0.08)',
 };
@@ -55,7 +55,7 @@ const stickyZonaTd = (isTotal?: boolean) => ({
   position: 'sticky' as const,
   left: 0,
   zIndex: 5,
-  background: isTotal ? '#F1F5F9' : '#FFFFFF',
+  background: isTotal ? 'var(--bg-panel-sec)' : 'var(--bg-panel)',
   minWidth: '130px',
   whiteSpace: 'nowrap' as const,
 });
@@ -64,14 +64,14 @@ const stickyTipoTd = (isTotal?: boolean) => ({
   position: 'sticky' as const,
   left: '130px',
   zIndex: 5,
-  background: isTotal ? '#F1F5F9' : '#FFFFFF',
+  background: isTotal ? 'var(--bg-panel-sec)' : 'var(--bg-panel)',
   minWidth: '70px',
   boxShadow: '4px 0 6px -2px rgba(0,0,0,0.06)',
 });
 
 const FilaResumen = ({ fila, isTotal }: { fila: ResumenZonaFila; isTotal?: boolean }) => {
   const bgStyle = isTotal
-    ? { background: '#F1F5F9', color: '#0A192F', fontWeight: 'bold' as const }
+    ? { background: 'var(--bg-panel-sec)', color: 'var(--text-main)', fontWeight: 'bold' as const }
     : {};
 
   return (
@@ -156,7 +156,7 @@ export const ResumenZonaPanel = ({ fechaOperacional, refreshKey }: ResumenZonaPa
               totalCount={resumen.zonas.length}
               filteredCount={processedData.length}
             />
-            <div style={{ overflowX: 'auto' }}>
+            <div className="table-responsive">
               <table style={tableStyle}>
                 <thead>
                   <tr style={tableHeadRowStyle}>

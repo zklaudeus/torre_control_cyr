@@ -42,7 +42,7 @@ export const DashboardHeader = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#1E293B',
+              color: 'var(--text-main)',
               fontSize: '0.9rem',
               fontFamily: 'monospace',
               outline: 'none',
@@ -79,8 +79,8 @@ export const DashboardHeader = ({
             disabled={saving}
             style={{
               ...actionBtnStyle,
-              background: saving ? '#0056b3' : '#007BFF',
-              color: '#FFFFFF',
+              background: saving ? 'var(--bg-panel-sec)' : 'var(--primary)',
+              color: 'var(--text-main)',
               border: 'none',
               fontWeight: 'bold',
               cursor: saving ? 'not-allowed' : 'pointer',

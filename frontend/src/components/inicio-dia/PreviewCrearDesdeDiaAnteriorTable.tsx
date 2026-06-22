@@ -8,9 +8,9 @@ import { SortableHeaderCell } from '../common/SortableHeaderCell';
 const inputStyleLocal = {
   width: '100%',
   padding: '0.4rem 0.5rem',
-  background: '#F8FAFC',
-  border: '1px solid #E2E8F0',
-  color: '#1A2B4A',
+  background: 'var(--bg-main)',
+  border: '1px solid var(--border)',
+  color: 'var(--text-main)',
   borderRadius: '6px',
   fontSize: '0.85rem',
   outline: 'none',
@@ -69,7 +69,7 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
         filteredCount={processedData.length}
       />
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="table-responsive">
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.9rem' }}>
           <thead>
             <tr>
@@ -94,8 +94,8 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
               const hasError = item.estado === 'error' || !isValid;
 
               const rowStyle = {
-                borderBottom: '1px solid #E2E8F0',
-                background: item.estado === 'ya_existe' ? '#F8FAFC' : hasError ? '#FEF2F2' : '#FFFFFF',
+                borderBottom: '1px solid var(--border)',
+                background: item.estado === 'ya_existe' ? 'var(--bg-panel-sec)' : hasError ? '#FEF2F2' : 'var(--bg-panel)',
                 opacity: item.estado === 'ya_existe' ? 0.7 : 1,
                 transition: 'background 0.2s'
               };
@@ -132,7 +132,7 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
                   <td style={tdStyle}>
                     <select value={b.zona} onChange={(e) => onEditRow(idx, 'zona', e.target.value)} style={{...selectStyleLocal, width: '100px'}}>
                       <option value="">Selec...</option>
-                      {zonas.map(z => <option key={z.zona} value={z.zona}>{z.zona}</option>)}
+                      {Array.from(new Set(zonas.map(z => z.zona).filter(Boolean))).map(zona => <option key={zona} value={zona}>{zona}</option>)}
                     </select>
                   </td>
                   <td style={tdStyle}>

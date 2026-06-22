@@ -20,17 +20,17 @@ interface SupervisorBitacoraViewProps {
 }
 
 const K = {
-  primary:     '#0B7BFF',
-  secondary:   '#00BFFF',
-  tertiary:    '#F4F5F7',
-  tertiaryMid: '#FFFFFF',
-  neutral:     '#1A2B4A',
-  mutedText:   '#64748B',
-  border:      '#E2E8F0',
-  error:       '#FF4B4B',
-  bgMain:      '#F4F5F7',
-  headerBg:    '#16202B',
-  headerText:  '#FFFFFF'
+  primary:     'var(--primary)',
+  secondary:   'var(--secondary)',
+  tertiary:    'var(--bg-main)',
+  tertiaryMid: 'var(--bg-panel)',
+  neutral:     'var(--text-main)',
+  mutedText:   'var(--text-muted)',
+  border:      'var(--border)',
+  error:       'var(--error)',
+  bgMain:      'var(--bg-main)',
+  headerBg:    'var(--bg-panel-sec)',
+  headerText:  'var(--text-main)'
 };
 
 const initialForm: Omit<BitacoraRow, 'id' | '_errors'> = {
@@ -720,7 +720,7 @@ export const SupervisorBitacoraView = ({
   return (
     <div style={{ padding: '2rem', height: '100%', overflowY: 'auto', background: K.bgMain }}>
       {/* 1. Encabezado Superior */}
-      <div style={{ background: K.headerBg, padding: '1.5rem 2rem', borderRadius: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+      <div style={{ background: K.headerBg, padding: '1.5rem 2rem', borderRadius: '12px', display: 'flex', flexWrap: 'wrap', gap: '1.5rem', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
         <div>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 700, margin: 0, color: K.headerText }}>Bitácora Supervisor</h2>
           {user && (
@@ -729,12 +729,12 @@ export const SupervisorBitacoraView = ({
             </div>
           )}
         </div>
-        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <select
             value={selectedSupervisorId}
             onChange={(e) => setSelectedSupervisorId(Number(e.target.value) || '')}
             disabled={user?.rol === 'supervisor'}
-            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText, opacity: user?.rol === 'supervisor' ? 0.7 : 1 }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid var(--border)`, background: 'var(--bg-main)', color: K.headerText, opacity: user?.rol === 'supervisor' ? 0.7 : 1 }}
           >
             <option value="">Seleccione supervisor...</option>
             {supervisores.map(s => (
@@ -745,7 +745,7 @@ export const SupervisorBitacoraView = ({
             type="date" 
             value={fechaOperacional}
             onChange={(e) => onChangeFecha(e.target.value)}
-            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid #2C3E50`, background: '#0A1526', color: K.headerText }}
+            style={{ padding: '0.5rem 1rem', borderRadius: '8px', border: `1px solid var(--border)`, background: 'var(--bg-main)', color: K.headerText }}
           />
           <button onClick={cargarBrigadasFrecuentes} disabled={isSaving} style={{ padding: '0.6rem 1.5rem', background: '#FF9800', color: '#fff', border: 'none', borderRadius: '24px', cursor: isSaving ? 'not-allowed' : 'pointer', fontWeight: 600 }}>
             {isSaving ? 'Cargando...' : 'Cargar brigadas frecuentes'}
@@ -824,7 +824,7 @@ export const SupervisorBitacoraView = ({
           {editId ? 'Editar Brigada' : 'Ingresar Brigada'}
         </h3>
         
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <FormGroup label="Patente" error={formErrors.patente}>
             <input value={form.patente} onChange={e => handleFormChange('patente', e.target.value)} maxLength={6} placeholder="Ej: VSXK79" style={inputStyle(!!formErrors.patente)} />
           </FormGroup>
@@ -843,7 +843,7 @@ export const SupervisorBitacoraView = ({
           </FormGroup>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
           <FormGroup label="Brigada" error={formErrors.brigada}>
             <input value={form.brigada} onChange={e => handleFormChange('brigada', e.target.value)} placeholder="Nombre Brigada" style={inputStyle(!!formErrors.brigada)} />
           </FormGroup>
@@ -866,8 +866,8 @@ export const SupervisorBitacoraView = ({
           </FormGroup>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '1.5rem', marginBottom: '1.5rem' }}>
-          <div style={{ background: '#FFFFFF', padding: '1rem', borderRadius: '8px', border: `1px solid ${K.border}` }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem', marginBottom: '1.5rem' }}>
+          <div style={{ background: 'var(--bg-panel-sec)', padding: '1rem', borderRadius: '8px', border: `1px solid ${K.border}` }}>
             <div style={{ fontSize: '0.75rem', color: K.mutedText, textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '1rem', fontWeight: 600 }}>Carga Operativa</div>
             <div style={{ display: 'flex', gap: '1.5rem' }}>
               <FormGroup label="Cortes Prog." error={formErrors.carga}>
@@ -933,7 +933,7 @@ export const SupervisorBitacoraView = ({
                 style={{ cursor: 'help', color: K.secondary, fontWeight: 600 }}>ℹ️</span>
         </div>
       </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div className="table-responsive">
           {rows.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: K.mutedText }}>
               <div style={{ fontSize: '2rem', opacity: 0.5, marginBottom: '1rem' }}>📋</div>

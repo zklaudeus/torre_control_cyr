@@ -95,9 +95,9 @@ export const ResultadosRealesZonaPanel = ({ fechaOperacional, refreshKey }: Resu
                       </tr>
                     </thead>
                     <tbody>
-                      {processedData.map((z: ResultadoRealZonaCalculado) => (
+                      {processedData.map((z: ResultadoRealZonaCalculado, idx: number) => (
                         <tr
-                          key={z.zona}
+                          key={`${z.fecha_operacional}-${z.zona}-${(z as any).tipo_brigada || idx}`}
                           style={{ ...tableBodyRowStyle, opacity: z.tiene_brigadas ? 1 : 0.5 }}
                         >
                           <td style={{

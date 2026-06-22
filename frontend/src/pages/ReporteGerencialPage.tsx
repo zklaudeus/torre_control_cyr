@@ -16,19 +16,20 @@ const printStyles = `
 `;
 
 const THEME = {
-  bg: '#f7f9fb',
-  cardBg: '#ffffff',
-  border: '#E2E8F0',
-  primary: '#0059bb',
-  secondary: '#00daf3',
-  tertiary: '#0A192F',
-  slate: '#67758f',
-  teal: '#006875',
-  error: '#ba1a1a',
-  textMain: '#191c1e',
-  textMuted: '#414754',
-  fontMain: '"Inter", sans-serif',
-  fontMono: '"JetBrains Mono", monospace'
+  fontSans: 'var(--sans)',
+  fontMono: 'var(--mono)',
+  bg: 'var(--bg-main)',
+  cardBg: 'var(--bg-panel)',
+  border: 'var(--border)',
+  primary: 'var(--primary)',
+  secondary: 'var(--secondary)',
+  tertiary: 'var(--bg-panel-sec)',
+  slate: 'var(--text-muted)',
+  teal: 'var(--secondary)',
+  accent: '#F59E0B',
+  error: 'var(--error)',
+  textMain: 'var(--text-main)',
+  textMuted: 'var(--text-muted)'
 };
 
 const getDefaultFecha = () => {
@@ -96,7 +97,7 @@ export const ReporteGerencialPage = () => {
   const pageStyle: React.CSSProperties = {
     minHeight: '100vh',
     background: THEME.bg,
-    fontFamily: THEME.fontMain,
+    fontFamily: THEME.fontSans,
     padding: '0'
   };
 
@@ -190,7 +191,7 @@ export const ReporteGerencialPage = () => {
 
   const tableHeaderStyle: React.CSSProperties = {
     background: THEME.tertiary,
-    color: '#fff',
+    color: 'var(--text-main)',
     fontSize: '12px',
     fontWeight: 600,
     textAlign: 'left',
@@ -202,7 +203,7 @@ export const ReporteGerencialPage = () => {
     fontWeight: 500,
     color: THEME.textMain,
     padding: '8px 12px',
-    borderBottom: '1px solid #F1F5F9'
+    borderBottom: '1px solid var(--border)'
   };
 
   const axisProps = {
@@ -213,14 +214,14 @@ export const ReporteGerencialPage = () => {
 
   const btnStyle: React.CSSProperties = {
     background: 'transparent',
-    color: '#fff',
+    color: 'var(--text-main)',
     border: '1px solid rgba(255,255,255,0.3)',
     padding: '8px 16px',
     borderRadius: '4px',
     fontSize: '13px',
     fontWeight: 500,
     cursor: 'pointer',
-    fontFamily: THEME.fontMain
+    fontFamily: THEME.fontSans
   };
 
   const btnPrimaryStyle: React.CSSProperties = {
@@ -236,11 +237,11 @@ export const ReporteGerencialPage = () => {
       {/* TOP BAR */}
       <div style={topBarStyle} className="no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
-          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: '#fff' }}>
+          <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-main)' }}>
             📊 Reporte Gerencial CyR
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <label style={{ fontSize: '13px', color: '#B8C7DA' }}>Fecha:</label>
+            <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Fecha:</label>
             <input
               type="date"
               value={fechaOperacional}
@@ -250,7 +251,7 @@ export const ReporteGerencialPage = () => {
                 borderRadius: '4px',
                 border: '1px solid rgba(255,255,255,0.2)',
                 background: 'rgba(255,255,255,0.1)',
-                color: '#fff',
+                color: 'var(--text-main)',
                 fontFamily: THEME.fontMono,
                 fontSize: '13px'
               }}
@@ -265,8 +266,8 @@ export const ReporteGerencialPage = () => {
               borderRadius: '4px',
               border: '1px solid rgba(255,255,255,0.3)',
               background: filtroZona !== 'Todas' ? THEME.primary : 'rgba(255,255,255,0.1)',
-              color: '#fff',
-              fontFamily: THEME.fontMain,
+              color: 'var(--text-main)',
+              fontFamily: THEME.fontSans,
               fontSize: '12px',
               fontWeight: 600,
               cursor: 'pointer',
@@ -285,15 +286,15 @@ export const ReporteGerencialPage = () => {
                 key={f}
                 onClick={() => setFiltro(f)}
                 style={{
-                  background: filtro === f ? THEME.primary : 'transparent',
-                  color: filtro === f ? '#ffffff' : '#000000',
+                  background: filtro === f ? 'var(--primary)' : 'var(--bg-panel-sec)',
+                  color: filtro === f ? 'var(--text-main)' : 'var(--text-muted)',
                   border: 'none',
                   padding: '5px 14px',
                   borderRadius: '3px',
                   fontSize: '12px',
                   fontWeight: 600,
                   cursor: 'pointer',
-                  fontFamily: THEME.fontMain,
+                  fontFamily: THEME.fontSans,
                   transition: 'all 0.15s ease'
                 }}
               >
@@ -380,7 +381,7 @@ export const ReporteGerencialPage = () => {
                       <Tooltip cursor={{fill: THEME.bg}} />
                       <Legend iconType="square" wrapperStyle={{ fontFamily: THEME.fontMono, fontSize: '10px' }} />
                       <Bar dataKey="corte_en_poste" stackId="a" fill={THEME.primary} name="Poste" barSize={24}>
-                        <LabelList dataKey="corte_en_poste" position="center" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: '#fff' }} />
+                        <LabelList dataKey="corte_en_poste" position="center" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: 'var(--text-main)' }} />
                       </Bar>
                       <Bar dataKey="corte_en_empalme" stackId="a" fill={THEME.secondary} name="Empalme" radius={[4, 4, 0, 0]}>
                         <LabelList dataKey="corte_en_empalme" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
@@ -404,7 +405,7 @@ export const ReporteGerencialPage = () => {
                       <Bar dataKey="corte_programado" fill={THEME.primary} name="Prog." barSize={16}>
                         <LabelList dataKey="corte_programado" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
                       </Bar>
-                      <Bar dataKey="cortes_ejecutados" fill={THEME.slate} name="Ejec." barSize={16}>
+                      <Bar dataKey="cortes_ejecutados" fill="#F59E0B" name="Ejec." barSize={16}>
                         <LabelList dataKey="cortes_ejecutados" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
                       </Bar>
                     </BarChart>
@@ -423,10 +424,10 @@ export const ReporteGerencialPage = () => {
                       <YAxis hide />
                       <Tooltip cursor={{fill: THEME.bg}} />
                       <Legend iconType="square" wrapperStyle={{ fontFamily: THEME.fontMono, fontSize: '10px' }} />
-                      <Bar dataKey="reconexiones_programadas" fill={THEME.teal} name="Prog." barSize={16}>
+                      <Bar dataKey="reconexiones_programadas" fill={THEME.primary} name="Prog." barSize={16}>
                         <LabelList dataKey="reconexiones_programadas" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
                       </Bar>
-                      <Bar dataKey="reconexiones_ejecutadas" fill={THEME.secondary} name="Ejec." barSize={16}>
+                      <Bar dataKey="reconexiones_ejecutadas" fill={THEME.accent} name="Ejec." barSize={16}>
                         <LabelList dataKey="reconexiones_ejecutadas" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
                       </Bar>
                     </BarChart>
@@ -473,10 +474,10 @@ export const ReporteGerencialPage = () => {
             {/* TABLE */}
             <div style={tableWrapperStyle}>
               <div style={{ padding: '16px', background: THEME.tertiary, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <h3 style={{ margin: 0, color: '#fff', fontSize: '14px', fontWeight: 600 }}>Estado por Cuadrilla Detallado (Multi-Zona)</h3>
+                <h3 style={{ margin: 0, color: 'var(--text-main)', fontSize: '14px', fontWeight: 600 }}>Estado por Cuadrilla Detallado (Multi-Zona)</h3>
               </div>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <div className="table-responsive">
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: '12px' }}>
                   <thead>
                     <tr>
                       <th style={tableHeaderStyle}>Zona</th>
@@ -514,7 +515,7 @@ export const ReporteGerencialPage = () => {
                         <td style={tableCellStyle}>{z.cumplimiento_corte_pct}%</td>
                       </tr>
                     ))}
-                    <tr style={{ background: '#f2f4f6' }}>
+                    <tr style={{ background: 'var(--bg-panel-sec)' }}>
                       <td style={{...tableCellStyle, fontWeight: 700}}>{filtroZona === 'Todas' ? 'Total General' : totalFiltrado.zona}</td>
                       <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado.brigadas_operativas}</td>
                       <td style={{...tableCellStyle, fontWeight: 700}}>{totalFiltrado.reconexiones_programadas}</td>
