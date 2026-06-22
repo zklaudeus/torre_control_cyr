@@ -7,7 +7,7 @@ import { ProgramacionDiariaGrid } from './ProgramacionDiariaGrid';
 import { ProcesadorOperacional } from './ProcesadorOperacional';
 import { contentStackStyle } from '../../styles/dashboardStyles';
 import { useResumenGeneralDashboard } from '../../hooks/useResumenGeneralDashboard';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 
 interface ResumenGeneralPanelProps {
   fechaOperacional: string;

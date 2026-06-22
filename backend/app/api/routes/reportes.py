@@ -5,10 +5,24 @@ from datetime import date
 
 from app.core.database import get_db
 from app.schemas.reporte_cyr import ReporteCYR, ReporteCYRCreate
+from app.schemas.reporte_gerencial_cyr import ReporteGerencialData
 from app.services.reporte_cyr_service import ReporteCYRService
+from app.services.reporte_gerencial_cyr_service import ReporteGerencialCYRService
 
 router = APIRouter()
 reporte_service = ReporteCYRService()
+reporte_gerencial_service = ReporteGerencialCYRService()
+
+@router.get("/gerencial/cyr", response_model=ReporteGerencialData)
+def get_reporte_gerencial(
+    fecha_operacional: date,
+    filtro: str = "Todo",
+    db: Session = Depends(get_db)
+):
+    """
+    Obtiene los KPIs calculados para el reporte gerencial CYR.
+    """
+    return reporte_gerencial_service.calcular_reporte(db, fecha_operacional, filtro)
 
 @router.post("/", response_model=ReporteCYR)
 def create_or_get_reporte(reporte_in: ReporteCYRCreate, db: Session = Depends(get_db)):

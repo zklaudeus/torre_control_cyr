@@ -6,7 +6,7 @@ import { ParametrosPxqZonaPanel } from './ParametrosPxqZonaPanel';
 import { ParametrosCfZonaPanel } from './ParametrosCfZonaPanel';
 import { useParametrosConfiguracion } from '../../hooks/useParametrosConfiguracion';
 import { AlertMessage } from '../dashboard/AlertMessage';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 
 interface ConfiguracionDashboardViewProps {
   formularioActivo?: FormularioActivo;

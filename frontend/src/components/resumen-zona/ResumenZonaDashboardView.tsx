@@ -3,7 +3,7 @@ import { DashboardLayout } from '../dashboard/DashboardLayout';
 import { headerStyle, titleStyle, actionsContainerStyle, dateBadgeStyle, dateLabelStyle, actionBtnStyle, contentStackStyle } from '../../styles/dashboardStyles';
 import { ResumenZonaPanel } from './ResumenZonaPanel';
 import { ResultadosRealesZonaPanel } from './ResultadosRealesZonaPanel';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 
 interface ResumenZonaDashboardViewProps {
   fechaOperacional: string;

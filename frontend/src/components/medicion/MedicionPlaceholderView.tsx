@@ -1,7 +1,7 @@
 import { DashboardLayout } from '../dashboard/DashboardLayout';
 import { DashboardHeader } from '../dashboard/DashboardHeader';
 import { ModuloPlaceholder } from '../dashboard/ModuloPlaceholder';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 
 interface MedicionPlaceholderViewProps {
   fechaOperacional: string;

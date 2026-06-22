@@ -4,7 +4,7 @@ import { ConfiguracionDashboardView } from '../configuracion/ConfiguracionDashbo
 import { InicioDiaDashboardView } from '../inicio-dia/InicioDiaDashboardView';
 import { ReporteGerencialDashboardView } from '../reporte-gerencial/ReporteGerencialDashboardView';
 import { SupervisorBitacoraView } from '../supervisor/SupervisorBitacoraView';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 
 interface CyrDashboardViewProps {
   fechaOperacional: string;

@@ -4,7 +4,7 @@ import { DashboardHeader } from '../dashboard/DashboardHeader';
 import { AlertMessage } from '../dashboard/AlertMessage';
 import { useReporteGerencial } from '../../hooks/useReporteGerencial';
 import type { FiltroBrigada } from '../../hooks/useReporteGerencial';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList
 } from 'recharts';
@@ -67,7 +67,7 @@ export const ReporteGerencialDashboardView = ({
 
   // Recalcular total según zonas filtradas
   const totalFiltrado = (() => {
-    if (!reporte) return reporte?.total;
+    if (!reporte) return null;
     if (filtroZona === 'Todas') return reporte.total;
     // Para una sola zona, usar sus datos directamente como "total"
     const z = zonasFiltradas[0];

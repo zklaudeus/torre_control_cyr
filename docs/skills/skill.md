@@ -1,4 +1,4 @@
-# Skill — Fase 3 pequeña: Resumen Bitácora Supervisor por Zona en Backend
+# Skill — Fase 3B: Reporte Gerencial CyR desde Backend
 
 Actúa como backend senior, frontend engineer y QA.
 
@@ -7,24 +7,39 @@ Modo ahorro de créditos y ejecución controlada.
 No analices todo el proyecto.
 No hagas refactor masivo.
 No hagas merge.
-No toques Reporte Gerencial, Resumen General global, Resumen por Zona global, Medición ni Empalme.
-No cambies reglas globales PXQ/CF.
-No modifiques BD salvo que sea estrictamente necesario.
-No elimines lógica funcionando hasta validar reemplazo.
+No toques Bitácora Supervisor.
+No toques Medición.
+No toques Empalme.
+No cambies reglas PXQ/CF globales.
+No cambies roles ni permisos.
+No modifiques base de datos salvo que sea estrictamente necesario.
+
+## Contexto
+
+Según el documento de estado del proyecto:
+
+- Fase 1 está completada.
+- Fase 2 está prácticamente completada.
+- Fase 3 está parcial.
+- Ya existen servicios backend avanzados:
+  - `ResumenZonaService`
+  - `ResultadoRealZonaService`
+
+- El problema pendiente es que `useReporteGerencial.ts` todavía calcula KPIs gerenciales en frontend y usa `meta_diaria = 30` hardcodeado.
 
 ## Objetivo
 
-Mover al backend el cálculo oficial del resumen de Bitácora Supervisor por zona.
+Mover el cálculo del Reporte Gerencial CyR al backend.
 
-El frontend puede seguir mostrando la tabla editable, pero el resumen oficial ya no debe calcularse en React con `calcularResumenPorZona(...)`.
+El frontend debe dejar de calcular KPIs gerenciales y pasar a consumir un endpoint backend.
 
-## Rama
+## Rama de trabajo
 
 Antes de modificar:
 
 ```bash
 git status
-git checkout -b feature/backend-resumen-bitacora-zona
+git checkout -b feature/backend-reporte-gerencial-cyr
 git branch
 ```
 
@@ -32,161 +47,182 @@ Si la rama ya existe, usarla.
 
 ## Alcance exacto
 
-Implementar solo una vista previa/resumen de Bitácora Supervisor por zona.
+Crear o reutilizar endpoint backend para entregar el Reporte Gerencial CyR ya calculado por fecha operacional.
 
-Debe calcular:
-
-- total_brigadas
-- corte_programado_total
-- reconexiones_programadas_total
-- total_en_bandeja por zona si viene informado
-- desglose por zona
-- desglose por tipo_brigada PXQ/CF
-- errores de validación
-- advertencias por comuna sin zona
-
-## Endpoint requerido
-
-Crear endpoint:
+Endpoint recomendado:
 
 ```txt
-POST /api/supervisores/{supervisor_id}/bitacora/resumen-preview
+GET /api/reportes/gerencial/cyr?fecha_operacional=YYYY-MM-DD
 ```
 
-Este endpoint solo calcula resumen.
-No guarda datos.
-No crea brigadas.
-No actualiza programación.
+O usar una ruta equivalente si la arquitectura actual ya tiene `/api/resumen-zona/`.
 
-## Request esperado
+## Backend
 
-```json
-{
-  "fecha_operacional": "2026-06-18",
-  "filas": [
-    {
-      "codigo_sap": "P003372",
-      "cuenta": "Jose Bravo",
-      "patente": "VSXK79",
-      "brigada": "Brigada 1",
-      "pareja": "Nombre pareja",
-      "comuna": "Concepcion",
-      "tipo_brigada": "PXQ",
-      "carga": 10,
-      "reconexiones": 2,
-      "estado_brigada": "Operativa",
-      "observacion": ""
-    }
-  ],
-  "total_en_bandeja_por_zona": {
-    "Concepción": 100,
-    "Chillán": 40,
-    "Los Ángeles": 30
-  }
-}
+Revisar y reutilizar si corresponde:
+
+```txt
+backend/app/services/resumen_zona_service.py
+backend/app/services/resultado_real_zona_service.py
+backend/app/api/routes/
+backend/app/schemas/
 ```
+
+Crear solo si hace falta:
+
+```txt
+backend/app/services/reporte_gerencial_cyr_service.py
+backend/app/schemas/reporte_gerencial_cyr.py
+backend/app/api/routes/reportes.py
+```
+
+El backend debe calcular por zona:
+
+- zona
+- brigadas_operativas
+- total_brigadas
+- reconexiones_programadas
+- reconexiones_ejecutadas
+- promedio_reconexiones
+- corte_programado
+- cortes_ejecutados
+- promedio_cortes
+- promedio_actividad
+- corte_en_poste
+- corte_en_empalme
+- corte_fuera_de_rango si existe
+- visitas_fallidas
+- cumplimiento_meta_pct
+- cumplimiento_corte_pct
+
+También debe entregar fila total general.
+
+## Fórmulas
+
+Usar estas reglas:
+
+```txt
+cortes_ejecutados = corte_en_poste + corte_en_empalme + corte_fuera_de_rango
+```
+
+Si `corte_fuera_de_rango` no existe todavía en el modelo, tratarlo como 0 sin romper.
+
+```txt
+promedio_reconexiones = reconexiones_ejecutadas / brigadas_operativas
+promedio_cortes = cortes_ejecutados / brigadas_operativas
+promedio_actividad = (reconexiones_ejecutadas + cortes_ejecutados) / brigadas_operativas
+cumplimiento_meta_pct = promedio_actividad / meta_promedio_actividad * 100
+cumplimiento_corte_pct = cortes_ejecutados / corte_programado * 100
+```
+
+Si el divisor es 0, devolver 0.
+
+No usar `meta_diaria = 30` hardcodeado en frontend.
+La meta debe venir desde backend, configuración o servicio existente.
 
 ## Response esperado
 
 ```json
 {
   "fecha_operacional": "2026-06-18",
-  "supervisor_id": 1,
-  "total_brigadas": 10,
-  "total_corte_programado": 120,
-  "total_reconexiones_programadas": 15,
   "zonas": [
     {
-      "zona": "Concepción",
-      "tipo_brigada": "PXQ",
-      "total_brigadas": 6,
-      "corte_programado": 80,
-      "reconexiones_programadas": 10,
-      "total_en_bandeja": 100
+      "zona": "Talca",
+      "brigadas_operativas": 7,
+      "total_brigadas": 10,
+      "reconexiones_programadas": 20,
+      "reconexiones_ejecutadas": 15,
+      "promedio_reconexiones": 2.14,
+      "corte_programado": 120,
+      "cortes_ejecutados": 90,
+      "promedio_cortes": 12.86,
+      "promedio_actividad": 15,
+      "corte_en_poste": 50,
+      "corte_en_empalme": 40,
+      "corte_fuera_de_rango": 0,
+      "visitas_fallidas": 3,
+      "cumplimiento_meta_pct": 50,
+      "cumplimiento_corte_pct": 75
     }
   ],
-  "errores": [],
-  "advertencias": []
+  "total": {
+    "zona": "TOTAL",
+    "brigadas_operativas": 0,
+    "total_brigadas": 0,
+    "reconexiones_programadas": 0,
+    "reconexiones_ejecutadas": 0,
+    "promedio_reconexiones": 0,
+    "corte_programado": 0,
+    "cortes_ejecutados": 0,
+    "promedio_cortes": 0,
+    "promedio_actividad": 0,
+    "corte_en_poste": 0,
+    "corte_en_empalme": 0,
+    "corte_fuera_de_rango": 0,
+    "visitas_fallidas": 0,
+    "cumplimiento_meta_pct": 0,
+    "cumplimiento_corte_pct": 0
+  }
 }
 ```
 
-## Reglas backend
-
-Para cada fila:
-
-- `carga` = corte_programado
-- `reconexiones` = reconexiones_programadas
-- resolver `comuna` → `zona` desde `control_supervisor_comunas_zonas`
-- siempre filtrar por `supervisor_id`
-- validar que el SAP pertenezca al supervisor
-- validar que la comuna pertenezca al supervisor
-- validar que el tipo_brigada sea permitido
-- carga y reconexiones deben ser >= 0
-- si comuna no tiene zona, devolver error o advertencia
-- si SAP pertenece a otro supervisor, devolver error
-- no incluir filas inválidas en el resumen válido
-
-## Archivos permitidos
-
-Revisar/modificar solo si corresponde:
-
-```txt
-backend/app/api/routes/supervisores.py
-backend/app/services/supervisor_bitacora_service.py
-backend/app/repositories/supervisor_repository.py
-backend/app/schemas/supervisor_bitacora.py
-frontend/src/api/supervisores.api.ts
-frontend/src/components/supervisor/SupervisorBitacoraView.tsx
-frontend/src/components/supervisor/SupervisorBitacoraLogic.ts
-```
-
-Usar nombres reales si difieren.
-
 ## Frontend
 
-Actualizar Bitácora Supervisor para usar el endpoint nuevo.
+Revisar principalmente:
 
-Reglas:
+```txt
+frontend/src/hooks/useReporteGerencial.ts
+frontend/src/components/reportes/
+frontend/src/api/
+frontend/src/types/
+```
 
-- crear función API `getResumenBitacoraPreview` o similar
-- al presionar “Validar bitácora”, llamar al backend
-- antes de “Guardar bitácora de hoy”, validar con backend
-- no llamar backend en cada tecla
-- mantener UI actual
-- mostrar errores/advertencias devueltos por backend
-- no volver a usar `getAllUsuariosSap()`
-- dejar la lógica local solo como fallback temporal si es necesario
+Cambios esperados:
 
-## Pruebas obligatorias
+- Crear función API para consumir el nuevo endpoint.
+- Simplificar `useReporteGerencial.ts`.
+- El hook ya no debe calcular KPIs principales en frontend.
+- El hook debe recibir datos ya calculados desde backend.
+- Mantener la UI actual del Reporte Gerencial.
+- Mantener botones de imprimir/descargar si ya existen.
+- Mantener formato visual actual.
+- No romper Resumen General.
+- No romper Resumen por Zona.
+- No tocar Bitácora Supervisor.
 
-Validar manualmente:
+## Lo que debe quedar en frontend
 
-1. Juan Muñoz:
+Solo debe quedar:
 
-- cargar brigadas frecuentes
-- modificar carga/reconexiones
-- validar bitácora
-- resumen solo debe mostrar Concepción, Chillán y Los Ángeles
-- no debe aparecer Talca
+- estado de carga
+- manejo de errores
+- filtros visuales si existen
+- renderizado de cards
+- renderizado de tabla
+- formato visual de números
+- descarga CSV si ya estaba implementada
 
-2. Jose Masso / Talca:
+## Lo que NO debe quedar en frontend
 
-- cargar brigadas frecuentes
-- validar bitácora
-- resumen solo debe mostrar Talca
-- debe soportar PXQ y CF
+Eliminar o dejar sin uso oficial:
 
-3. Error controlado:
+- cálculo de promedios gerenciales
+- cálculo de cumplimiento
+- suma manual por zona
+- `meta_diaria = 30` hardcodeado
+- cruces complejos entre brigadas y programación
 
-- poner comuna inválida
-- backend debe devolver error/advertencia
-- frontend debe mostrarlo sin romper pantalla
+## Validaciones manuales
 
-4. Seguridad:
+Probar:
 
-- enviar SAP de otro supervisor
-- backend debe marcar error
-- no debe incluirlo en resumen válido
+1. Abrir Reporte Gerencial con una fecha que tenga datos.
+2. Verificar que carguen KPIs por zona.
+3. Verificar que exista fila TOTAL.
+4. Comparar visualmente contra valores anteriores.
+5. Verificar que no se rompa Resumen General.
+6. Verificar que no se rompa Bitácora Supervisor.
+7. Verificar que fecha sin datos no rompa pantalla y devuelva ceros o lista vacía controlada.
 
 ## Validaciones técnicas
 
@@ -197,11 +233,22 @@ git status
 npm run build
 ```
 
-Si existe:
+Si existe backend test:
 
 ```bash
 pytest
 ```
+
+o el comando disponible del proyecto.
+
+## Restricciones
+
+No hacer merge.
+No tocar módulos no relacionados.
+No cambiar diseño visual salvo ajuste mínimo necesario.
+No duplicar cálculos en frontend y backend.
+No eliminar código antiguo hasta validar que el endpoint funciona.
+No modificar BD salvo que sea estrictamente necesario.
 
 ## Entrega final
 
@@ -209,14 +256,14 @@ Entregar solo:
 
 - rama activa
 - archivos modificados
-- endpoint creado
+- endpoint creado o reutilizado
 - request/response final
+- cambios realizados en `useReporteGerencial.ts`
 - comandos ejecutados
 - resultado de build
-- pruebas realizadas o sugeridas
 - problemas encontrados
+- pruebas manuales sugeridas
 - si está listo para commit o no
 
 No mostrar código completo salvo archivo nuevo.
 No entregar explicación larga.
-No hacer merge.

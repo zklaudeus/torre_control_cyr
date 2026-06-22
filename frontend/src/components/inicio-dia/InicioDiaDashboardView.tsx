@@ -6,7 +6,7 @@ import { ResumenCrearDiaPanel } from './ResumenCrearDiaPanel';
 import { PreviewCrearDesdeDiaAnteriorTable } from './PreviewCrearDesdeDiaAnteriorTable';
 import { contentStackStyle } from '../../styles/dashboardStyles';
 import { useCrearDesdeDiaAnterior } from '../../hooks/useCrearDesdeDiaAnterior';
-import type { FormularioActivo } from '../../pages/DashboardPage';
+import type { FormularioActivo } from '../../types/dashboard';
 
 interface InicioDiaDashboardViewProps {
   fechaOperacional: string;
