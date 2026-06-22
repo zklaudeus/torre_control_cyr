@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import settings
 from app.core.database import get_db
-from app.models.cyr_models import ControlUsuarios
+from app.models.cyr_models import ControlUsuarios, ControlSupervisorComunasZonas
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/auth/login")
 
@@ -66,3 +66,19 @@ def require_supervisor_user(current_user = Depends(get_current_user)):
     if current_user.rol != 'supervisor' or not current_user.supervisor_id:
         raise HTTPException(status_code=403, detail="Acceso denegado: rol supervisor requerido")
     return current_user
+
+def get_zonas_permitidas_supervisor(db: Session, supervisor_id: int) -> set[str]:
+    zonas = db.query(ControlSupervisorComunasZonas.zona_principal).filter(
+        ControlSupervisorComunasZonas.supervisor_id == supervisor_id,
+        ControlSupervisorComunasZonas.activo == True
+    ).all()
+    return {z[0] for z in zonas if z[0]}
+
+def puede_operar_zona(current_user: ControlUsuarios, zona: str, db: Session) -> bool:
+    if current_user.rol in ['admin', 'superadmin', 'torre_control']:
+        return True
+    if current_user.rol == 'supervisor' and current_user.supervisor_id:
+        zonas_permitidas = get_zonas_permitidas_supervisor(db, current_user.supervisor_id)
+        return zona in zonas_permitidas
+    return False
+
