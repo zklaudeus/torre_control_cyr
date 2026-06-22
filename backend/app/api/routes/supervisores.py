@@ -7,6 +7,8 @@ from app.models.cyr_models import ControlSupervisores, ControlSupervisorComunasZ
 from app.schemas.supervisor import Supervisor, SupervisorComunaZona, SupervisorUsuarioSAP
 from app.schemas.supervisor_bitacora import BitacoraResumenPreviewReq, BitacoraResumenPreviewRes
 from app.services.supervisor_bitacora_service import calcular_resumen_preview
+from app.core.security import get_current_user
+from app.schemas.auth import CurrentUser
 
 router = APIRouter()
 
@@ -24,6 +26,57 @@ def get_supervisores(db: Session = Depends(get_db)):
             vistos.add(s.nombre)
             unicos.append(s)
     return unicos
+
+@router.get("/me/comunas-zonas", response_model=List[SupervisorComunaZona])
+def get_me_comunas_zonas(current_user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Obtiene las comunas asignadas y sus zonas principales para el supervisor autenticado"""
+    if current_user.rol != 'supervisor' or not current_user.supervisor_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado: rol supervisor requerido")
+        
+    return db.query(ControlSupervisorComunasZonas).filter(
+        ControlSupervisorComunasZonas.supervisor_id == current_user.supervisor_id,
+        ControlSupervisorComunasZonas.activo == True
+    ).order_by(ControlSupervisorComunasZonas.comuna).all()
+
+@router.get("/me/usuarios-sap", response_model=List[SupervisorUsuarioSAP])
+def get_me_usuarios_sap(current_user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Obtiene los usuarios SAP asignados al supervisor autenticado"""
+    if current_user.rol != 'supervisor' or not current_user.supervisor_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado: rol supervisor requerido")
+        
+    usuarios = db.query(
+        ControlSupervisorUsuariosSAP,
+        ControlSupervisorComunasZonas.zona_principal
+    ).outerjoin(
+        ControlSupervisorComunasZonas,
+        (ControlSupervisorUsuariosSAP.comuna_habitual == ControlSupervisorComunasZonas.comuna) &
+        (ControlSupervisorComunasZonas.supervisor_id == current_user.supervisor_id) &
+        (ControlSupervisorComunasZonas.activo == True)
+    ).filter(
+        ControlSupervisorUsuariosSAP.supervisor_id == current_user.supervisor_id,
+        ControlSupervisorUsuariosSAP.activo == True
+    ).order_by(ControlSupervisorUsuariosSAP.cuenta).all()
+    
+    result = []
+    for u, zona in usuarios:
+        u_dict = u.__dict__.copy()
+        u_dict['zona_principal'] = zona
+        result.append(u_dict)
+        
+    return result
+
+@router.post("/me/bitacora/resumen-preview", response_model=BitacoraResumenPreviewRes)
+def post_me_resumen_preview(req: BitacoraResumenPreviewReq, current_user: CurrentUser = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Calcula y devuelve un preview del resumen de la bitacora del supervisor autenticado"""
+    if current_user.rol != 'supervisor' or not current_user.supervisor_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado: rol supervisor requerido")
+        
+    try:
+        res = calcular_resumen_preview(db, current_user.supervisor_id, req)
+        return res
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.get("/{id}/comunas-zonas", response_model=List[SupervisorComunaZona])
 def get_comunas_zonas(id: int, db: Session = Depends(get_db)):

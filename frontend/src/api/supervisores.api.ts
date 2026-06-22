@@ -43,6 +43,16 @@ export const getUsuariosSapBySupervisor = async (supervisorId: number): Promise<
   return data;
 };
 
+export const getMeComunasZonas = async (): Promise<SupervisorComunaZona[]> => {
+  const { data } = await apiClient.get<SupervisorComunaZona[]>('/api/supervisores/me/comunas-zonas');
+  return data;
+};
+
+export const getMeUsuariosSap = async (): Promise<SupervisorUsuarioSAP[]> => {
+  const { data } = await apiClient.get<SupervisorUsuarioSAP[]>('/api/supervisores/me/usuarios-sap');
+  return data;
+};
+
 export const getAllUsuariosSap = async (): Promise<SupervisorUsuarioSAP[]> => {
   const { data } = await apiClient.get<SupervisorUsuarioSAP[]>('/api/supervisores/usuarios-sap/todos');
   return data;
@@ -74,6 +84,16 @@ export const getResumenBitacoraPreview = async (
 ): Promise<BitacoraResumenPreviewRes> => {
   const { data } = await apiClient.post<BitacoraResumenPreviewRes>(
     `/api/supervisores/${supervisorId}/bitacora/resumen-preview`,
+    payload
+  );
+  return data;
+};
+
+export const getMeResumenBitacoraPreview = async (
+  payload: any
+): Promise<BitacoraResumenPreviewRes> => {
+  const { data } = await apiClient.post<BitacoraResumenPreviewRes>(
+    '/api/supervisores/me/bitacora/resumen-preview',
     payload
   );
   return data;

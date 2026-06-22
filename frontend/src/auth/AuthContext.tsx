@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setUser(null);
     localStorage.removeItem('torreControlUser');
     localStorage.removeItem('torreControlToken');
-    window.location.hash = '#/login';
+    window.location.href = '/login';
   };
 
   if (!isLoaded) return null; // Prevent flash of unauthenticated state

@@ -1,139 +1,155 @@
-[EJECUCIÓN]
+[CORRECCIÓN]
 
-Objetivo: implementar Fase 4A — login backend con JWT, sin proteger endpoints todavía.
+Objetivo: corregir errores funcionales detectados en Fase 4B — rutas `/me/...` para Supervisor.
 
 Alcance:
 
-- backend/app/core/config.py
-- backend/app/core/security.py
+- frontend/src/auth/AuthContext.tsx
+- frontend/src/components/dashboard/SidebarNav.tsx
+- frontend/src/components/supervisor/SupervisorBitacoraView.tsx
+- frontend/src/api/supervisores.api.ts
+- backend/app/api/routes/supervisores.py
+- backend/app/schemas/supervisor_bitacora.py
+- backend/app/services/supervisor_bitacora_service.py
 - backend/app/schemas/auth.py
 - backend/app/services/auth_service.py
-- backend/app/repositories/usuario_repository.py
-- backend/app/api/routes/auth.py
-- backend/app/main.py
-- backend/app/models/cyr_models.py
-- frontend/src/api/client.ts
-- frontend/src/pages/LoginPage.tsx
-- frontend/src/auth/AuthContext.tsx
 
 Restricciones:
 
-- No proteger endpoints todavía.
-- No modificar Bitácora Supervisor.
-- No modificar Reporte Gerencial.
-- No modificar Resumen General.
-- No modificar Resumen por Zona.
-- No tocar Medición.
-- No tocar Empalme.
-- No tocar Cleaning Engine.
-- No eliminar supervisoresTemp.ts todavía.
-- No hacer refactor masivo.
-- No hacer merge.
+- no avanzar a Fase 4C
+- no proteger endpoints globales todavía
+- no tocar Reporte Gerencial
+- no tocar Resumen General
+- no tocar Resumen por Zona
+- no tocar Medición
+- no tocar Empalme
+- no tocar Cleaning Engine
+- no hacer refactor masivo
+- no hacer merge
 
-Tarea backend:
+Problemas a corregir:
 
-1. Crear tabla/modelo `control_usuarios` con campos mínimos:
-   - id
-   - usuario unique
-   - password_hash
-   - rol
-   - supervisor_id nullable
-   - activo boolean default true
-   - created_at
-   - updated_at
+1. Logout inexistente:
 
-2. Agregar configuración JWT en `config.py`:
-   - SECRET_KEY
-   - ALGORITHM = HS256
-   - ACCESS_TOKEN_EXPIRE_MINUTES = 480
+- Actualmente al cerrar sesión no existe una acción visible o funcional clara.
+- Revisar AuthContext.
+- Asegurar que logout elimine:
+  - torreControlUser
+  - torreControlToken
 
-3. Crear `backend/app/core/security.py` con:
-   - hash_password
-   - verify_password
-   - create_access_token
-   - get_current_user, pero no aplicarlo aún a endpoints existentes
+- Agregar botón visible de “Cerrar sesión” donde corresponda en el layout/sidebar.
+- Al cerrar sesión, redirigir a LoginPage o dejar la app sin usuario autenticado.
 
-4. Crear schema:
-   - LoginRequest
-   - TokenResponse
-   - CurrentUser
+2. Jose Masso no puede seleccionar CF:
 
-5. Crear service/repository de auth:
-   - buscar usuario por username
-   - validar password con bcrypt
-   - validar activo = true
-   - generar JWT con claims:
-     - sub
-     - rol
-     - supervisor_id
-     - exp
+- Jose Masso / Talca debe poder trabajar con PXQ y CF.
+- Revisar si el JWT user response incluye `tiposBrigadaPermitidos` o equivalente.
+- Revisar si AuthContext pierde ese campo al usar login backend.
+- Revisar si SupervisorBitacoraView depende de `user.tiposBrigadaPermitidos`.
+- Corregir para que Jose Masso y Nicolas Farias puedan seleccionar CF.
+- No forzar PXQ para supervisores que tienen CF permitido.
+- Juan Muñoz debe seguir solo PXQ.
 
-6. Crear endpoint:
-   - POST /api/auth/login
+3. Error React useEffect:
+   Error:
+   “The final argument passed to useEffect changed size between renders. Previous: [1] Incoming: [1, [object Object]]”
 
-Response esperado:
-{
-"access_token": "...",
-"token_type": "bearer",
-"user": {
-"usuario": "juan.munoz",
-"rol": "supervisor",
-"supervisor_id": 1
-}
-}
+Corregir dependency arrays en SupervisorBitacoraView.
+Regla:
 
-Tarea frontend:
+- El array de dependencias de useEffect debe tener siempre el mismo largo y orden.
+- No construir dependencias condicionales.
+- Si se necesita depender del usuario, usar dependencias estables como:
+  - user?.id
+  - user?.rol
+  - user?.supervisorId
 
-1. Crear llamada al endpoint de login desde LoginPage.
-2. Guardar token en localStorage con clave:
-   - torreControlToken
+- Evitar pasar objetos completos si cambian en cada render.
 
-3. Mantener usuario actual en AuthContext.
-4. Agregar interceptor en `client.ts`:
-   - Authorization: Bearer <token>
+4. Error 422 en:
+   POST /api/supervisores/me/bitacora/resumen-preview
 
-5. Mantener `supervisoresTemp.ts` como fallback temporal solo si falla el backend o si existe modo desarrollo.
-6. No cambiar permisos visuales del Sidebar en esta fase.
+Revisar payload que envía frontend vs schema backend.
+Validar especialmente:
 
-Usuarios iniciales:
-Crear o dejar preparado seed/manual para estos usuarios:
+- fecha_operacional
+- filas
+- total_en_bandeja_por_zona
+- codigo_sap
+- cuenta
+- patente
+- brigada
+- pareja
+- comuna
+- tipo_brigada
+- carga
+- reconexiones
+- estado_brigada
+- observacion
 
-- admin / admin123 / admin
-- claudio / admin123 / torre_control
-- juan.munoz / admin123 / supervisor
-- jose.masso / admin123 / supervisor
-- nicolas.farias / admin123 / supervisor
-- eduardo.beltran / admin123 / supervisor
-- cynthia.garrido / admin123 / supervisor
+Corregir nombres de campos, nulls o tipos incompatibles.
+Si algún campo puede venir vacío desde frontend, el schema backend debe aceptarlo o el frontend debe normalizarlo antes de enviar.
 
-No guardar password plano. Usar hash.
+5. Error null.zonas:
+   Error:
+   Cannot read properties of null (reading 'zonas')
 
-Validación:
+Corregir actualizarBitacora / validarBitacora para que:
+
+- si resumen-preview falla, no continúe guardando
+- si response es null, no intente leer `.zonas`
+- mostrar error claro en UI
+- no insertar/guardar bitácora si la validación backend falló
+
+6. Cargar brigadas frecuentes:
+
+- Al cargar brigadas frecuentes no debe disparar guardado si la validación backend falla.
+- Debe insertar filas en la tabla solo si el payload es válido.
+- Si hay errores, mostrar alerta y mantener la pantalla estable.
+
+Validación obligatoria:
 Ejecutar:
 git status
 npm run build
 
-Si existe:
-pytest
-
 Pruebas manuales:
 
-1. Login con admin.
-2. Login con claudio.
-3. Login con juan.munoz.
-4. Revisar en DevTools que se guarde `torreControlToken`.
-5. Revisar que las requests salgan con header Authorization.
-6. Confirmar que la app visualmente sigue funcionando igual.
+1. Login juan.munoz:
+
+- cargar brigadas frecuentes
+- debe ver solo sus usuarios
+- tipo_brigada solo PXQ
+- Validar bitácora no debe dar 422
+
+2. Login jose.masso:
+
+- cargar brigadas frecuentes
+- debe ver solo Talca
+- debe permitir seleccionar PXQ y CF
+- Validar bitácora no debe dar 422
+
+3. Logout:
+
+- presionar cerrar sesión
+- debe limpiar torreControlUser
+- debe limpiar torreControlToken
+- debe volver a login
+
+4. Error controlado:
+
+- provocar comuna inválida
+- backend debe devolver error/advertencia
+- frontend debe mostrarlo
+- no debe lanzar TypeError ni leer null.zonas
 
 Salida esperada:
 
 - rama activa
-- archivos modificados/creados
-- endpoint creado
-- request/response final
-- comandos ejecutados
-- resultado de build
-- problemas encontrados
+- archivos modificados
+- causa encontrada para cada error
+- cambios aplicados
+- resultado de npm run build
+- pruebas manuales sugeridas
 - si está listo para commit o no
 
 Fin del prompt

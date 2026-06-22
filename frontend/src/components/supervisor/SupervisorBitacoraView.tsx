@@ -7,7 +7,7 @@ import {
 } from './SupervisorBitacoraLogic';
 import { useAuth } from '../../auth/AuthContext';
 import { apiClient } from '../../api/client';
-import { getSupervisoresActivos, getComunasZonasBySupervisor, getUsuariosSapBySupervisor, getResumenBitacoraPreview } from '../../api/supervisores.api';
+import { getSupervisoresActivos, getComunasZonasBySupervisor, getUsuariosSapBySupervisor, getResumenBitacoraPreview, getMeComunasZonas, getMeUsuariosSap, getMeResumenBitacoraPreview } from '../../api/supervisores.api';
 import type { Supervisor, SupervisorComunaZona, SupervisorUsuarioSAP, BitacoraResumenPreviewRes } from '../../api/supervisores.api';
 
 interface SupervisorBitacoraViewProps {
@@ -92,14 +92,17 @@ export const SupervisorBitacoraView = ({
 
 
   useEffect(() => {
-    if (selectedSupervisorId) {
+    if (user?.rol === 'supervisor') {
+      getMeComunasZonas().then(setComunasMap).catch(console.error);
+      getMeUsuariosSap().then(setSapMap).catch(console.error);
+    } else if (selectedSupervisorId) {
       getComunasZonasBySupervisor(Number(selectedSupervisorId)).then(setComunasMap).catch(console.error);
       getUsuariosSapBySupervisor(Number(selectedSupervisorId)).then(setSapMap).catch(console.error);
     } else {
       setComunasMap([]);
       setSapMap([]);
     }
-  }, [selectedSupervisorId]);
+  }, [selectedSupervisorId, user?.rol, (user as any)?.supervisorId]);
 
   // Filtrar comunas según las zonas asignadas al supervisor
   const comunasVisibles = useMemo(() =>
@@ -405,33 +408,48 @@ export const SupervisorBitacoraView = ({
     
     setIsSaving(true);
     try {
+      const cleanBandeja: Record<string, number> = {};
+      for (const [z, val] of Object.entries(asignacionCarga)) {
+        cleanBandeja[z] = parseInt(val, 10) || 0;
+      }
+
       const payload = {
         fecha_operacional: fechaOperacional,
         filas: targetRows.map(r => ({
-          codigo_sap: r.usuarioSap,
-          cuenta: r.cuenta,
-          patente: r.patente,
-          brigada: r.brigada,
-          pareja: r.pareja,
-          comuna: r.comuna,
-          tipo_brigada: r.tipoBrigada,
-          carga: parseFloat(r.carga || '0'),
-          reconexiones: parseFloat(r.reconexiones || '0'),
-          estado_brigada: r.estado,
-          observacion: r.observacion
+          codigo_sap: r.usuarioSap || "",
+          cuenta: r.cuenta || "",
+          patente: r.patente || "",
+          brigada: r.brigada || "",
+          pareja: r.pareja || "",
+          comuna: r.comuna || "",
+          tipo_brigada: r.tipoBrigada || "PXQ",
+          carga: parseFloat(r.carga || '0') || 0.0,
+          reconexiones: parseFloat(r.reconexiones || '0') || 0.0,
+          estado_brigada: r.estado || "Operativa",
+          observacion: r.observacion || ""
         })),
-        total_en_bandeja_por_zona: asignacionCarga
+        total_en_bandeja_por_zona: cleanBandeja
       };
       
-      const res = await getResumenBitacoraPreview(Number(selectedSupervisorId), payload);
+      let res;
+      if (user?.rol === 'supervisor') {
+        res = await getMeResumenBitacoraPreview(payload);
+      } else {
+        res = await getResumenBitacoraPreview(Number(selectedSupervisorId), payload);
+      }
+      
+      if (!res) {
+        throw new Error("Respuesta vacía del servidor.");
+      }
+      
       setBackendResumen(res);
       
       let msg = 'Bitácora validada exitosamente. Revise el resumen actualizado.';
       let type: 'success' | 'error' = 'success';
-      if (res.errores.length > 0) {
+      if (res.errores && res.errores.length > 0) {
         msg = `Errores encontrados: ${res.errores.join(' | ')}`;
         type = 'error';
-      } else if (res.advertencias.length > 0) {
+      } else if (res.advertencias && res.advertencias.length > 0) {
         msg = `Advertencias: ${res.advertencias.join(' | ')}`;
         type = 'error';
       }
@@ -451,11 +469,13 @@ export const SupervisorBitacoraView = ({
 
   const actualizarBitacora = async (customRows?: BitacoraRow[]) => {
     const res = await validarBitacora(customRows);
-    if (!res || res.errores.length > 0) {
-      if (!customRows && (!res || res.errores.length > 0)) {
+    if (!res || (res.errores && res.errores.length > 0)) {
+      if (!customRows && (!res || (res.errores && res.errores.length > 0))) {
         // Mensaje ya fue seteado por validarBitacora
         return;
       }
+      // If triggered by brigadas frecuentes (customRows given), also return to prevent saving
+      return;
     }
 
     setIsSaving(true);
@@ -505,7 +525,7 @@ export const SupervisorBitacoraView = ({
   // Convertimos el backendResumen en el formato que usaba el frontend temporalmente para no reescribir toda la UI
   const resumen = useMemo(() => {
     const completo: Record<string, ResumenZona> = {};
-    if (backendResumen) {
+    if (backendResumen && backendResumen.zonas) {
       // Agrupamos por zona (sumando PXQ y CF si estuvieran separados, aunque el UI original parece no separarlos visualmente en KPIs)
       backendResumen.zonas.forEach(z => {
         if (!completo[z.zona]) {

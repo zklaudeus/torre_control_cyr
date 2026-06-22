@@ -38,13 +38,18 @@ export const LoginPage = () => {
       // Guardar token
       localStorage.setItem('torreControlToken', access_token);
       
-      // Mapear user del backend a UsuarioApp del frontend
+      // 2. Fallback a USUARIOS_TEMP si el backend falla o el usuario no está en BD
+      const tempUser = USUARIOS_TEMP.find(u => u.usuario === user.usuario);
+
+      // Mapear user del backend a UsuarioApp del frontend preservando permisos legacy
       const mappedUser = {
         id: String(user.id),
-        nombre: user.usuario, // El backend por ahora devuelve el usuario
+        nombre: tempUser?.nombre || user.usuario,
         usuario: user.usuario,
         rol: user.rol,
-        supervisorId: user.supervisor_id
+        supervisorId: user.supervisor_id,
+        zonasAsignadas: tempUser?.zonasAsignadas,
+        tiposBrigadaPermitidos: tempUser?.tiposBrigadaPermitidos
       };
 
       loginAsSupervisor(mappedUser as any);
@@ -59,7 +64,6 @@ export const LoginPage = () => {
       return;
     } catch (err: any) {
       console.warn("Backend login falló, intentando fallback local", err);
-      // 2. Fallback a USUARIOS_TEMP si el backend falla o el usuario no está en BD
       const supervisor = USUARIOS_TEMP.find(s => {
         const decodedTargetPass = s.password && s.password === btoa('admin123') ? atob(s.password) : s.password;
         return s.usuario === username && decodedTargetPass === password;
