@@ -154,3 +154,35 @@ COMUNA_A_ZONA: dict[str, str] = {
     "la serena": "Coquimbo",
     "ovalle": "Coquimbo",
 }
+
+# ──────────────────────────────────────────────────────────────────────────────
+# ALIAS DE NOMBRES DE USUARIO
+# Mapeo de nombre completo (normalizado) -> {"codigo_sap": "...", "usuario_visual": "..."}
+# ──────────────────────────────────────────────────────────────────────────────
+USUARIO_ALIAS: dict[str, dict[str, str]] = {
+    "sebastian ignacio rodriguez quezada": {
+        "codigo_sap": "P004562",
+        "usuario_visual": "Sebastian Rodriguez"
+    },
+    "sebastian rodriguez": {
+        "codigo_sap": "P004562",
+        "usuario_visual": "Sebastian Rodriguez"
+    },
+    "fabian saavedra": {
+        "codigo_sap": "P004982",
+        "usuario_visual": "Fabian Saavedra"
+    },
+    # Victor Gonzalez — acepta ambas grafías (con Z y con S)
+    "victor gonzalez": {
+        "codigo_sap": "P004955",
+        "usuario_visual": "Victor Gonzalez"
+    },
+    "victor gonzales": {
+        "codigo_sap": "P004955",
+        "usuario_visual": "Victor Gonzalez"
+    },
+    "bastian saavedra": {
+        "codigo_sap": "P004957",
+        "usuario_visual": "Bastian Saavedra"
+    }
+}

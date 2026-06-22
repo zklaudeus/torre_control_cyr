@@ -47,7 +47,7 @@ export const LoginPage = () => {
         nombre: tempUser?.nombre || user.usuario,
         usuario: user.usuario,
         rol: user.rol,
-        supervisorId: user.supervisor_id,
+        supervisorId: user.supervisor_id || tempUser?.supervisorId,
         zonasAsignadas: tempUser?.zonasAsignadas,
         tiposBrigadaPermitidos: tempUser?.tiposBrigadaPermitidos
       };

@@ -26,6 +26,8 @@ export interface ResumenZona {
 import type { SupervisorComunaZona, SupervisorUsuarioSAP } from '../../api/supervisores.api';
 
 export const normalizeStr = (str: string) => str.trim().toLowerCase();
+export const normalizarPatente = (val: string) => val.toUpperCase().replace(/\s/g, '').slice(0, 6);
+export const normalizarTexto = (val: string) => val.trim().replace(/\s{2,}/g, ' ');
 
 export const obtenerZonaPorComuna = (comuna: string, comunasMap: SupervisorComunaZona[]): string => {
   const norm = normalizeStr(comuna);
@@ -87,6 +89,7 @@ export const validarFila = (
       }
     }
     
+    
     const dup = existingRows.find(r =>
       r.id !== editId &&
       r.usuarioSap.toUpperCase() === row.usuarioSap.toUpperCase() &&
@@ -96,6 +99,11 @@ export const validarFila = (
       errors.usuarioSap = `SAP ya registrado para ${row.tipoBrigada} el día de hoy (${dup.patente})`;
     }
   }
+
+  // Normalizar los textos antes de validar
+  if (row.brigada) row.brigada = normalizarTexto(row.brigada);
+  if (row.pareja) row.pareja = normalizarTexto(row.pareja);
+  if (row.observacion) row.observacion = normalizarTexto(row.observacion);
 
   if (!row.brigada) {
     errors.brigada = 'Obligatorio';

@@ -51,15 +51,19 @@ def calcular_kpis(df: pd.DataFrame) -> pd.DataFrame:
             tiempos = pd.Series([], dtype='datetime64[ns]')
             
         # Tiempos primer y ultimo corte
-        # (Considerando solo actividades que suman al total de cortes)
-        cortes_group = group[group['categoria'].isin(CATEGORIAS_TOTAL_CORTES)]
-        if 'ejecutada_dt' in cortes_group.columns:
-            tiempos_cortes = cortes_group['ejecutada_dt'].dropna()
-            primer_corte = tiempos_cortes.min().time() if not tiempos_cortes.empty else None
-            ultimo_corte = tiempos_cortes.max().time() if not tiempos_cortes.empty else None
+        # (Considerando actividades que suman al total de cortes Y reconexiones)
+        movimientos_group = group[group['categoria'].isin(CATEGORIAS_TOTAL_CORTES | CATEGORIAS_RECONEXIONES)]
+        if 'ejecutada_dt' in movimientos_group.columns:
+            tiempos_movimientos = movimientos_group['ejecutada_dt'].dropna()
+            primer_corte = tiempos_movimientos.min().time() if not tiempos_movimientos.empty else None
+            ultimo_corte = tiempos_movimientos.max().time() if not tiempos_movimientos.empty else None
         else:
             primer_corte = None
             ultimo_corte = None
+            
+        # Calcular group y tiempos especificos para cortes
+        cortes_group = group[group['categoria'].isin(CATEGORIAS_TOTAL_CORTES)]
+        tiempos_cortes = cortes_group['ejecutada_dt'].dropna() if 'ejecutada_dt' in cortes_group.columns else pd.Series([], dtype='datetime64[ns]')
             
         # Acumulados por hora (solo de cortes)
         acum_09 = acum_10 = acum_11 = acum_12 = acum_13 = acum_14 = None

@@ -54,3 +54,15 @@ async def get_current_user(token: str = Depends(oauth2_scheme), db: Session = De
         raise HTTPException(status_code=400, detail="Usuario inactivo")
         
     return user
+
+def require_roles(allowed_roles: list[str]):
+    def role_checker(current_user = Depends(get_current_user)):
+        if current_user.rol not in allowed_roles:
+            raise HTTPException(status_code=403, detail="Acceso denegado: rol insuficiente")
+        return current_user
+    return role_checker
+
+def require_supervisor_user(current_user = Depends(get_current_user)):
+    if current_user.rol != 'supervisor' or not current_user.supervisor_id:
+        raise HTTPException(status_code=403, detail="Acceso denegado: rol supervisor requerido")
+    return current_user

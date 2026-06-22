@@ -3,7 +3,9 @@ import type { BitacoraRow, ResumenZona } from './SupervisorBitacoraLogic';
 import { 
   validarFila,
   obtenerZonaPorComuna,
-  obtenerSapPorCuenta
+  obtenerSapPorCuenta,
+  normalizarPatente,
+  normalizarTexto
 } from './SupervisorBitacoraLogic';
 import { useAuth } from '../../auth/AuthContext';
 import { apiClient } from '../../api/client';
@@ -69,24 +71,22 @@ export const SupervisorBitacoraView = ({
   const [sapMap, setSapMap] = useState<SupervisorUsuarioSAP[]>([]);
 
   useEffect(() => {
-    getSupervisoresActivos().then(data => {
-      let supervisoresVisibles = data;
-      if (user?.rol === 'supervisor') {
-        // Filtrar por supervisorId si disponible, sino por nombre como fallback
-        if ((user as any).supervisorId) {
-          supervisoresVisibles = data.filter(s => s.id === (user as any).supervisorId);
-        } else {
-          supervisoresVisibles = data.filter(s => s.nombre === user.nombre);
-        }
+    if (user?.rol === 'supervisor') {
+      const sId = (user as any).supervisorId;
+      if (sId) {
+        setSupervisores([{ id: sId, nombre: user.nombre, activo: true }]);
+        setSelectedSupervisorId(sId);
+      } else {
+        // Fallback en caso de no tener ID (no debería pasar con la data correcta)
+        setSupervisores([{ id: -1, nombre: user.nombre, activo: true }]);
+        setSelectedSupervisorId(-1);
       }
-      setSupervisores(supervisoresVisibles);
-      
-      // Auto-selección: priorizar supervisorId, luego nombre, luego primero de la lista
-      const matchedById = supervisoresVisibles.find(s => s.id === (user as any)?.supervisorId);
-      const matchedByName = supervisoresVisibles.find(s => s.nombre === user?.nombre);
-      const autoSelect = matchedById || matchedByName;
-      if (autoSelect) setSelectedSupervisorId(autoSelect.id);
-      else if (supervisoresVisibles.length > 0) setSelectedSupervisorId(supervisoresVisibles[0].id);
+      return;
+    }
+
+    getSupervisoresActivos().then(data => {
+      setSupervisores(data);
+      if (data.length > 0) setSelectedSupervisorId(data[0].id);
     }).catch(console.error);
   }, [user]);
 
@@ -281,7 +281,7 @@ export const SupervisorBitacoraView = ({
       return;
     }
 
-    const tempRow = { ...form, id: 'temp' } as BitacoraRow;
+    const tempRow = { ...form, id: editId || `temp-${Date.now()}` } as BitacoraRow;
     const errors = validarFila(tempRow, rows, editId, comunasMap, sapMap);
 
     const zonaDestino = form.zona || obtenerZonaPorComuna(form.comuna, comunasMap);
@@ -290,7 +290,6 @@ export const SupervisorBitacoraView = ({
       errors.comuna = `La comuna no pertenece a sus zonas asignadas (${user.zonasAsignadas.join(', ')}).`;
     }
 
-    // Validar permiso de CF
     const puedeUsarCF = !(user.rol === 'supervisor') || (user as any)?.tiposBrigadaPermitidos?.includes('CF');
     if (!puedeUsarCF && form.tipoBrigada === 'CF') {
       errors.tipoBrigada = 'No tiene permiso para registrar brigadas de tipo CF.';
@@ -301,68 +300,63 @@ export const SupervisorBitacoraView = ({
       return;
     }
 
-    setIsSaving(true);
-    setMessage(null);
-    try {
-      // Usar la zona directamente del formulario
-      const zona = form.zona || obtenerZonaPorComuna(form.comuna, comunasMap);
+    tempRow.patente = normalizarPatente(tempRow.patente);
+    tempRow.brigada = normalizarTexto(tempRow.brigada);
+    tempRow.pareja = normalizarTexto(tempRow.pareja);
 
+        try {
+      setIsSaving(true);
       const payload: any = {
-        fecha_operacional: fechaOperacional,
-        zona: zona,
-        codigo_sap: form.usuarioSap,
-        patente: form.patente,
-        usuario: form.cuenta,
-        tipo_brigada: form.tipoBrigada || 'PXQ',
-        estado_brigada: form.estado,
-        observacion_brigada: form.observacion,
-        corte_programado: parseInt(form.carga, 10) || 0,
-        reconexiones_programadas: parseInt(form.reconexiones, 10) || 0,
+          fecha_operacional: fechaOperacional,
+          zona: tempRow.zona || obtenerZonaPorComuna(tempRow.comuna, comunasMap),
+          codigo_sap: tempRow.usuarioSap,
+          patente: tempRow.patente,
+          usuario: tempRow.cuenta,
+          tipo_brigada: tempRow.tipoBrigada || 'PXQ',
+          estado_brigada: tempRow.estado,
+          observacion_brigada: tempRow.observacion,
+          corte_programado: parseInt(tempRow.carga, 10) || 0,
+          reconexiones_programadas: parseInt(tempRow.reconexiones, 10) || 0,
       };
 
       if (!editId) {
-        payload.hora_primer_movimiento = null;
-        payload.primer_corte = null;
-        payload.ultimo_corte = null;
-        payload.acum_09 = 0;
-        payload.acum_10 = 0;
-        payload.acum_11 = 0;
-        payload.acum_12 = 0;
-        payload.acum_13 = 0;
-        payload.acum_14 = 0;
-        payload.visita_fallida = 0;
-        payload.reconexiones_ejecutadas = 0;
-        payload.corte_en_poste = 0;
-        payload.corte_en_empalme = 0;
-      }
-
-      if (editId) {
-        // No enviar fecha_operacional en PUT (el schema BrigadaDiariaUpdate no lo incluye)
-        const { fecha_operacional: _, ...updatePayload } = payload;
-        await apiClient.put(`/api/brigadas-dia/${editId}`, updatePayload);
-        setMessage({ text: 'Brigada actualizada en la BD.', type: 'success' });
+          payload.hora_primer_movimiento = null;
+          payload.primer_corte = null;
+          payload.ultimo_corte = null;
+          payload.acum_09 = 0;
+          payload.acum_10 = 0;
+          payload.acum_11 = 0;
+          payload.acum_12 = 0;
+          payload.acum_13 = 0;
+          payload.acum_14 = 0;
+          payload.visita_fallida = 0;
+          payload.reconexiones_ejecutadas = 0;
+          payload.corte_en_poste = 0;
+          payload.corte_en_empalme = 0;
+          await apiClient.post('/api/brigadas-dia/', payload);
       } else {
-        await apiClient.post('/api/brigadas-dia/', payload);
-        setMessage({ text: 'Brigada guardada en la BD.', type: 'success' });
+          await apiClient.put(`/api/brigadas-dia/${editId}`, payload);
       }
-
+      
+      await fetchBrigadas();
       setForm(initialForm);
       setEditId(null);
       setFormErrors({});
-      const newRows = await fetchBrigadas();
-      if (newRows) {
-        await actualizarBitacora(newRows);
-      }
+      setMessage({ text: 'Fila guardada exitosamente.', type: 'success' });
     } catch (err: any) {
       console.error(err);
-      const detail = err.response?.data?.detail || err.message;
-      setMessage({ text: `Error al guardar: ${detail}`, type: 'error' });
+      setMessage({ text: `Error al guardar la fila: ${err.message}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
 
+
   const eliminarFila = async (id: string) => {
+    if (id.startsWith('temp-')) {
+      setRows(prev => prev.filter(r => r.id !== id));
+      return;
+    }
     if (window.confirm('¿Eliminar esta brigada de la base de datos?')) {
       try {
         await apiClient.delete(`/api/brigadas-dia/${id}`);
@@ -377,6 +371,7 @@ export const SupervisorBitacoraView = ({
       }
     }
   };
+
 
   const editarFila = (id: string) => {
     const row = rows.find(r => r.id === id);
@@ -395,7 +390,7 @@ export const SupervisorBitacoraView = ({
     setFormErrors({});
   };
 
-  const validarBitacora = async (customRows?: BitacoraRow[]) => {
+  const validarBitacora = async (customRows?: BitacoraRow[], silent = false) => {
     if (!selectedSupervisorId) {
       setMessage({ text: 'Debe seleccionar un supervisor.', type: 'error' });
       return null;
@@ -406,7 +401,7 @@ export const SupervisorBitacoraView = ({
       return null;
     }
     
-    setIsSaving(true);
+    if (!silent) if (!silent) setIsSaving(true);
     try {
       const cleanBandeja: Record<string, number> = {};
       for (const [z, val] of Object.entries(asignacionCarga)) {
@@ -454,7 +449,7 @@ export const SupervisorBitacoraView = ({
         type = 'error';
       }
       
-      if (!customRows) {
+      if (!customRows && !silent) {
         setMessage({ text: msg, type });
       }
       return res;
@@ -463,26 +458,58 @@ export const SupervisorBitacoraView = ({
       setMessage({ text: `Error al validar bitácora: ${err.message}`, type: 'error' });
       return null;
     } finally {
-      setIsSaving(false);
+      if (!silent) setIsSaving(false);
     }
   };
 
-  const actualizarBitacora = async (customRows?: BitacoraRow[]) => {
-    const res = await validarBitacora(customRows);
+  const actualizarBitacora = async (customRows?: BitacoraRow[], silent = false) => {
+    const targetRows = customRows || rows;
+    const res = await validarBitacora(targetRows);
     if (!res || (res.errores && res.errores.length > 0)) {
-      if (!customRows && (!res || (res.errores && res.errores.length > 0))) {
-        // Mensaje ya fue seteado por validarBitacora
-        return;
-      }
-      // If triggered by brigadas frecuentes (customRows given), also return to prevent saving
       return;
     }
 
-    setIsSaving(true);
-    if (!customRows) setMessage({ text: 'Actualizando bitácora...', type: 'success' });
+    if (!silent) setIsSaving(true);
+    if (!customRows && !silent) setMessage({ text: 'Actualizando bitácora...', type: 'success' });
 
     try {
-      // 1. Actualizar programación PXQ usando los datos del backend preview
+      for (const row of targetRows) {
+        const payload: any = {
+          fecha_operacional: fechaOperacional,
+          zona: row.zona || obtenerZonaPorComuna(row.comuna, comunasMap),
+          codigo_sap: row.usuarioSap,
+          patente: normalizarPatente(row.patente),
+          usuario: row.cuenta,
+          tipo_brigada: row.tipoBrigada || 'PXQ',
+          estado_brigada: row.estado,
+          observacion_brigada: normalizarTexto(row.observacion),
+          corte_programado: parseInt(row.carga, 10) || 0,
+          reconexiones_programadas: parseInt(row.reconexiones, 10) || 0,
+        };
+
+        if (row.id.startsWith('temp-')) {
+          payload.hora_primer_movimiento = null;
+          payload.primer_corte = null;
+          payload.ultimo_corte = null;
+          payload.acum_09 = 0;
+          payload.acum_10 = 0;
+          payload.acum_11 = 0;
+          payload.acum_12 = 0;
+          payload.acum_13 = 0;
+          payload.acum_14 = 0;
+          payload.visita_fallida = 0;
+          payload.reconexiones_ejecutadas = 0;
+          payload.corte_en_poste = 0;
+          payload.corte_en_empalme = 0;
+          await apiClient.post('/api/brigadas-dia/', payload);
+        } else {
+          const { fecha_operacional: _, ...updatePayload } = payload;
+          await apiClient.put(`/api/brigadas-dia/${row.id}`, updatePayload);
+        }
+      }
+
+      if (!silent) await fetchBrigadas();
+
       const pxqZonas = res!.zonas.filter(z => z.tipo_brigada !== 'CF');
       const pxqBulkData = pxqZonas.map(r => ({
         zona: r.zona,
@@ -491,15 +518,10 @@ export const SupervisorBitacoraView = ({
         asignacion_carga: parseInt(asignacionCarga[r.zona] || '0', 10),
         tipo_brigada: 'PXQ' 
       }));
-
       if (pxqBulkData.length > 0) {
-        await apiClient.post('/api/programacion-zona/bulk', {
-          fecha_operacional: fechaOperacional,
-          items: pxqBulkData
-        });
+        await apiClient.post('/api/programacion-zona/bulk', { fecha_operacional: fechaOperacional, items: pxqBulkData });
       }
 
-      // 2. Actualizar programación CF
       const cfZonas = res!.zonas.filter(z => z.tipo_brigada === 'CF');
       if (cfZonas.length > 0) {
         const cfBulkData = cfZonas.map(r => ({
@@ -507,20 +529,18 @@ export const SupervisorBitacoraView = ({
           cortes_programados: r.corte_programado,
           reconexiones_programadas: r.reconexiones_programadas
         }));
-        await apiClient.post('/api/programacion-cf-zona/bulk', {
-          fecha_operacional: fechaOperacional,
-          items: cfBulkData
-        });
+        await apiClient.post('/api/programacion-cf-zona/bulk', { fecha_operacional: fechaOperacional, items: cfBulkData });
       }
 
-      if (!customRows) setMessage({ text: 'Bitácora actualizada — Torre Control refleja los cambios.', type: 'success' });
+      if (!customRows && !silent) setMessage({ text: 'Bitácora guardada — Torre Control refleja los cambios.', type: 'success' });
     } catch (err: any) {
       console.error(err);
-      if (!customRows) setMessage({ text: `Error al actualizar: ${err.message}`, type: 'error' });
+      if (!customRows && !silent) setMessage({ text: `Error al guardar: ${err.message}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }
   };
+
 
   // Convertimos el backendResumen en el formato que usaba el frontend temporalmente para no reescribir toda la UI
   const resumen = useMemo(() => {
@@ -576,13 +596,10 @@ export const SupervisorBitacoraView = ({
       setMessage({ text: 'Debe seleccionar un supervisor para cargar sus brigadas frecuentes.', type: 'error' });
       return;
     }
-
     if (!sapMap.length) {
       setMessage({ text: 'No hay brigadas frecuentes (usuarios SAP) para este supervisor.', type: 'error' });
       return;
     }
-
-    setIsSaving(true);
     setMessage(null);
 
     const actualesSap = rows.map(r => `${r.usuarioSap}_${r.tipoBrigada}`);
@@ -599,7 +616,6 @@ export const SupervisorBitacoraView = ({
 
     const faltantes = sapZonificados.filter(s => {
       if (!s.activo) return false;
-      // Si supervisor no tiene permiso CF, omitir sus brigadas CF
       if (!puedeCargarCF && (s.tipo_brigada === 'CF')) return false;
       const key = `${s.codigo_sap}_${s.tipo_brigada || 'PXQ'}`;
       return !actualesSap.includes(key);
@@ -607,34 +623,29 @@ export const SupervisorBitacoraView = ({
 
     if (faltantes.length === 0) {
       setMessage({ text: 'Todas las brigadas frecuentes ya están cargadas en la tabla.', type: 'success' });
-      setIsSaving(false);
       return;
     }
 
-    try {
-      const payloads: any[] = [];
-      const invalidas: string[] = [];
-      const sinCuenta: string[] = [];
+    const invalidas: string[] = [];
+    const sinCuenta: string[] = [];
+    const payloads: any[] = [];
 
-      faltantes.forEach(s => {
-        if (!s.cuenta || s.cuenta.trim() === '') {
-          sinCuenta.push(s.codigo_sap);
-          return; // No cargar si no tiene cuenta válida
-        }
-
-        const comuna_hab = s.comuna_habitual || '';
-        const zona = s.zona_principal || obtenerZonaPorComuna(comuna_hab, comunasMap);
-        
-        if (!zona) {
-          invalidas.push(`${s.cuenta} (${s.codigo_sap})`);
-          return;
-        }
-
-        payloads.push({
+    faltantes.forEach(s => {
+      if (!s.cuenta || s.cuenta.trim() === '') {
+        sinCuenta.push(s.codigo_sap);
+        return;
+      }
+      const comuna_hab = s.comuna_habitual || '';
+      const zona = s.zona_principal || obtenerZonaPorComuna(comuna_hab, comunasMap);
+      if (!zona) {
+        invalidas.push(`${s.cuenta} (${s.codigo_sap})`);
+        return;
+      }
+      payloads.push({
           fecha_operacional: fechaOperacional,
           zona: zona,
           codigo_sap: s.codigo_sap,
-          patente: s.patente_habitual || '',
+          patente: normalizarPatente(s.patente_habitual || ''),
           usuario: s.cuenta,
           tipo_brigada: s.tipo_brigada || 'PXQ',
           estado_brigada: 'Operativa',
@@ -654,38 +665,56 @@ export const SupervisorBitacoraView = ({
           reconexiones_ejecutadas: 0,
           corte_en_poste: 0,
           corte_en_empalme: 0
-        });
       });
+    });
 
-      // Insert missing ones via multiple parallel requests
+    try {
+      setIsSaving(true);
       await Promise.all(payloads.map(p => apiClient.post('/api/brigadas-dia/', p)));
-
-      let msg = '';
-      if (payloads.length > 0) {
-        msg += `Se cargaron ${payloads.length} brigadas frecuentes. `;
-      }
-      if (sinCuenta.length > 0) {
-        msg += `⚠ Error: ${sinCuenta.length} brigadas (${sinCuenta.join(', ')}) omitidas por no tener Cuenta SAP válida. `;
-      }
-      if (invalidas.length > 0) {
-        msg += `⚠ Faltan por configurar zona: ${invalidas.join(', ')}`;
-      }
-
-      setMessage({ 
-        text: msg || 'No se cargaron nuevas brigadas.', 
-        type: (sinCuenta.length > 0 || invalidas.length > 0) ? 'error' : 'success' 
-      });
-      
-      const newRows = await fetchBrigadas();
-      if (newRows) {
-        await actualizarBitacora(newRows);
-      }
-    } catch (err: any) {
+      await fetchBrigadas();
+    } catch (err) {
       console.error(err);
-      setMessage({ text: `Error al cargar brigadas frecuentes: ${err.message}`, type: 'error' });
     } finally {
       setIsSaving(false);
     }
+    
+    let msg = '';
+    if (payloads.length > 0) msg += `Se cargaron ${payloads.length} brigadas frecuentes. `;
+    if (sinCuenta.length > 0) msg += `⚠ Error: ${sinCuenta.length} brigadas omitidas por no tener Cuenta válida. `;
+    if (invalidas.length > 0) msg += `⚠ Faltan por configurar zona: ${invalidas.join(', ')}`;
+    
+    setMessage({ text: msg || 'No se cargaron nuevas brigadas.', type: (sinCuenta.length > 0 || invalidas.length > 0) ? 'error' : 'success' });
+  };
+
+
+
+  // Debounced auto-validation for inline edits
+  useEffect(() => {
+    if (rows.length === 0) return;
+    const timer = setTimeout(() => {
+      actualizarBitacora(rows, true);
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [rows, asignacionCarga]);
+
+  const handleInlineChange = (id: string, field: keyof BitacoraRow, value: string) => {
+    setRows(prev => prev.map(r => {
+      if (r.id !== id) return r;
+      const updated = { ...r, [field]: value, _errors: undefined } as any;
+      
+      if (field === 'cuenta') updated.usuarioSap = obtenerSapPorCuenta(value, sapMap);
+      if (field === 'comuna') updated.zona = obtenerZonaPorComuna(value, comunasMap);
+      if (field === 'patente') updated.patente = normalizarPatente(value);
+      if (field === 'brigada') updated.brigada = normalizarTexto(value);
+      if (field === 'pareja') updated.pareja = normalizarTexto(value);
+      
+      if (field === 'carga' || field === 'reconexiones') {
+        let cleanVal = value.replace(/^0+/, '');
+        if (cleanVal === '') cleanVal = '0';
+        updated[field] = cleanVal;
+      }
+      return updated;
+    }));
   };
 
   return (
@@ -921,23 +950,98 @@ export const SupervisorBitacoraView = ({
               </thead>
               <tbody>
                 {rows.map((row, i) => (
-                  <tr key={row.id} style={{ background: i % 2 === 0 ? 'transparent' : K.tertiary, transition: 'background 0.2s' }}>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.patente}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.cuenta}</td>
+                  <tr key={row.id} style={{ background: row.id === editId ? `${K.secondary}22` : (i % 2 === 0 ? 'transparent' : K.tertiary), transition: 'background 0.2s' }}>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
-                      <div>{row.usuarioSap}</div>
-                      <div style={{ fontSize: '0.75rem', color: K.mutedText }}>{sapMap.find(s => s.codigo_sap === row.usuarioSap)?.cuenta || ''}</div>
+                      <input 
+                        value={row.patente} 
+                        onChange={e => handleInlineChange(row.id, 'patente', e.target.value)} 
+                        maxLength={6} 
+                        style={{ ...inputStyle(!!row._errors?.patente), padding: '0.4rem', width: '80px' }} 
+                        title={row._errors?.patente}
+                      />
                     </td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.brigada}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.tipoBrigada}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.pareja || '-'}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.zona || obtenerZonaPorComuna(row.comuna, comunasMap)}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.carga}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>{row.reconexiones}</td>
-                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: row.estado === 'Operativa' ? K.secondary : K.error }}>{row.estado}</td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <select 
+                        value={row.cuenta} 
+                        onChange={e => handleInlineChange(row.id, 'cuenta', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.cuenta), padding: '0.4rem', width: '120px' }}
+                        title={row._errors?.cuenta}
+                      >
+                        <option value="">Sel...</option>
+                        {Array.from(new Set([row.cuenta, ...cuentasDisponibles])).filter(Boolean).map(c => (
+                          <option key={c} value={c}>{c}</option>
+                        ))}
+                      </select>
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <div title={row._errors?.usuarioSap} style={{ color: row._errors?.usuarioSap ? K.error : 'inherit' }}>
+                        {row.usuarioSap}
+                      </div>
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <input 
+                        value={row.brigada} 
+                        onChange={e => handleInlineChange(row.id, 'brigada', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.brigada), padding: '0.4rem', width: '100px' }} 
+                        title={row._errors?.brigada}
+                      />
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <select 
+                        value={row.tipoBrigada} 
+                        onChange={e => handleInlineChange(row.id, 'tipoBrigada', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.tipoBrigada), padding: '0.4rem', width: '70px' }}
+                        title={row._errors?.tipoBrigada}
+                      >
+                        <option value="PXQ">PXQ</option>
+                        {(!(user?.rol === 'supervisor') || (user as any)?.tiposBrigadaPermitidos?.includes('CF')) && (
+                          <option value="CF">CF</option>
+                        )}
+                      </select>
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <input 
+                        value={row.pareja} 
+                        onChange={e => handleInlineChange(row.id, 'pareja', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.pareja), padding: '0.4rem', width: '100px' }} 
+                        title={row._errors?.pareja}
+                      />
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      {row.zona || obtenerZonaPorComuna(row.comuna, comunasMap)}
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <input 
+                        type="number" min="0"
+                        value={row.carga} 
+                        onChange={e => handleInlineChange(row.id, 'carga', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.carga), padding: '0.4rem', width: '60px' }} 
+                        title={row._errors?.carga}
+                      />
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <input 
+                        type="number" min="0"
+                        value={row.reconexiones} 
+                        onChange={e => handleInlineChange(row.id, 'reconexiones', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.reconexiones), padding: '0.4rem', width: '60px' }} 
+                        title={row._errors?.reconexiones}
+                      />
+                    </td>
+                    <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
+                      <select 
+                        value={row.estado} 
+                        onChange={e => handleInlineChange(row.id, 'estado', e.target.value)} 
+                        style={{ ...inputStyle(!!row._errors?.estado), padding: '0.4rem', width: '90px', color: row.estado === 'Operativa' ? K.secondary : K.error }}
+                        title={row._errors?.estado}
+                      >
+                        <option value="Operativa">Operativa</option>
+                        <option value="Inactiva">Inactiva</option>
+                      </select>
+                    </td>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, textAlign: 'right' }}>
-                      <button onClick={() => editarFila(row.id)} title="Editar" style={{ background: 'transparent', color: K.primary, border: 'none', cursor: 'pointer', fontSize: '1rem', padding: '0 0.5rem', marginRight: '0.25rem' }}>✎</button>
-                      <button onClick={() => eliminarFila(row.id)} title="Eliminar" style={{ background: 'transparent', color: K.error, border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem' }}>×</button>
+                      <button onClick={() => editarFila(row.id)} title="Editar Formulario Completo" style={{ background: 'transparent', color: K.primary, border: 'none', cursor: 'pointer', fontSize: '1.2rem', padding: '0 0.5rem', marginRight: '0.25rem' }}>✎</button>
+                      <button onClick={() => eliminarFila(row.id)} title="Eliminar" style={{ background: 'transparent', color: K.error, border: 'none', cursor: 'pointer', fontSize: '1.4rem', padding: '0 0.5rem' }}>×</button>
                     </td>
                   </tr>
                 ))}
