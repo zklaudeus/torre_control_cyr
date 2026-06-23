@@ -1,52 +1,10 @@
 import React from 'react';
 
-type NivelHallazgo = 'Crítico' | 'Advertencia' | 'Observación' | 'Normal';
-
-type HallazgoTecnico = {
-  id: string;
-  titulo: string;
-  nivel: NivelHallazgo;
-  frecuencia: string;
-  detalle: string;
-  accionSugerida: string;
-};
-
-const NIVEL_COLOR: Record<NivelHallazgo, { color: string; bg: string; border: string }> = {
-  'Crítico':     { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)',    border: 'rgba(239, 68, 68, 0.25)' },
-  'Advertencia': { color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)',   border: 'rgba(249, 115, 22, 0.25)' },
-  'Observación': { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.08)',   border: 'rgba(96, 165, 250, 0.25)' },
-  'Normal':      { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.08)',    border: 'rgba(34, 197, 94, 0.25)' },
-};
-
-const MOCK_HALLAZGOS: HallazgoTecnico[] = [
-  {
-    id: 'h1',
-    titulo: 'Técnico bajo el 50% de la meta',
-    nivel: 'Crítico',
-    frecuencia: '3 días consecutivos',
-    detalle: 'Productividad igual o menor a 12 cortes diarios.',
-    accionSugerida: 'Mantener seguimiento diario y revisar causas operativas.',
-  },
-  {
-    id: 'h2',
-    titulo: 'Aumento de fallidas / frustrados',
-    nivel: 'Advertencia',
-    frecuencia: 'Últimos 2 días',
-    detalle: 'Incremento de visitas fallidas respecto al día anterior.',
-    accionSugerida: 'Revisar causas de fallida y validar comunicación con cliente.',
-  },
-  {
-    id: 'h3',
-    titulo: 'Último corte temprano',
-    nivel: 'Observación',
-    frecuencia: '1 evento reciente',
-    detalle: 'Último corte registrado antes del cierre esperado.',
-    accionSugerida: 'Verificar continuidad operacional durante la jornada.',
-  },
-];
+import type { HallazgoTecnico } from '../../types/rendimientoTecnico.types';
+import { MOCK_HALLAZGOS, CONFIG_NIVEL_HALLAZGO } from '../../data/rendimientoTecnico.mock';
 
 const HallazgoCard: React.FC<{ hallazgo: HallazgoTecnico }> = ({ hallazgo }) => {
-  const cfg = NIVEL_COLOR[hallazgo.nivel];
+  const cfg = CONFIG_NIVEL_HALLAZGO[hallazgo.nivel];
 
   return (
     <div style={{

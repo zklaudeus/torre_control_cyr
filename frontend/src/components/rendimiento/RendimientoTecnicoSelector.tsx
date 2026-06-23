@@ -1,32 +1,8 @@
 import React, { useState, useMemo } from 'react';
 
-export type EstadoTecnico = 'Crítico' | 'En recuperación' | 'Estable' | 'Alto desempeño';
+import type { TecnicoResumen, EstadoTecnico } from '../../types/rendimientoTecnico.types';
+import { MOCK_TECNICOS, COLOR_ESTADO_TECNICO as ESTADO_COLOR } from '../../data/rendimientoTecnico.mock';
 
-export type TecnicoResumen = {
-  id: string;
-  nombre: string;
-  codigoSap: string;
-  zona: string;
-  supervisor: string;
-  estado: EstadoTecnico;
-  fase: number;
-  productividadPromedio: number;
-};
-
-const MOCK_TECNICOS: TecnicoResumen[] = [
-  { id: '1', nombre: 'Andrés Gatica', codigoSap: 'P003014', zona: 'Chillán', supervisor: 'Juan Muñoz', estado: 'Crítico', fase: 2, productividadPromedio: 11.2 },
-  { id: '2', nombre: 'Cristian Ulloa', codigoSap: 'P002754', zona: 'Chillán', supervisor: 'Juan Muñoz', estado: 'En recuperación', fase: 1, productividadPromedio: 18.5 },
-  { id: '3', nombre: 'José Bravo', codigoSap: 'P003457', zona: 'Concepción', supervisor: 'Juan Muñoz', estado: 'Estable', fase: 1, productividadPromedio: 26.4 },
-  { id: '4', nombre: 'Juan Pérez', codigoSap: 'P003863', zona: 'Coquimbo', supervisor: 'Nicolás Farías', estado: 'En recuperación', fase: 2, productividadPromedio: 14.0 },
-  { id: '5', nombre: 'Carlos Ruiz', codigoSap: 'P004122', zona: 'Talca', supervisor: 'Jose Masso', estado: 'Alto desempeño', fase: 1, productividadPromedio: 31.0 },
-];
-
-const ESTADO_COLOR: Record<EstadoTecnico, string> = {
-  'Crítico': '#ef4444',
-  'En recuperación': '#f97316',
-  'Estable': '#60a5fa',
-  'Alto desempeño': '#22c55e',
-};
 
 interface RendimientoTecnicoSelectorProps {
   selectedId: string | null;
@@ -40,6 +16,7 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<EstadoTecnico | 'Todos'>('Todos');
   const [filterZona, setFilterZona] = useState<string>('Todas');
+  const [filterFase, setFilterFase] = useState<string>('Todas');
 
   const zonas = ['Todas', ...Array.from(new Set(MOCK_TECNICOS.map(t => t.zona)))];
 
@@ -53,10 +30,11 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
       
       const matchEstado = filterEstado === 'Todos' || t.estado === filterEstado;
       const matchZona = filterZona === 'Todas' || t.zona === filterZona;
+      const matchFase = filterFase === 'Todas' || t.fase === Number(filterFase);
 
-      return matchSearch && matchEstado && matchZona;
+      return matchSearch && matchEstado && matchZona && matchFase;
     });
-  }, [searchTerm, filterEstado, filterZona]);
+  }, [searchTerm, filterEstado, filterZona, filterFase]);
 
   return (
     <div style={{
@@ -117,6 +95,19 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
             <option value="En recuperación">En recuperación</option>
             <option value="Estable">Estables</option>
             <option value="Alto desempeño">Alto desempeño</option>
+          </select>
+          <select
+            value={filterFase}
+            onChange={e => setFilterFase(e.target.value)}
+            style={{
+              padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)',
+              background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '12px', outline: 'none',
+            }}
+          >
+            <option value="Todas">Todas las fases</option>
+            <option value="1">Fase 1</option>
+            <option value="2">Fase 2</option>
+            <option value="3">Fase 3</option>
           </select>
         </div>
       </div>

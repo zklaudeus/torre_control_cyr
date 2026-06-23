@@ -1,64 +1,7 @@
 import React from 'react';
 
-type EstadoCurso = 'Completado' | 'Pendiente' | 'Vencido';
-
-type CursoTecnico = {
-  id: string;
-  nombre: string;
-  estado: EstadoCurso;
-  fecha?: string;
-  resultado?: string;
-  vencimiento?: string;
-};
-
-const ESTADO_COLOR: Record<EstadoCurso, { color: string; bg: string; border: string }> = {
-  Completado: { color: '#22c55e', bg: 'rgba(34,197,94,0.1)',    border: 'rgba(34,197,94,0.3)'  },
-  Pendiente:  { color: '#f97316', bg: 'rgba(249,115,22,0.1)',   border: 'rgba(249,115,22,0.3)' },
-  Vencido:    { color: '#ef4444', bg: 'rgba(239,68,68,0.1)',    border: 'rgba(239,68,68,0.3)'  },
-};
-
-const MOCK_CURSOS: CursoTecnico[] = [
-  {
-    id: '1',
-    nombre: 'Protocolo de corte',
-    estado: 'Completado',
-    fecha: '10/06/2026',
-    resultado: 'Aprobado',
-    vencimiento: '10/06/2027',
-  },
-  {
-    id: '2',
-    nombre: 'Seguridad operacional',
-    estado: 'Completado',
-    fecha: '15/06/2026',
-    resultado: 'Aprobado',
-    vencimiento: '15/06/2027',
-  },
-  {
-    id: '3',
-    nombre: 'Atención y comunicación con cliente',
-    estado: 'Pendiente',
-    fecha: undefined,
-    resultado: undefined,
-    vencimiento: undefined,
-  },
-  {
-    id: '4',
-    nombre: 'Calidad de corte y evidencia',
-    estado: 'Completado',
-    fecha: '18/06/2026',
-    resultado: 'Aprobado',
-    vencimiento: '18/06/2027',
-  },
-  {
-    id: '5',
-    nombre: 'Disciplina operacional',
-    estado: 'Vencido',
-    fecha: '01/05/2025',
-    resultado: 'Aprobado',
-    vencimiento: '01/05/2026',
-  },
-];
+import type { CursoTecnico, EstadoCurso } from '../../types/rendimientoTecnico.types';
+import { MOCK_CURSOS, CONFIG_ESTADO_CURSO } from '../../data/rendimientoTecnico.mock';
 
 // ── Mini KPI badge para el resumen ──────────────────────────────────────────
 interface ResumenCardProps {
@@ -88,7 +31,7 @@ const ResumenCard: React.FC<ResumenCardProps> = ({ label, valor, color }) => (
 
 // ── Badge de estado ──────────────────────────────────────────────────────────
 const EstadoBadge: React.FC<{ estado: EstadoCurso }> = ({ estado }) => {
-  const cfg = ESTADO_COLOR[estado];
+  const cfg = CONFIG_ESTADO_CURSO[estado];
   return (
     <span style={{
       display: 'inline-block',
@@ -129,7 +72,7 @@ const FilaCurso: React.FC<{ curso: CursoTecnico; par: boolean }> = ({ curso, par
 
 // ── Card móvil ──────────────────────────────────────────────────────────────
 const CardCurso: React.FC<{ curso: CursoTecnico }> = ({ curso }) => {
-  const cfg = ESTADO_COLOR[curso.estado];
+  const cfg = CONFIG_ESTADO_CURSO[curso.estado];
   return (
     <div style={{
       background: 'var(--bg-panel-sec)',

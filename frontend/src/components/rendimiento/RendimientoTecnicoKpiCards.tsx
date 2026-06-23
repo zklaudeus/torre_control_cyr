@@ -60,27 +60,8 @@ const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'va
   </div>
 );
 
-export interface RendimientoTecnicoKpiData {
-  productividadDiaria: number;
-  productividadPromedio: number;
-  mejorProductividad: number;
-  cumplimientoPct: number;
-  totalCortesAcumulados: number;
-  diasBajoMeta: number;
-  diasCriticos: number;
-  fallidasFrustrados: number;
-}
-
-const MOCK_DATA: RendimientoTecnicoKpiData = {
-  productividadDiaria: 14,
-  productividadPromedio: 18.6,
-  mejorProductividad: 31,
-  cumplimientoPct: 56,
-  totalCortesAcumulados: 186,
-  diasBajoMeta: 3,
-  diasCriticos: 2,
-  fallidasFrustrados: 8,
-};
+import type { RendimientoTecnicoKpiData } from '../../types/rendimientoTecnico.types';
+import { MOCK_KPIS as MOCK_DATA } from '../../data/rendimientoTecnico.mock';
 
 interface RendimientoTecnicoKpiCardsProps {
   data?: RendimientoTecnicoKpiData;

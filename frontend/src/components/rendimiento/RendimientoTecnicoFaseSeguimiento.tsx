@@ -1,47 +1,13 @@
 import React from 'react';
 
-type FaseSeguimiento = 1 | 2 | 3;
-
-type EstadoFase =
-  | 'Crítico'
-  | 'En recuperación'
-  | 'Estable'
-  | 'Alto desempeño'
-  | 'Crítico - Fase 2';
-
-export type RendimientoTecnicoFaseData = {
-  faseActual: FaseSeguimiento;
-  estadoActual: EstadoFase;
-  motivoFase: string;
-  fechaInicioFase: string;
-  proximaRevision: string;
-  responsableSeguimiento: string;
-  accionSugerida: string;
-};
-
-const MOCK_FASE: RendimientoTecnicoFaseData = {
-  faseActual: 2,
-  estadoActual: 'En recuperación',
-  motivoFase: 'Técnico con productividad bajo meta durante los últimos días evaluados.',
-  fechaInicioFase: '22/06/2026',
-  proximaRevision: '25/06/2026',
-  responsableSeguimiento: 'Juan Muñoz',
-  accionSugerida: 'Mantener seguimiento diario y reforzar cumplimiento de meta mínima.',
-};
+import type { FaseSeguimiento, RendimientoTecnicoFaseData } from '../../types/rendimientoTecnico.types';
+import { MOCK_FASE, COLOR_ESTADO_FASE } from '../../data/rendimientoTecnico.mock';
 
 const FASES = [
   { num: 1 as FaseSeguimiento, label: 'Inicial',    descripcion: 'Seguimiento preventivo' },
   { num: 2 as FaseSeguimiento, label: 'Reforzado',  descripcion: 'Intervención supervisora' },
   { num: 3 as FaseSeguimiento, label: 'Crítico',    descripcion: 'Intervención mayor' },
 ];
-
-const ESTADO_COLOR: Record<EstadoFase, string> = {
-  'Crítico':          '#ef4444',
-  'En recuperación':  '#f97316',
-  'Estable':          '#60a5fa',
-  'Alto desempeño':   '#22c55e',
-  'Crítico - Fase 2': '#ef4444',
-};
 
 interface StepperProps {
   faseActual: FaseSeguimiento;
@@ -146,7 +112,7 @@ interface RendimientoTecnicoFaseSeguimientoProps {
 export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseSeguimientoProps> = ({
   data = MOCK_FASE,
 }) => {
-  const estadoColor = ESTADO_COLOR[data.estadoActual];
+  const estadoColor = COLOR_ESTADO_FASE[data.estadoActual];
 
   return (
     <div style={{

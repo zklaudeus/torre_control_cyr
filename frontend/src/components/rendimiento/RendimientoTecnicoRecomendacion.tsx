@@ -1,36 +1,8 @@
 import React from 'react';
 
-type PrioridadRecomendacion = 'Baja' | 'Media' | 'Alta' | 'Crítica';
-type EstadoAccion = 'Pendiente' | 'En seguimiento' | 'Cerrada';
+import type { RecomendacionSupervisorData } from '../../types/rendimientoTecnico.types';
+import { MOCK_RECOMENDACION, CONFIG_PRIORIDAD_RECOMENDACION, CONFIG_ESTADO_ACCION } from '../../data/rendimientoTecnico.mock';
 
-export type RecomendacionSupervisorData = {
-  responsable: string;
-  fecha: string;
-  prioridad: PrioridadRecomendacion;
-  estadoAccion: EstadoAccion;
-  recomendacion: string;
-};
-
-const MOCK_RECOMENDACION: RecomendacionSupervisorData = {
-  responsable: 'Juan Muñoz',
-  fecha: '22/06/2026',
-  prioridad: 'Alta',
-  estadoAccion: 'Pendiente',
-  recomendacion: 'Reforzar cumplimiento de protocolo de intervención, revisar causas de visitas fallidas y mantener seguimiento diario durante los próximos 3 días.',
-};
-
-const PRIORIDAD_COLOR: Record<PrioridadRecomendacion, { color: string; bg: string; border: string }> = {
-  'Baja':    { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.1)',   border: 'rgba(96, 165, 250, 0.3)' },
-  'Media':   { color: '#eab308', bg: 'rgba(234, 179, 8, 0.1)',    border: 'rgba(234, 179, 8, 0.3)' },
-  'Alta':    { color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)',   border: 'rgba(249, 115, 22, 0.3)' },
-  'Crítica': { color: '#ef4444', bg: 'rgba(239, 68, 68, 0.1)',    border: 'rgba(239, 68, 68, 0.3)' },
-};
-
-const ESTADO_COLOR: Record<EstadoAccion, { color: string; bg: string; border: string }> = {
-  'Pendiente':      { color: '#f97316', bg: 'rgba(249, 115, 22, 0.1)',  border: 'rgba(249, 115, 22, 0.3)' },
-  'En seguimiento': { color: '#60a5fa', bg: 'rgba(96, 165, 250, 0.1)',  border: 'rgba(96, 165, 250, 0.3)' },
-  'Cerrada':        { color: '#22c55e', bg: 'rgba(34, 197, 94, 0.1)',   border: 'rgba(34, 197, 94, 0.3)' },
-};
 
 interface RendimientoTecnicoRecomendacionProps {
   data?: RecomendacionSupervisorData;
@@ -39,8 +11,8 @@ interface RendimientoTecnicoRecomendacionProps {
 export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomendacionProps> = ({
   data = MOCK_RECOMENDACION,
 }) => {
-  const prioCfg = PRIORIDAD_COLOR[data.prioridad];
-  const estadoCfg = ESTADO_COLOR[data.estadoAccion];
+  const prioCfg = CONFIG_PRIORIDAD_RECOMENDACION[data.prioridad];
+  const estadoCfg = CONFIG_ESTADO_ACCION[data.estadoAccion];
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>

@@ -8,7 +8,7 @@ import { RendimientoTecnicoCursos } from './RendimientoTecnicoCursos';
 import { RendimientoTecnicoHallazgos } from './RendimientoTecnicoHallazgos';
 import { RendimientoTecnicoRecomendacion } from './RendimientoTecnicoRecomendacion';
 import { RendimientoTecnicoSelector } from './RendimientoTecnicoSelector';
-import type { TecnicoResumen } from './RendimientoTecnicoSelector';
+import type { TecnicoResumen } from '../../types/rendimientoTecnico.types';
 
 interface RendimientoTecnicoDashboardViewProps {
   fechaOperacional: string;

@@ -1,97 +1,15 @@
 import React from 'react';
 
-type EstadoSemaforo =
-  | 'Crítico'
-  | 'En recuperación'
-  | 'Estable'
-  | 'Alto desempeño';
+import type { SemaforoTecnico } from '../../types/rendimientoTecnico.types';
+import { MOCK_SEMAFOROS, CONFIG_SEMAFOROS } from '../../data/rendimientoTecnico.mock';
 
-type SemaforoTecnico = {
-  id: string;
-  titulo: string;
-  estado: EstadoSemaforo;
-  descripcion: string;
-  ultimaEvaluacion?: string;
-};
-
-const ESTADO_CONFIG: Record<EstadoSemaforo, { color: string; bg: string; border: string; glow: string }> = {
-  'Crítico': {
-    color: '#ef4444',
-    bg: 'rgba(239, 68, 68, 0.08)',
-    border: 'rgba(239, 68, 68, 0.25)',
-    glow: '0 0 12px rgba(239, 68, 68, 0.4)',
-  },
-  'En recuperación': {
-    color: '#f97316',
-    bg: 'rgba(249, 115, 22, 0.08)',
-    border: 'rgba(249, 115, 22, 0.25)',
-    glow: '0 0 12px rgba(249, 115, 22, 0.4)',
-  },
-  'Estable': {
-    color: '#60a5fa',
-    bg: 'rgba(96, 165, 250, 0.08)',
-    border: 'rgba(96, 165, 250, 0.25)',
-    glow: '0 0 12px rgba(96, 165, 250, 0.35)',
-  },
-  'Alto desempeño': {
-    color: '#22c55e',
-    bg: 'rgba(34, 197, 94, 0.08)',
-    border: 'rgba(34, 197, 94, 0.25)',
-    glow: '0 0 12px rgba(34, 197, 94, 0.4)',
-  },
-};
-
-const MOCK_SEMAFOROS: SemaforoTecnico[] = [
-  {
-    id: 'productividad',
-    titulo: 'Productividad',
-    estado: 'En recuperación',
-    descripcion: 'Bajo meta diaria, requiere seguimiento.',
-    ultimaEvaluacion: '2026-06-23',
-  },
-  {
-    id: 'seguridad',
-    titulo: 'Seguridad',
-    estado: 'Estable',
-    descripcion: 'Cumple protocolos de seguridad establecidos.',
-    ultimaEvaluacion: '2026-06-23',
-  },
-  {
-    id: 'calidad-corte',
-    titulo: 'Calidad del corte',
-    estado: 'Crítico',
-    descripcion: 'Alta tasa de reclamos asociados al técnico.',
-    ultimaEvaluacion: '2026-06-22',
-  },
-  {
-    id: 'cumplimiento-protocolos',
-    titulo: 'Cumplimiento de protocolos',
-    estado: 'Alto desempeño',
-    descripcion: 'Sigue todos los pasos del proceso operacional.',
-    ultimaEvaluacion: '2026-06-23',
-  },
-  {
-    id: 'comunicacion-cliente',
-    titulo: 'Comunicación con cliente',
-    estado: 'Estable',
-    descripcion: 'Reportes de atención dentro del rango esperado.',
-    ultimaEvaluacion: '2026-06-21',
-  },
-  {
-    id: 'disciplina-operacional',
-    titulo: 'Disciplina operacional',
-    estado: 'En recuperación',
-    descripcion: 'Algunas irregularidades en horarios reportados.',
-    ultimaEvaluacion: '2026-06-23',
-  },
-];
 
 interface SemaforoCardProps {
   semaforo: SemaforoTecnico;
 }
 
 const SemaforoCard: React.FC<SemaforoCardProps> = ({ semaforo }) => {
-  const cfg = ESTADO_CONFIG[semaforo.estado];
+  const cfg = CONFIG_SEMAFOROS[semaforo.estado];
 
   return (
     <div
