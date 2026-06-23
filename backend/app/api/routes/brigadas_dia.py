@@ -48,12 +48,12 @@ def update_brigada(id: int, item: BrigadaDiariaUpdate, db: Session = Depends(get
 @router.delete("/{id}")
 def delete_brigada(id: int, db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user)):
     """Elimina una brigada"""
-    if current_user.rol not in ['admin', 'superadmin']:
-        raise HTTPException(status_code=403, detail="No tiene permisos para eliminar brigadas")
-        
     db_item = servicio.repo.get_by_id(db, id)
     if not db_item:
         raise HTTPException(status_code=404, detail="Brigada no encontrada")
+        
+    if not puede_operar_zona(current_user, db_item.zona, db):
+        raise HTTPException(status_code=403, detail="No tiene permisos para operar la zona de esta brigada")
         
     success = servicio.delete(db, id)
     return {"message": "Brigada eliminada correctamente"}

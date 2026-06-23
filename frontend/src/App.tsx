@@ -9,6 +9,7 @@ import { InicioDiaDashboardView } from './components/inicio-dia/InicioDiaDashboa
 import { ResumenGeneralPanel } from './components/resumen-general/ResumenGeneralPanel';
 import { ResumenZonaDashboardView } from './components/resumen-zona/ResumenZonaDashboardView';
 import { SupervisorBitacoraView } from './components/supervisor/SupervisorBitacoraView';
+import { RendimientoTecnicoDashboardView } from './components/rendimiento/RendimientoTecnicoDashboardView';
 import './App.css';
 
 const AppContent = () => {
@@ -38,7 +39,11 @@ const AppContent = () => {
           
           <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control']} />}>
             <Route path="/torre-control/dashboard-cyr" element={<ResumenGeneralPanel fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-general" onChangeSection={() => {}} />} />
+          </Route>
+
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control', 'gerencia']} />}>
             <Route path="/torre-control/resumen-zona" element={<ResumenZonaDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-zona" onChangeSection={() => {}} />} />
+            <Route path="/torre-control/rendimiento-tecnico" element={<RendimientoTecnicoDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="rendimiento-tecnico" onChangeSection={() => {}} />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin']} />}>

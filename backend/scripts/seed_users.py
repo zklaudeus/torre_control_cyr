@@ -2,7 +2,12 @@ import os
 import sys
 
 # Agregar la ruta base del proyecto para importar módulos
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BACKEND_DIR)
+
+# Cargar el .env desde la carpeta backend antes de importar cualquier módulo de la app
+from dotenv import load_dotenv
+load_dotenv(os.path.join(BACKEND_DIR, '.env'))
 
 from sqlalchemy.orm import Session
 from app.core.database import SessionLocal, engine
@@ -23,6 +28,7 @@ def seed_users():
         {"usuario": "nicolas.farias", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 5},
         {"usuario": "eduardo.beltran", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 4},
         {"usuario": "cynthia.garrido", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 6},
+        {"usuario": "gerencia", "password_plain": "admin123", "rol": "gerencia", "supervisor_id": None},
     ]
 
     try:

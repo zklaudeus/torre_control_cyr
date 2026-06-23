@@ -16,6 +16,8 @@ import { DataTableToolbar } from '../common/DataTableToolbar';
 import { SortableHeaderCell } from '../common/SortableHeaderCell';
 
 
+import { getTotalCorteBrigada } from '../../utils/calculosBrigada';
+
 const displayNumber = (value: number | null | undefined): string => {
   return value === 0 || value === null || value === undefined ? '' : String(value);
 };
@@ -27,12 +29,8 @@ const normalizeNumber = (value: string): number => {
 };
 
 const calcTotalCorte = (row: EditableBrigada): string => {
-  const acums = [row.acum_14, row.acum_13, row.acum_12, row.acum_11, row.acum_10, row.acum_09];
-  for (const val of acums) {
-    const n = normalizeNumber(String(val ?? 0));
-    if (n > 0) return String(n);
-  }
-  return '';
+  const total = getTotalCorteBrigada(row);
+  return total > 0 ? String(total) : '';
 };
 
 interface BrigadasEditableTableProps {

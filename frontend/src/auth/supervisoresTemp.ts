@@ -15,7 +15,7 @@ export interface UsuarioApp {
   nombre: string;
   usuario: string;
   password?: string;
-  rol: 'supervisor' | 'admin' | 'superadmin' | 'torre_control';
+  rol: 'supervisor' | 'admin' | 'superadmin' | 'torre_control' | 'gerencia';
   zonasAsignadas?: string[];
   /** Tipos de brigada permitidos. Si está vacío o undefined, se asume solo PXQ. */
   tiposBrigadaPermitidos?: ('PXQ' | 'CF')[];

@@ -64,8 +64,12 @@ export const ProcesadorOperacional: React.FC<ProcesadorOperacionalProps> = ({
 
     try {
       const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+      const token = localStorage.getItem('torreControlToken');
       const response = await fetch(`${apiUrl}/api/procesamiento/actualizar-resultados-brigadas`, {
         method: 'POST',
+        headers: token ? {
+          'Authorization': `Bearer ${token}`
+        } : undefined,
         body: formData,
       });
 

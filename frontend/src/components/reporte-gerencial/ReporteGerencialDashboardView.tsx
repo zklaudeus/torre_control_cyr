@@ -65,14 +65,25 @@ export const ReporteGerencialDashboardView = ({
     ? (filtroZona === 'Todas' ? reporte.zonas : reporte.zonas.filter(z => z.zona === filtroZona))
     : [];
 
-  // Recalcular total según zonas filtradas
+  // Total recalculado según filtro de zona
   const totalFiltrado = (() => {
     if (!reporte) return null;
     if (filtroZona === 'Todas') return reporte.total;
-    // Para una sola zona, usar sus datos directamente como "total"
     const z = zonasFiltradas[0];
     return z ? { ...z, zona: z.zona } : reporte.total;
   })();
+
+  const porcentajeBrigadasEfectivas = totalFiltrado && totalFiltrado.total_brigadas > 0
+    ? (totalFiltrado.brigadas_operativas / totalFiltrado.total_brigadas) * 100
+    : 0;
+
+  const realFuncionCumplimientoMetaPct = porcentajeBrigadasEfectivas > 0 && totalFiltrado
+    ? (totalFiltrado.cumplimiento_meta_pct / (porcentajeBrigadasEfectivas / 100))
+    : 0;
+
+  const realFuncionCumplimientoCargaPct = porcentajeBrigadasEfectivas > 0 && totalFiltrado
+    ? (totalFiltrado.cumplimiento_corte_pct / (porcentajeBrigadasEfectivas / 100))
+    : 0;
 
   useEffect(() => {
     fetchReporte();
@@ -342,8 +353,11 @@ export const ReporteGerencialDashboardView = ({
             <div style={kpiGridStyle}>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Brigadas Operativas</div>
-                <div style={kpiValueStyle}>{totalFiltrado!.brigadas_operativas}</div>
-                <div style={kpiSubValueStyle}>Total activas hoy</div>
+                <div style={{...kpiValueStyle, display: 'flex', alignItems: 'baseline', gap: '4px'}}>
+                  {totalFiltrado!.brigadas_operativas}
+                  <span style={{ fontSize: '20px', color: THEME.slate, fontWeight: 500 }}>/ {totalFiltrado!.total_brigadas}</span>
+                </div>
+                <div style={kpiSubValueStyle}>Reportadas vs Ctto</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Reconexiones Ejec.</div>
@@ -356,13 +370,14 @@ export const ReporteGerencialDashboardView = ({
                 <div style={kpiSubValueStyle}>de {totalFiltrado!.corte_programado} programados</div>
               </div>
               <div style={{...cardStyle, border: `1px solid ${THEME.primary}`}}>
-                <div style={kpiTitleStyle}>Cumpl. % Prom. según Meta</div>
-                <div style={kpiValueStyle}>{totalFiltrado!.cumplimiento_meta_pct}%</div>
+                <div style={kpiTitleStyle}>Real función Meta</div>
+                <div style={kpiValueStyle}>{realFuncionCumplimientoMetaPct.toFixed(2)}%</div>
+                <div style={{...kpiSubValueStyle, color: THEME.primary}}>Cumpl. prom. / brigadas efectivas</div>
               </div>
               <div style={cardStyle}>
-                <div style={kpiTitleStyle}>Cumpl. Corte s/Carga</div>
-                <div style={kpiValueStyle}>{totalFiltrado!.cumplimiento_corte_pct}%</div>
-                <div style={kpiSubValueStyle}>Eficiencia</div>
+                <div style={kpiTitleStyle}>Real función Carga</div>
+                <div style={kpiValueStyle}>{realFuncionCumplimientoCargaPct.toFixed(2)}%</div>
+                <div style={kpiSubValueStyle}>Corte carga / brigadas efectivas</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Visitas Fallidas</div>
@@ -393,7 +408,7 @@ export const ReporteGerencialDashboardView = ({
 
               {/* 2. Corte Poste vs Empalme (Stacked) */}
               <div style={chartCardStyle}>
-                <div style={chartTitleStyle}>Corte: Poste vs Empalme</div>
+                <div style={chartTitleStyle}>Corte: Poste, Empalme y F. Rango</div>
                 <div style={{ flex: 1, minHeight: 0 }}>
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={zonasFiltradas} margin={{ top: 20, bottom: 20 }}>
@@ -405,8 +420,11 @@ export const ReporteGerencialDashboardView = ({
                       <Bar dataKey="corte_en_poste" stackId="a" fill={THEME.primary} name="Poste" barSize={24}>
                         <LabelList dataKey="corte_en_poste" position="center" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: '#fff' }} />
                       </Bar>
-                      <Bar dataKey="corte_en_empalme" stackId="a" fill={THEME.secondary} name="Empalme" radius={[4, 4, 0, 0]}>
-                        <LabelList dataKey="corte_en_empalme" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
+                      <Bar dataKey="corte_en_empalme" stackId="a" fill={THEME.secondary} name="Empalme">
+                        <LabelList dataKey="corte_en_empalme" position="center" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: 'var(--text-main)' }} />
+                      </Bar>
+                      <Bar dataKey="corte_fuera_de_rango" stackId="a" fill="#a78bfa" name="F. Rango" radius={[4, 4, 0, 0]}>
+                        <LabelList dataKey="corte_fuera_de_rango" position="top" style={{ fontSize: 10, fontFamily: THEME.fontMono, fill: THEME.textMuted }} />
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>

@@ -2,7 +2,7 @@ import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
 import type { UsuarioApp } from './supervisoresTemp';
 
-export type UserRole = 'supervisor' | 'admin' | 'superadmin' | 'torre_control';
+export type UserRole = 'supervisor' | 'admin' | 'superadmin' | 'torre_control' | 'gerencia';
 
 interface AuthContextType {
   user: UsuarioApp | null;

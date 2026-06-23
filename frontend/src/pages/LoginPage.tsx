@@ -49,6 +49,8 @@ export const LoginPage = () => {
         navigate('/supervisor/bitacora');
       } else if (mappedUser.rol === 'torre_control') {
         navigate('/torre-control/dashboard-cyr');
+      } else if (mappedUser.rol === 'gerencia') {
+        navigate('/reporte-gerencial');
       } else {
         navigate('/torre-control/inicio-dia');
       }
@@ -67,6 +69,8 @@ export const LoginPage = () => {
           navigate('/supervisor/bitacora');
         } else if (userWithoutPassword.rol === 'torre_control') {
           navigate('/torre-control/dashboard-cyr');
+        } else if (userWithoutPassword.rol === 'gerencia') {
+          navigate('/reporte-gerencial');
         } else {
           navigate('/torre-control/inicio-dia');
         }

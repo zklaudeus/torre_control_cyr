@@ -62,6 +62,7 @@ const NAV_ITEMS = [
   { route: '/torre-control/dashboard-cyr',   label: 'Resumen General',   Icon: IconCalendar },
   { route: '/torre-control/resumen-zona',    label: 'Resumen por Zona',  Icon: IconMap      },
   { route: '#/reporte-gerencial',            label: 'Reporte Gerencial', Icon: IconBarChart, external: true },
+  { route: '/torre-control/rendimiento-tecnico', label: 'Rendimiento Técnico', Icon: IconBarChart },
   { route: '/supervisor/bitacora',           label: 'Bitácora Supervisor', Icon: IconGitMerge },
   { route: '/torre-control/configuracion',   label: 'Configuración',     Icon: IconSettings },
 ];
@@ -227,7 +228,8 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
         {NAV_ITEMS
           .filter(item => {
             if (user?.rol === 'supervisor') return item.route === '/supervisor/bitacora';
-            if (user?.rol === 'torre_control') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona';
+            if (user?.rol === 'torre_control') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona' || item.route === '/torre-control/rendimiento-tecnico';
+            if (user?.rol === 'gerencia') return item.route === '/torre-control/resumen-zona' || item.route === '#/reporte-gerencial' || item.route === '/torre-control/rendimiento-tecnico';
             return true;
           })
           .map(({ route, label, Icon, external }) => (

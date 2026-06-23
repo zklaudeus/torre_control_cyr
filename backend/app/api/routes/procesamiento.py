@@ -6,14 +6,20 @@ from app.core.database import get_db
 from app.schemas.procesamiento import ProcesamientoResultado
 from app.cleaning_engine.service import procesar_archivos_operacionales
 
+from app.core.security import get_current_user
+from app.schemas.auth import CurrentUser
+
 router = APIRouter()
 
 @router.post("/actualizar-resultados-brigadas", response_model=ProcesamientoResultado)
 async def actualizar_resultados_brigadas(
     files: List[UploadFile] = File(...),
     fecha_operacional: Optional[str] = Form(None),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user)
 ):
+    if current_user.rol == 'gerencia':
+        raise HTTPException(status_code=403, detail="No tiene permisos para procesar archivos")
     """
     Recibe archivos Excel operacionales, limpia los datos, calcula KPIs 
     y actualiza control_brigadas_diario.

@@ -15,6 +15,14 @@ interface ResultadosRealesZonaPanelProps {
 export const ResultadosRealesZonaPanel = ({ fechaOperacional, refreshKey }: ResultadosRealesZonaPanelProps) => {
   const { data, loading, error, fetchResultados } = useResultadosRealesZona(fechaOperacional);
 
+  // Eliminar duplicados por zona (ej: cuando la API devuelve registros adicionales idénticos)
+  const uniqueZonas = (data?.zonas || []).reduce((acc: ResultadoRealZonaCalculado[], current) => {
+    if (!acc.find(item => item.zona === current.zona)) {
+      acc.push(current);
+    }
+    return acc;
+  }, []);
+
   const {
     searchTerm,
     setSearchTerm,
@@ -24,7 +32,7 @@ export const ResultadosRealesZonaPanel = ({ fechaOperacional, refreshKey }: Resu
     clearFilters,
     processedData
   } = useDataTableControls<ResultadoRealZonaCalculado>({
-    data: data?.zonas || [],
+    data: uniqueZonas,
     searchableColumns: ['zona']
   });
 
