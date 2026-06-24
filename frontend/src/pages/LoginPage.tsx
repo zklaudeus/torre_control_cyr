@@ -36,10 +36,8 @@ export const LoginPage = () => {
 
       if (mappedUser.rol === 'supervisor') {
         navigate('/supervisor/bitacora');
-      } else if (mappedUser.rol === 'torre_control') {
+      } else if (mappedUser.rol === 'torre_control' || mappedUser.rol === 'gerencia') {
         navigate('/torre-control/dashboard-cyr');
-      } else if (mappedUser.rol === 'gerencia') {
-        navigate('/reporte-gerencial');
       } else {
         navigate('/torre-control/inicio-dia');
       }

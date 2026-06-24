@@ -1,8 +1,7 @@
-import React from 'react';
+import React, { useState } from 'react';
 
-import type { FaseSeguimiento, RendimientoTecnicoFaseData, EstadoTecnico } from '../../types/rendimientoTecnico.types';
-import { COLOR_ESTADO_FASE } from '../../data/rendimientoTecnico.config';
-import type { HistorialItemBackend } from '../../api/productividad.api';
+import type { FaseSeguimiento } from '../../types/rendimientoTecnico.types';
+import type { SeguimientoTecnicoBackend } from '../../api/productividad.api';
 
 const FASES = [
   { num: 1 as FaseSeguimiento, label: 'Inicial',    descripcion: 'Seguimiento preventivo' },
@@ -107,44 +106,52 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, color }) => (
 );
 
 interface RendimientoTecnicoFaseSeguimientoProps {
-  data?: RendimientoTecnicoFaseData;
-  historial?: HistorialItemBackend[];
-  faseActual?: number;
-  estadoActual?: EstadoTecnico;
+  seguimiento: SeguimientoTecnicoBackend | null;
+  codigoSap: string;
+  userRol: string;
+  onRegistrarAdvertencia: (motivo: string) => Promise<void>;
+  registrandoAdvertencia: boolean;
+  onCambiarFase: (faseNueva: number, motivo: string) => Promise<void>;
+  cambiandoFase: boolean;
+  onAnularAdvertencia: (advertenciaId: number, motivo: string) => Promise<void>;
+  anulandoAdvertencia: boolean;
 }
 
-function buildFaseData(historial: HistorialItemBackend[], faseActual: number, estadoActual: EstadoTecnico): RendimientoTecnicoFaseData {
-  const ultimo = historial.length > 0 ? historial[0] : null;
-  const estadoMap: Record<string, string> = {
-    'Crítico': 'Crítico',
-    'En recuperación': 'En recuperación',
-    'Estable': 'Estable',
-    'Alto desempeño': 'Alto desempeño',
-  };
-  return {
-    faseActual: faseActual as FaseSeguimiento,
-    estadoActual: `${estadoMap[estadoActual] ?? 'Estable'}${faseActual >= 2 ? ` - Fase ${faseActual}` : ''}` as never,
-    motivoFase: ultimo?.motivo ?? 'Seguimiento preventivo estándar.',
-    fechaInicioFase: ultimo?.fecha_cambio
-      ? new Date(ultimo.fecha_cambio).toLocaleDateString('es-CL')
-      : '—',
-    proximaRevision: '—',
-    responsableSeguimiento: '—',
-    accionSugerida: ultimo?.regla_disparadora ?? 'Mantener seguimiento diario.',
-  };
-}
+const ESTADO_COLOR_MAP: Record<string, string> = {
+  'SIN_EVALUACION': '#6b7280',
+  'CRITICO': '#ef4444',
+  'RECUPERACION': '#f97316',
+  'ESTABLE': '#60a5fa',
+  'ALTO_DESEMPENO': '#22c55e',
+};
+
+const ESTADO_LABEL_MAP: Record<string, string> = {
+  'SIN_EVALUACION': 'Sin evaluación',
+  'CRITICO': 'Crítico',
+  'RECUPERACION': 'En recuperación',
+  'ESTABLE': 'Estable',
+  'ALTO_DESEMPENO': 'Alto desempeño',
+};
 
 export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseSeguimientoProps> = ({
-  data,
-  historial,
-  faseActual,
-  estadoActual,
+  seguimiento,
+  codigoSap,
+  userRol,
+  onRegistrarAdvertencia,
+  registrandoAdvertencia,
+  onCambiarFase,
+  cambiandoFase,
+  onAnularAdvertencia,
+  anulandoAdvertencia,
 }) => {
-  const resolved: RendimientoTecnicoFaseData | null = historial && faseActual !== undefined && estadoActual
-    ? buildFaseData(historial, faseActual, estadoActual)
-    : (data ?? null);
+  const [showModal, setShowModal] = useState<'advertencia' | 'fase' | 'anular' | null>(null);
+  const [anularAdvertenciaId, setAnularAdvertenciaId] = useState<number | null>(null);
+  const [motivo, setMotivo] = useState('');
+  const [modalError, setModalError] = useState('');
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [faseNueva, setFaseNueva] = useState(1);
 
-  if (!resolved) {
+  if (!seguimiento) {
     return (
       <div style={{
         background: 'var(--bg-panel)',
@@ -166,13 +173,76 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
           padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)',
           fontSize: '13px',
         }}>
-          Sin datos de seguimiento disponibles.
+          Cargando seguimiento…
         </div>
       </div>
     );
   }
 
-  const estadoColor = COLOR_ESTADO_FASE[resolved.estadoActual];
+  const fase: FaseSeguimiento = seguimiento.fase_actual as FaseSeguimiento;
+  const estadoStr = seguimiento.estado_productivo_actual;
+  const estColor = ESTADO_COLOR_MAP[estadoStr] || '#6b7280';
+  const estLabel = ESTADO_LABEL_MAP[estadoStr] || estadoStr;
+  const puedeRegistrar = userRol === 'torre_control' || userRol === 'admin' || userRol === 'superadmin';
+  const ultimoHistorial = seguimiento.historial_reciente.length > 0 ? seguimiento.historial_reciente[0] : null;
+
+  const handleAbrirModalAdvertencia = () => {
+    setMotivo('');
+    setModalError('');
+    setShowModal('advertencia');
+  };
+
+  const handleAbrirModalFase = () => {
+    setMotivo('');
+    setModalError('');
+    setFaseNueva(1);
+    setShowModal('fase');
+  };
+
+  const handleAbrirModalAnular = (advertenciaId: number) => {
+    setMotivo('');
+    setModalError('');
+    setAnularAdvertenciaId(advertenciaId);
+    setShowModal('anular');
+  };
+
+  const handleConfirmar = async () => {
+    if (!motivo.trim()) {
+      setModalError('El motivo es obligatorio.');
+      return;
+    }
+    setModalError('');
+    try {
+      if (showModal === 'advertencia') {
+        await onRegistrarAdvertencia(motivo.trim());
+        setShowModal(null);
+        setMotivo('');
+        setSuccessMsg('Advertencia registrada correctamente.');
+
+        if (seguimiento.fase_actual === 2 && seguimiento.advertencias_fase2 + 1 >= 3) {
+          setSuccessMsg(`El técnico ${codigoSap} pasó a Fase 3 por acumular 3 advertencias activas en Fase 2.`);
+        }
+      } else if (showModal === 'fase') {
+        await onCambiarFase(faseNueva, motivo.trim());
+        setShowModal(null);
+        setMotivo('');
+        setFaseNueva(1);
+        setSuccessMsg(`Fase cambiada a ${faseNueva} correctamente.`);
+      } else if (showModal === 'anular' && anularAdvertenciaId !== null) {
+        await onAnularAdvertencia(anularAdvertenciaId, motivo.trim());
+        setShowModal(null);
+        setMotivo('');
+        setAnularAdvertenciaId(null);
+        setSuccessMsg('Advertencia anulada correctamente.');
+      }
+
+      setTimeout(() => setSuccessMsg(null), 6000);
+    } catch {
+      setModalError('Error al realizar la operación.');
+    }
+  };
+
+  const estadoDisplay = `${estLabel}${fase >= 2 ? ` - Fase ${fase}` : ''}`;
 
   return (
     <div style={{
@@ -196,66 +266,379 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             Fase de Seguimiento
           </span>
         </div>
-        <div style={{
-          fontSize: '12px', fontWeight: 700,
-          color: estadoColor,
-          padding: '3px 10px',
-          borderRadius: '20px',
-          background: `${estadoColor}15`,
-          border: `1px solid ${estadoColor}40`,
-        }}>
-          {resolved.estadoActual}
+        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          {successMsg && (
+            <span style={{ fontSize: '11px', color: '#22c55e', fontWeight: 600 }}>
+              {successMsg}
+            </span>
+          )}
+          <div style={{
+            fontSize: '12px', fontWeight: 700,
+            color: estColor,
+            padding: '3px 10px',
+            borderRadius: '20px',
+            background: `${estColor}15`,
+            border: `1px solid ${estColor}40`,
+          }}>
+            {estadoDisplay}
+          </div>
         </div>
       </div>
 
       {/* Stepper */}
-      <Stepper faseActual={resolved.faseActual} />
+      <Stepper faseActual={fase} />
 
       {/* Separador */}
       <div style={{ borderTop: '1px solid var(--border)' }} />
 
-      {/* Detalles en grid */}
+      {/* Resumen de seguimiento */}
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
-        gap: '14px',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
+        gap: '12px',
       }}>
-        <InfoRow label="Fase actual"         value={`Fase ${resolved.faseActual}`}           color={estadoColor} />
-        <InfoRow label="Inicio de fase"       value={resolved.fechaInicioFase} />
-        <InfoRow label="Próxima revisión"     value={resolved.proximaRevision} />
-        <InfoRow label="Responsable"          value={resolved.responsableSeguimiento} />
+        <InfoRow label="Fase actual" value={`Fase ${fase}`} color={estColor} />
+        <InfoRow label="Estado productivo" value={estLabel} color={estColor} />
+        <InfoRow label="Días bajo 50%" value={String(seguimiento.dias_consecutivos_bajo_50)} />
+        <InfoRow label="Días alto desempeño" value={String(seguimiento.dias_consecutivos_alto_desempeno)} />
+        <InfoRow label="Advertencias Fase 2" value={`${seguimiento.advertencias_fase2}/3`} />
+        <InfoRow label="Última evaluación" value={seguimiento.fecha_ultima_evaluacion
+          ? new Date(seguimiento.fecha_ultima_evaluacion).toLocaleDateString('es-CL')
+          : '—'} />
       </div>
 
-      {/* Motivo */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-          Motivo
-        </span>
-        <span style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5 }}>
-          {resolved.motivoFase}
-        </span>
-      </div>
+      {/* Motivo actual */}
+      {ultimoHistorial && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+            Último cambio ({new Date(ultimoHistorial.fecha_cambio).toLocaleDateString('es-CL')})
+          </span>
+          <span style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5 }}>
+            {ultimoHistorial.motivo || ultimoHistorial.regla_disparadora}
+          </span>
+        </div>
+      )}
 
-      {/* Acción sugerida */}
-      <div style={{
-        background: 'rgba(249,115,22,0.06)',
-        border: '1px solid rgba(249,115,22,0.2)',
-        borderRadius: '8px',
-        padding: '12px 14px',
-        display: 'flex',
-        gap: '10px',
-        alignItems: 'flex-start',
-      }}>
-        <span style={{ fontSize: '14px', flexShrink: 0 }}>💡</span>
-        <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '4px' }}>
-            Acción sugerida
-          </div>
-          <div style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5 }}>
-            {resolved.accionSugerida}
+      {/* Advertencias activas */}
+      {seguimiento.advertencias_activas.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+          <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+            Advertencias activas ({seguimiento.advertencias_activas.length})
+          </span>
+          {seguimiento.advertencias_activas.map(a => (
+            <div key={a.id} style={{
+              background: 'rgba(239,68,68,0.06)',
+              border: '1px solid rgba(239,68,68,0.2)',
+              borderRadius: '6px',
+              padding: '8px 12px',
+              fontSize: '12px',
+              color: 'var(--text-main)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontWeight: 600 }}>{a.motivo}</span>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '10px', color: '#6b7280' }}>
+                    #{a.numero_advertencia || '-'} · {new Date(a.fecha_registro).toLocaleDateString('es-CL')}
+                  </span>
+                  {puedeRegistrar && (
+                    <button
+                      type="button"
+                      onClick={() => handleAbrirModalAnular(a.id)}
+                      disabled={anulandoAdvertencia}
+                      style={{
+                        padding: '2px 8px', fontSize: '10px', fontWeight: 600,
+                        background: 'transparent', color: '#ef4444',
+                        border: '1px solid #ef4444', borderRadius: '4px',
+                        cursor: anulandoAdvertencia ? 'not-allowed' : 'pointer',
+                      }}
+                    >
+                      Anular
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Botones de acción */}
+      {puedeRegistrar && (
+        <div style={{ marginTop: '4px', display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={handleAbrirModalAdvertencia}
+            disabled={registrandoAdvertencia}
+            style={{
+              padding: '8px 16px',
+              background: registrandoAdvertencia ? '#6b7280' : '#ef4444',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: registrandoAdvertencia ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {registrandoAdvertencia ? 'Registrando…' : 'Registrar advertencia'}
+          </button>
+          <button
+            type="button"
+            onClick={handleAbrirModalFase}
+            disabled={cambiandoFase}
+            style={{
+              padding: '8px 16px',
+              background: cambiandoFase ? '#6b7280' : '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '6px',
+              fontSize: '12px',
+              fontWeight: 600,
+              cursor: cambiandoFase ? 'not-allowed' : 'pointer',
+            }}
+          >
+            {cambiandoFase ? 'Cambiando…' : 'Cambiar fase'}
+          </button>
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal === 'advertencia' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowModal(null)}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            fontFamily: 'var(--sans)',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>
+              Registrar advertencia
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B' }}>
+              Técnico: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
+              Fase actual: <strong>Fase {fase}</strong> · Advertencias activas: <strong>{seguimiento.advertencias_fase2}/3</strong>
+            </p>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                Motivo *
+              </label>
+              <textarea
+                value={motivo}
+                onChange={e => { setMotivo(e.target.value); setModalError(''); }}
+                placeholder="Describa el motivo de la advertencia…"
+                rows={3}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '6px',
+                  border: `1px solid ${modalError ? '#ef4444' : '#E2E8F0'}`,
+                  fontSize: '13px', outline: 'none', resize: 'vertical',
+                  boxSizing: 'border-box', fontFamily: 'var(--sans)',
+                }}
+              />
+              {modalError && <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>{modalError}</span>}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowModal(null)}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px',
+                  border: '1px solid #E2E8F0', background: '#fff',
+                  color: '#475569', fontSize: '13px', cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmar}
+                disabled={registrandoAdvertencia}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px',
+                  border: 'none', background: registrandoAdvertencia ? '#6b7280' : '#ef4444',
+                  color: '#fff', fontSize: '13px', fontWeight: 600,
+                  cursor: registrandoAdvertencia ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {registrandoAdvertencia ? 'Registrando…' : 'Confirmar advertencia'}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* Modal anular advertencia */}
+      {showModal === 'anular' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowModal(null)}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            fontFamily: 'var(--sans)',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>
+              Anular advertencia
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B' }}>
+              Técnico: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
+              Esta acción no se puede deshacer.
+            </p>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                Motivo de anulación *
+              </label>
+              <textarea
+                value={motivo}
+                onChange={e => { setMotivo(e.target.value); setModalError(''); }}
+                placeholder="Indique el motivo de la anulación…"
+                rows={3}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '6px',
+                  border: `1px solid ${modalError ? '#ef4444' : '#E2E8F0'}`,
+                  fontSize: '13px', outline: 'none', resize: 'vertical',
+                  boxSizing: 'border-box', fontFamily: 'var(--sans)',
+                }}
+              />
+              {modalError && <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>{modalError}</span>}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowModal(null)}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px',
+                  border: '1px solid #E2E8F0', background: '#fff',
+                  color: '#475569', fontSize: '13px', cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmar}
+                disabled={anulandoAdvertencia}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px',
+                  border: 'none', background: anulandoAdvertencia ? '#6b7280' : '#ef4444',
+                  color: '#fff', fontSize: '13px', fontWeight: 600,
+                  cursor: anulandoAdvertencia ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {anulandoAdvertencia ? 'Anulando…' : 'Confirmar anulación'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal cambio de fase */}
+      {showModal === 'fase' && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 1000,
+          background: 'rgba(0,0,0,0.5)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }} onClick={() => setShowModal(null)}>
+          <div style={{
+            background: '#fff',
+            borderRadius: '12px',
+            padding: '24px',
+            maxWidth: '480px',
+            width: '90%',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
+            fontFamily: 'var(--sans)',
+          }} onClick={e => e.stopPropagation()}>
+            <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>
+              Cambiar fase manualmente
+            </h3>
+            <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B' }}>
+              Técnico: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
+              Fase actual: <strong>Fase {fase}</strong>
+            </p>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                Nueva fase *
+              </label>
+              <select
+                value={faseNueva}
+                onChange={e => setFaseNueva(Number(e.target.value))}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '6px',
+                  border: '1px solid #E2E8F0', fontSize: '13px', outline: 'none',
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value={1}>Fase 1 – Preventivo</option>
+                <option value={2}>Fase 2 – Reforzado</option>
+                <option value={3}>Fase 3 – Crítico</option>
+              </select>
+            </div>
+
+            <div style={{ marginBottom: '12px' }}>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
+                Motivo *
+              </label>
+              <textarea
+                value={motivo}
+                onChange={e => { setMotivo(e.target.value); setModalError(''); }}
+                placeholder="Indique el motivo del cambio de fase…"
+                rows={3}
+                style={{
+                  width: '100%', padding: '10px 12px', borderRadius: '6px',
+                  border: `1px solid ${modalError ? '#ef4444' : '#E2E8F0'}`,
+                  fontSize: '13px', outline: 'none', resize: 'vertical',
+                  boxSizing: 'border-box', fontFamily: 'var(--sans)',
+                }}
+              />
+              {modalError && <span style={{ fontSize: '11px', color: '#ef4444', marginTop: '4px' }}>{modalError}</span>}
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                onClick={() => setShowModal(null)}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px',
+                  border: '1px solid #E2E8F0', background: '#fff',
+                  color: '#475569', fontSize: '13px', cursor: 'pointer',
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmar}
+                disabled={cambiandoFase}
+                style={{
+                  padding: '8px 16px', borderRadius: '6px',
+                  border: 'none', background: cambiandoFase ? '#6b7280' : '#3b82f6',
+                  color: '#fff', fontSize: '13px', fontWeight: 600,
+                  cursor: cambiandoFase ? 'not-allowed' : 'pointer',
+                }}
+              >
+                {cambiandoFase ? 'Cambiando…' : 'Confirmar cambio'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

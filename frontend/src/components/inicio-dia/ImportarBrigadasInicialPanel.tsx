@@ -28,7 +28,7 @@ export const ImportarBrigadasInicialPanel = ({ onProcesar, loading }: ImportarBr
             color: '#1E293B',
             padding: '0.5rem',
             borderRadius: '4px',
-            fontFamily: 'monospace',
+            fontFamily: 'var(--mono)',
             fontSize: '0.75rem',
             resize: 'vertical',
             boxSizing: 'border-box'

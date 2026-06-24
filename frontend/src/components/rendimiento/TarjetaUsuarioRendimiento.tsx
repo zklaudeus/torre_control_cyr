@@ -28,7 +28,7 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        fontFamily: '"Inter", sans-serif',
+        fontFamily: 'var(--sans)',
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
         width: '100%',
         maxWidth: '400px',

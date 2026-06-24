@@ -12,7 +12,6 @@ const printStyles = `
     .print-container { padding: 0 !important; margin: 0 !important; width: 100% !important; overflow: visible !important; }
     .recharts-wrapper { max-width: 100% !important; }
   }
-  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@600&display=swap');
 `;
 
 const THEME = {

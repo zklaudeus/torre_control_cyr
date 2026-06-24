@@ -9,6 +9,7 @@ import type {
 } from '../types/rendimientoTecnico.types';
 
 export const COLOR_ESTADO_TECNICO: Record<EstadoTecnico, string> = {
+  'Sin evaluación': '#94A3B8',
   'Crítico': '#ef4444',
   'En recuperación': '#f97316',
   'Estable': '#60a5fa',

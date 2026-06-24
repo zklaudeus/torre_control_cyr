@@ -44,7 +44,8 @@ export const DashboardHeader = ({
               border: 'none',
               color: 'var(--text-main)',
               fontSize: '0.9rem',
-              fontFamily: 'monospace',
+              fontFamily: 'var(--mono)',
+              fontVariantNumeric: 'tabular-nums',
               outline: 'none',
               cursor: 'pointer'
             }}
@@ -93,5 +94,4 @@ export const DashboardHeader = ({
     </header>
   );
 };
-
 

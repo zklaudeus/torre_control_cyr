@@ -32,12 +32,12 @@ const AppContent = () => {
         <Route path="/reporte-gerencial" element={<ReporteGerencialPage />} />
 
         {/* Default route redirect */}
-        <Route path="/" element={<Navigate to={user ? (user.rol === 'supervisor' ? '/supervisor/bitacora' : user.rol === 'torre_control' ? '/torre-control/dashboard-cyr' : '/torre-control/inicio-dia') : '/login'} replace />} />
+        <Route path="/" element={<Navigate to={user ? (user.rol === 'supervisor' ? '/supervisor/bitacora' : user.rol === 'torre_control' || user.rol === 'gerencia' ? '/torre-control/dashboard-cyr' : '/torre-control/inicio-dia') : '/login'} replace />} />
 
         {/* Dashboard Layout Routes */}
         <Route element={<DashboardPage />}>
           
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control', 'gerencia']} />}>
             <Route path="/torre-control/dashboard-cyr" element={<ResumenGeneralPanel fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-general" onChangeSection={() => {}} />} />
           </Route>
 
@@ -71,4 +71,3 @@ function App() {
 }
 
 export default App;
-

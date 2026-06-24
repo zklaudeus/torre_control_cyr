@@ -28,7 +28,7 @@ export const pageStyle: CSSProperties = {
   display: 'flex',
   background: tokens.bgMain,
   color: tokens.textMain,
-  fontFamily: 'system-ui, sans-serif',
+  fontFamily: 'var(--sans)',
   overflow: 'hidden',
 };
 
@@ -124,7 +124,8 @@ export const dateLabelStyle: CSSProperties = {
 
 export const dateValueStyle: CSSProperties = {
   fontSize: '0.9rem',
-  fontFamily: 'monospace',
+  fontFamily: 'var(--mono)',
+  fontVariantNumeric: 'tabular-nums',
   color: tokens.textMain,
 };
 
@@ -259,6 +260,7 @@ export const tdStyle: CSSProperties = {
   fontSize: '0.8rem',
   verticalAlign: 'middle',
   whiteSpace: 'nowrap',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 export const inputStyle: CSSProperties = {
@@ -270,6 +272,8 @@ export const inputStyle: CSSProperties = {
   borderRadius: '4px',
   color: tokens.textMain,
   fontWeight: 'bold',
+  fontFamily: 'var(--mono)',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 export const okIconStyle: CSSProperties = {
@@ -304,6 +308,8 @@ export const whiteInputStyle: CSSProperties = {
   color: tokens.textMain,
   fontWeight: 'bold',
   fontSize: '0.75rem',
+  fontFamily: 'var(--mono)',
+  fontVariantNumeric: 'tabular-nums',
 };
 
 export const badgeOperativaStyle: CSSProperties = {
@@ -445,4 +451,3 @@ export const emptyStateStyle: CSSProperties = {
   borderRadius: '8px',
   border: `1px dashed ${tokens.border}`,
 };
-

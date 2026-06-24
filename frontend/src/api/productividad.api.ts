@@ -15,6 +15,12 @@ export interface TecnicoResumenBackend {
   advertencias_fase2: number;
 }
 
+export interface CausaFallidaBackend {
+  causa_fallida: string;
+  cantidad: number;
+  observacion: string | null;
+}
+
 export interface RendimientoDiarioBackend {
   fecha_operacional: string;
   codigo_sap: string;
@@ -32,6 +38,7 @@ export interface RendimientoDiarioBackend {
   es_evaluable: boolean;
   estado_diario: string | null;
   motivo_no_evaluable: string | null;
+  causas_fallidas: CausaFallidaBackend[];
 }
 
 export interface ResumenDiarioZonaBackend {
@@ -171,5 +178,149 @@ export const getAlertas = async (params?: {
   offset?: number;
 }): Promise<AlertaItemBackend[]> => {
   const res = await apiClient.get<AlertaItemBackend[]>('/api/productividad/alertas', { params });
+  return res.data;
+};
+
+// ─── Seguimiento Técnico ─────────────────────────────────────────
+
+export interface AdvertenciaActivaBackend {
+  id: number;
+  codigo_sap: string;
+  fecha_operacional: string;
+  fase_al_momento: number;
+  numero_advertencia: number | null;
+  motivo: string;
+  estado: string;
+  fecha_registro: string;
+  anulada_por_id: number | null;
+  fecha_anulacion: string | null;
+  motivo_anulacion: string | null;
+}
+
+export interface SeguimientoTecnicoBackend {
+  codigo_sap: string;
+  usuario: string;
+  zona: string | null;
+  supervisor: string | null;
+  fase_actual: number;
+  estado_productivo_actual: string;
+  dias_consecutivos_bajo_50: number;
+  dias_consecutivos_alto_desempeno: number;
+  advertencias_fase2: number;
+  fecha_ultima_evaluacion: string | null;
+  advertencias_activas: AdvertenciaActivaBackend[];
+  historial_reciente: HistorialItemBackend[];
+}
+
+export interface AdvertenciaResponseBackend {
+  success: boolean;
+  mensaje: string;
+  advertencia: AdvertenciaActivaBackend;
+  fase_anterior: number | null;
+  fase_nueva: number | null;
+  advertencias_activas_count: number;
+}
+
+export const getSeguimientoTecnico = async (codigoSap: string): Promise<SeguimientoTecnicoBackend> => {
+  const res = await apiClient.get<SeguimientoTecnicoBackend>(`/api/productividad/tecnicos/${codigoSap}/seguimiento`);
+  return res.data;
+};
+
+export const registrarAdvertencia = async (
+  codigoSap: string,
+  data: { fecha_operacional: string; motivo: string }
+): Promise<AdvertenciaResponseBackend> => {
+  const res = await apiClient.post<AdvertenciaResponseBackend>(
+    `/api/productividad/tecnicos/${codigoSap}/advertencias`,
+    data
+  );
+  return res.data;
+};
+
+export interface CambioFaseRequest {
+  fase_nueva: number;
+  motivo: string;
+}
+
+export interface CambioFaseResponse {
+  success: boolean;
+  mensaje: string;
+  codigo_sap: string;
+  fase_anterior: number;
+  fase_nueva: number;
+}
+
+export const cambiarFaseTecnico = async (
+  codigoSap: string,
+  data: CambioFaseRequest
+): Promise<CambioFaseResponse> => {
+  const res = await apiClient.put<CambioFaseResponse>(
+    `/api/productividad/tecnicos/${codigoSap}/fase`,
+    data
+  );
+  return res.data;
+};
+
+export interface AnularAdvertenciaRequest {
+  motivo_anulacion: string;
+}
+
+export interface AnularAdvertenciaResponse {
+  success: boolean;
+  mensaje: string;
+  advertencia: AdvertenciaActivaBackend;
+  fase_anterior: number | null;
+  fase_nueva: number | null;
+  advertencias_activas_restantes: number;
+}
+
+export const anularAdvertencia = async (
+  advertenciaId: number,
+  data: AnularAdvertenciaRequest
+): Promise<AnularAdvertenciaResponse> => {
+  const res = await apiClient.put<AnularAdvertenciaResponse>(
+    `/api/productividad/tecnicos/advertencias/${advertenciaId}/anular`,
+    data
+  );
+  return res.data;
+};
+
+export interface EliminarAdvertenciaResponse {
+  success: boolean;
+  mensaje: string;
+  codigo_sap: string;
+  fase_anterior: number | null;
+  fase_nueva: number | null;
+}
+
+// ─── Panel de Zonas ──────────────────────────────────────────────
+
+export interface ZonaResumenPanelBackend {
+  zona: string;
+  total_tecnicos: number;
+  tecnicos_evaluables_hoy: number;
+  sin_evaluacion: number;
+  criticos: number;
+  recuperacion: number;
+  estables: number;
+  alto_desempeno: number;
+  fase_1: number;
+  fase_2: number;
+  fase_3: number;
+  advertencias_activas: number;
+  prioridad: string;
+}
+
+export const getZonasResumen = async (): Promise<ZonaResumenPanelBackend[]> => {
+  const res = await apiClient.get<ZonaResumenPanelBackend[]>('/api/productividad/zonas/resumen');
+  return res.data;
+};
+
+export const eliminarAdvertencia = async (
+  advertenciaId: number
+): Promise<EliminarAdvertenciaResponse> => {
+  const res = await apiClient.delete<EliminarAdvertenciaResponse>(
+    `/api/productividad/tecnicos/advertencias/${advertenciaId}`
+  );
   return res.data;
 };

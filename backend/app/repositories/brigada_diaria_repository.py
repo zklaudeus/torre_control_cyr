@@ -41,10 +41,11 @@ class BrigadaDiariaRepository:
             acum_14=item.acum_14,
             corte_en_poste=item.corte_en_poste,
             corte_en_empalme=item.corte_en_empalme,
+            corte_fuera_de_rango=item.corte_fuera_de_rango,
             visita_fallida=item.visita_fallida,
         )
         db.add(db_item)
-        db.commit()
+        db.flush()
         db.refresh(db_item)
         return db_item
 
@@ -52,10 +53,10 @@ class BrigadaDiariaRepository:
         # Only update fields that are explicitly provided (not None)
         for field, value in item.model_dump(exclude_none=True).items():
             setattr(db_item, field, value)
-        db.commit()
+        db.flush()
         db.refresh(db_item)
         return db_item
 
     def delete(self, db: Session, db_item: ControlBrigadasDiario):
         db.delete(db_item)
-        db.commit()
+        db.flush()

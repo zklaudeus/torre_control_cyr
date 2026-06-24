@@ -7,6 +7,7 @@ import { ProgramacionDiariaGrid } from './ProgramacionDiariaGrid';
 import { ProcesadorOperacional } from './ProcesadorOperacional';
 import { contentStackStyle } from '../../styles/dashboardStyles';
 import { useResumenGeneralDashboard } from '../../hooks/useResumenGeneralDashboard';
+import { useAuth } from '../../auth/AuthContext';
 import type { FormularioActivo } from '../../types/dashboard';
 
 interface ResumenGeneralPanelProps {
@@ -26,7 +27,8 @@ export const ResumenGeneralPanel = ({
   activeSection, 
   onChangeSection 
 }: ResumenGeneralPanelProps) => {
-  const isReadOnly = false; // Torre de control DEBE poder editar y guardar
+  const { user } = useAuth();
+  const isReadOnly = user?.rol === 'gerencia';
   const {
     loading,
     saving,
@@ -69,10 +71,12 @@ export const ResumenGeneralPanel = ({
         </div>
       ) : (
         <section style={contentStackStyle}>
-          <ProcesadorOperacional 
-            fechaOperacional={fechaOperacional} 
-            onProcessingComplete={fetchAll} 
-          />
+          {!isReadOnly && (
+            <ProcesadorOperacional
+              fechaOperacional={fechaOperacional}
+              onProcessingComplete={fetchAll}
+            />
+          )}
 
           <BrigadasDiaAccordion hook={brigadasHook} readOnly={isReadOnly} />
 

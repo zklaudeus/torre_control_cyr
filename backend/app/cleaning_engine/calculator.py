@@ -5,6 +5,61 @@ calculator.py — Cálculo de KPIs por usuario.
 import pandas as pd
 from .rules import CATEGORIAS_TOTAL_CORTES, CATEGORIAS_RECONEXIONES, PROCESO_A_ZONA, COMUNA_A_ZONA
 
+
+def calcular_causas_fallidas(df: pd.DataFrame) -> pd.DataFrame:
+    """Agrupa el detalle de visitas fallidas por fecha, SAP y causa.
+
+    La causa corresponde a la medida operacional que originó la clasificación.
+    En el caso especial ``fuera de rango`` se deja constancia de que faltó una
+    foto válida, que es precisamente lo que convierte la actividad en fallida.
+    """
+    columnas = [
+        'fecha_operacional',
+        'codigo_sap',
+        'causa_fallida',
+        'cantidad',
+        'observacion',
+    ]
+    if df.empty or 'categoria' not in df.columns:
+        return pd.DataFrame(columns=columnas)
+
+    fallidas = df[df['categoria'] == 'fallida'].copy()
+    if fallidas.empty:
+        return pd.DataFrame(columns=columnas)
+
+    if 'medida_norm' not in fallidas.columns:
+        fallidas['medida_norm'] = ''
+
+    fallidas['causa_fallida'] = (
+        fallidas['medida_norm']
+        .fillna('')
+        .astype(str)
+        .str.strip()
+        .replace('', 'causa no informada')
+    )
+    fallidas['observacion'] = None
+    fallidas.loc[
+        fallidas['causa_fallida'] == 'fuera de rango',
+        'observacion',
+    ] = 'Clasificada como fallida por no contar con una foto válida.'
+
+    detalle = (
+        fallidas.groupby(
+            ['fecha_operacional', 'codigo_sap', 'causa_fallida'],
+            dropna=False,
+            as_index=False,
+        )
+        .agg(
+            cantidad=('causa_fallida', 'size'),
+            observacion=('observacion', 'first'),
+        )
+        .sort_values(
+            ['fecha_operacional', 'codigo_sap', 'cantidad', 'causa_fallida'],
+            ascending=[True, True, False, True],
+        )
+    )
+    return detalle[columnas]
+
 def _asignar_zona(row: pd.Series) -> str:
     """Asigna la zona geográfica basándose en el proceso o comuna."""
     proceso = str(row.get('proceso', '')).upper()

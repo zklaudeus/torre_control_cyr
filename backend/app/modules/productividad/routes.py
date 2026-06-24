@@ -5,12 +5,6 @@ KPIs documentados:
   cumplimiento_pct = (cortes_productivos / meta_aplicada) * 100
     → cortes_productivos = corte_en_poste + corte_en_empalme + corte_fuera_de_rango
 
-  estado_diario:
-    CRITICO        = cumplimiento < 50%
-    RECUPERACION   = cumplimiento entre 50% y 79%
-    ESTABLE        = cumplimiento entre 80% y 99%
-    ALTO_DESEMPENO = cumplimiento >= 100%
-
   fase_actual:
     1 = Normal (sin advertencias)
     2 = Advertencia (bajo rendimiento sostenido)
@@ -20,6 +14,13 @@ KPIs documentados:
     MEJORANDO  = diferencia > +5pp entre Q1 y Q2 de ventana 30d
     EMPEORANDO = diferencia < -5pp
     ESTABLE    = diferencia entre -5pp y +5pp
+
+  estado_productivo_actual (basado en cortes_productivos del último día evaluable):
+    Si no hay día evaluable → no cambia.
+    PXQ: 0-12=CRITICO, 13-24=RECUPERACION, >=25=ESTABLE,
+         >=25 por 3 días evaluables consecutivos=ALTO_DESEMPENO.
+    CF:   0-2=CRITICO, 3-5=RECUPERACION, >=6=ESTABLE,
+         >=6 por 3 días evaluables consecutivos=ALTO_DESEMPENO.
 """
 from datetime import date
 from typing import Optional, List
@@ -37,6 +38,15 @@ from app.modules.productividad.schemas import (
     HistorialItem,
     AlertaItem,
     ProductividadFilterParams,
+    SeguimientoTecnicoResponse,
+    AdvertenciaRequest,
+    AdvertenciaResponse,
+    CambioFaseRequest,
+    CambioFaseResponse,
+    AnularAdvertenciaRequest,
+    AnularAdvertenciaResponse,
+    ZonaResumenPanel,
+    ResumenKpiTecnico,
 )
 from app.modules.productividad.policies import (
     require_acceso_productividad,
@@ -84,6 +94,17 @@ def obtener_rendimiento_diario(
     return servicio.obtener_rendimiento_diario(db, filtros)
 
 
+@router.get("/tecnicos/{codigo_sap}/resumen", response_model=ResumenKpiTecnico)
+def obtener_resumen_kpis_tecnico(
+    codigo_sap: str,
+    fecha_hasta: date = Query(..., description="Fecha operacional de corte"),
+    db: Session = Depends(get_db),
+    _=Depends(require_acceso_productividad),
+):
+    """KPIs diarios y acumulados mensuales del técnico."""
+    return servicio.obtener_resumen_kpis(db, codigo_sap, fecha_hasta)
+
+
 @router.get("/resumen/zona", response_model=List[ResumenDiarioZona])
 def resumen_por_zona(
     fecha: date = Query(..., description="Fecha operacional"),
@@ -94,6 +115,15 @@ def resumen_por_zona(
 ):
     """Resumen agregado por zona para una fecha."""
     return servicio.resumen_por_zona(db, fecha, zona=zona, supervisor_id=supervisor_id)
+
+
+@router.get("/zonas/resumen", response_model=List[ZonaResumenPanel])
+def panel_zonas(
+    db: Session = Depends(get_db),
+    current_user = Depends(require_acceso_productividad),
+):
+    """Panel de resumen por zonas: contadores de estado, fase y advertencias."""
+    return servicio.resumen_panel_zonas(db, current_user)
 
 
 @router.get("/resumen/supervisor", response_model=List[ResumenDiarioSupervisor])
@@ -143,3 +173,82 @@ def alertas(
 ):
     """Alertas/advertencias de rendimiento de técnicos."""
     return servicio.alertas(db, estado=estado, codigo_sap=codigo_sap, limit=limit, offset=offset)
+
+
+@router.get("/tecnicos/{codigo_sap}/seguimiento", response_model=SeguimientoTecnicoResponse)
+def obtener_seguimiento_tecnico(
+    codigo_sap: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_acceso_productividad),
+):
+    """Seguimiento completo de un técnico: fase, estado, advertencias activas e historial reciente."""
+    result = servicio.obtener_seguimiento(db, codigo_sap)
+    if not result:
+        from fastapi import HTTPException
+        raise HTTPException(status_code=404, detail=f"Técnico {codigo_sap} no encontrado")
+    return result
+
+
+@router.post("/tecnicos/{codigo_sap}/advertencias", response_model=AdvertenciaResponse)
+def registrar_advertencia(
+    codigo_sap: str,
+    body: AdvertenciaRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Registrar advertencia para un técnico. Solo torre_control y admin.
+
+    Si el técnico está en Fase 2 y alcanza 3 advertencias activas,
+    se activa automáticamente la Fase 3.
+    """
+    return servicio.registrar_advertencia(
+        db, codigo_sap, body.fecha_operacional, body.motivo, current_user
+    )
+
+
+@router.put("/tecnicos/{codigo_sap}/fase", response_model=CambioFaseResponse)
+def cambiar_fase_tecnico(
+    codigo_sap: str,
+    body: CambioFaseRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Cambiar manualmente la fase de un técnico. Solo torre_control y admin."""
+    return servicio.cambiar_fase_manual(
+        db, codigo_sap, body.fase_nueva, body.motivo, current_user
+    )
+
+
+@router.put("/tecnicos/advertencias/{advertencia_id}/anular", response_model=AnularAdvertenciaResponse)
+def anular_advertencia(
+    advertencia_id: int,
+    body: AnularAdvertenciaRequest,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Anular una advertencia activa. Solo torre_control y admin.
+    Si el técnico estaba en Fase 3 y quedan < 3 advertencias activas, vuelve a Fase 2.
+    """
+    return servicio.anular_advertencia(
+        db, advertencia_id, body.motivo_anulacion, current_user
+    )
+
+
+@router.post("/tecnicos/{codigo_sap}/recalcular-estado")
+def recalcular_estado_tecnico(
+    codigo_sap: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Recalcula el estado productivo de un técnico según sus cortes_productivos y tipo_brigada."""
+    return servicio.actualizar_estado_tecnico(db, codigo_sap)
+
+
+@router.delete("/tecnicos/advertencias/{advertencia_id}")
+def eliminar_advertencia(
+    advertencia_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Eliminar permanentemente una advertencia (solo anuladas). Solo torre_control y admin."""
+    return servicio.eliminar_advertencia(db, advertencia_id)

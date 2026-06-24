@@ -11,7 +11,7 @@ from .reader import leer_excels
 from .normalizer import procesar as normalizar
 from .classifier import clasificar_medidas
 from .deduplicator import deduplicar
-from .calculator import calcular_kpis
+from .calculator import calcular_kpis, calcular_causas_fallidas
 from .sap_mapper import cruzar_con_sap
 from .repository import actualizar_resultados
 
@@ -100,6 +100,7 @@ def procesar_archivos_operacionales(db: Session, archivos: List[Any], fecha_op_f
 
     # 5. Calcular KPIs
     df_kpis = calcular_kpis(df_limpio)
+    df_causas_fallidas = calcular_causas_fallidas(df_limpio)
     
     # 6. Cruce SAP
     df_final, sin_sap, sap_sin_match, sap_duplicados = cruzar_con_sap(db, df_kpis)
@@ -109,7 +110,11 @@ def procesar_archivos_operacionales(db: Session, archivos: List[Any], fecha_op_f
     if not df_final.empty:
         print("====== DF FINAL a ACTUALIZAR ======")
         print(df_final[['codigo_sap', 'total_cortes', 'reconexiones_ejecutadas']].head(10).to_string())
-        total_actualizadas = actualizar_resultados(db, df_final)
+        total_actualizadas = actualizar_resultados(
+            db,
+            df_final,
+            causas_fallidas=df_causas_fallidas,
+        )
 
     return ProcesamientoResultado(
         ok=True,

@@ -30,6 +30,11 @@ class TecnicoResumen(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
 
+class CausaFallidaItem(BaseModel):
+    causa_fallida: str
+    cantidad: int
+    observacion: Optional[str] = None
+
 class RendimientoDiarioItem(BaseModel):
     fecha_operacional: date
     codigo_sap: str
@@ -47,8 +52,45 @@ class RendimientoDiarioItem(BaseModel):
     es_evaluable: bool = True
     estado_diario: Optional[str] = None
     motivo_no_evaluable: Optional[str] = None
+    causas_fallidas: list['CausaFallidaItem'] = Field(default_factory=list)
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class KpiDiaTecnicoItem(BaseModel):
+    fecha_operacional: date
+    cortes_productivos: int
+    meta_aplicada: int
+    cumplimiento_pct: Decimal
+    visita_fallida: int = 0
+
+
+class ResumenKpiTecnico(BaseModel):
+    codigo_sap: str
+    fecha_desde: date
+    fecha_hasta: date
+    dias_con_datos: int = 0
+    productividad_diaria: Optional[int] = None
+    meta_diaria: Optional[int] = None
+    cumplimiento_diario_pct: Optional[Decimal] = None
+    productividad_promedio: Optional[Decimal] = None
+    mejor_productividad: Optional[int] = None
+    fecha_mejor_productividad: Optional[date] = None
+    cumplimiento_acumulado_pct: Optional[Decimal] = None
+    total_cortes_acumulados: int = 0
+    total_meta_acumulada: int = 0
+    corte_en_poste_acumulado: int = 0
+    corte_en_empalme_acumulado: int = 0
+    corte_fuera_de_rango_acumulado: int = 0
+    dias_bajo_meta: int = 0
+    dias_criticos: int = 0
+    fallidas_dia: int = 0
+    fallidas_acumuladas: int = 0
+    fallidas_ultimos_7_dias: int = 0
+    fallidas_ultimos_14_dias: int = 0
+    fallidas_variacion_abs: Optional[int] = None
+    fallidas_variacion_pct: Optional[Decimal] = None
+    dias: list[KpiDiaTecnicoItem] = Field(default_factory=list)
 
 
 class ResumenDiarioZona(BaseModel):
@@ -134,3 +176,76 @@ class ProductividadFilterParams(BaseModel):
     estado_diario: Optional[str] = None
     limit: int = Field(default=100, ge=1, le=1000)
     offset: int = Field(default=0, ge=0)
+
+
+class SeguimientoTecnicoResponse(BaseModel):
+    codigo_sap: str
+    usuario: str
+    zona: Optional[str] = None
+    supervisor: Optional[str] = None
+    fase_actual: int = 1
+    estado_productivo_actual: str = "SIN_EVALUACION"
+    dias_consecutivos_bajo_50: int = 0
+    dias_consecutivos_alto_desempeno: int = 0
+    advertencias_fase2: int = 0
+    fecha_ultima_evaluacion: Optional[date] = None
+    advertencias_activas: list[AlertaItem] = []
+    historial_reciente: list[HistorialItem] = []
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class AdvertenciaRequest(BaseModel):
+    fecha_operacional: date
+    motivo: str = Field(..., min_length=1, description="Motivo obligatorio de la advertencia")
+
+
+class AdvertenciaResponse(BaseModel):
+    success: bool = True
+    mensaje: str
+    advertencia: AlertaItem
+    fase_anterior: Optional[int] = None
+    fase_nueva: Optional[int] = None
+    advertencias_activas_count: int
+
+
+class CambioFaseRequest(BaseModel):
+    fase_nueva: int = Field(..., ge=1, le=3, description="Fase a asignar (1, 2 o 3)")
+    motivo: str = Field(..., min_length=1, description="Motivo obligatorio del cambio de fase")
+
+
+class CambioFaseResponse(BaseModel):
+    success: bool = True
+    mensaje: str
+    codigo_sap: str
+    fase_anterior: int
+    fase_nueva: int
+
+
+class AnularAdvertenciaRequest(BaseModel):
+    motivo_anulacion: str = Field(..., min_length=1, description="Motivo obligatorio de la anulación")
+
+
+class ZonaResumenPanel(BaseModel):
+    zona: str
+    total_tecnicos: int = 0
+    tecnicos_evaluables_hoy: int = 0
+    sin_evaluacion: int = 0
+    criticos: int = 0
+    recuperacion: int = 0
+    estables: int = 0
+    alto_desempeno: int = 0
+    fase_1: int = 0
+    fase_2: int = 0
+    fase_3: int = 0
+    advertencias_activas: int = 0
+    prioridad: str = "NORMAL"
+
+
+class AnularAdvertenciaResponse(BaseModel):
+    success: bool = True
+    mensaje: str
+    advertencia: AlertaItem
+    fase_anterior: Optional[int] = None
+    fase_nueva: Optional[int] = None
+    advertencias_activas_restantes: int

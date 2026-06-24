@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React from 'react';
 
-import type { TecnicoResumen, EstadoTecnico } from '../../types/rendimientoTecnico.types';
+import type { TecnicoResumen } from '../../types/rendimientoTecnico.types';
 import { COLOR_ESTADO_TECNICO as ESTADO_COLOR } from '../../data/rendimientoTecnico.config';
 
 
@@ -17,121 +17,35 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
   tecnicos,
   loading,
 }) => {
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterEstado, setFilterEstado] = useState<EstadoTecnico | 'Todos'>('Todos');
-  const [filterZona, setFilterZona] = useState<string>('Todas');
-  const [filterFase, setFilterFase] = useState<string>('Todas');
-
-  const zonas = ['Todas', ...Array.from(new Set(tecnicos.map(t => t.zona)))];
-
-  const filteredTecnicos = useMemo(() => {
-    return tecnicos.filter(t => {
-      const matchSearch =
-        t.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.codigoSap.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.zona.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        t.supervisor.toLowerCase().includes(searchTerm.toLowerCase());
-      
-      const matchEstado = filterEstado === 'Todos' || t.estado === filterEstado;
-      const matchZona = filterZona === 'Todas' || t.zona === filterZona;
-      const matchFase = filterFase === 'Todas' || t.fase === Number(filterFase);
-
-      return matchSearch && matchEstado && matchZona && matchFase;
-    });
-  }, [searchTerm, filterEstado, filterZona, filterFase, tecnicos]);
-
   return (
     <div style={{
       display: 'flex',
       flexDirection: 'column',
-      gap: '16px',
+      gap: '8px',
       background: 'var(--bg-panel)',
       border: '1px solid var(--border)',
       borderRadius: '8px',
-      padding: '16px',
+      padding: '12px',
       height: '100%',
       maxHeight: 'calc(100vh - 120px)',
       overflowY: 'auto',
     }}>
-      {/* Buscador */}
-      <div>
-        <input
-          type="text"
-          placeholder="Buscar por nombre, SAP, zona o supervisor..."
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          style={{
-            width: '100%',
-            padding: '10px 12px',
-            borderRadius: '6px',
-            border: '1px solid var(--border)',
-            background: 'var(--bg-main)',
-            color: 'var(--text-main)',
-            fontSize: '13px',
-            outline: 'none',
-          }}
-        />
-      </div>
-
-      {/* Filtros Rápidos */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-        <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
-          <select
-            value={filterZona}
-            onChange={e => setFilterZona(e.target.value)}
-            style={{
-              padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)',
-              background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '12px', outline: 'none',
-            }}
-          >
-            {zonas.map(z => <option key={z} value={z}>{z}</option>)}
-          </select>
-          <select
-            value={filterEstado}
-            onChange={e => setFilterEstado(e.target.value as EstadoTecnico | 'Todos')}
-            style={{
-              padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)',
-              background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '12px', outline: 'none',
-            }}
-          >
-            <option value="Todos">Todos los estados</option>
-            <option value="Crítico">Críticos</option>
-            <option value="En recuperación">En recuperación</option>
-            <option value="Estable">Estables</option>
-            <option value="Alto desempeño">Alto desempeño</option>
-          </select>
-          <select
-            value={filterFase}
-            onChange={e => setFilterFase(e.target.value)}
-            style={{
-              padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border)',
-              background: 'var(--bg-main)', color: 'var(--text-main)', fontSize: '12px', outline: 'none',
-            }}
-          >
-            <option value="Todas">Todas las fases</option>
-            <option value="1">Fase 1</option>
-            <option value="2">Fase 2</option>
-            <option value="3">Fase 3</option>
-          </select>
-        </div>
-      </div>
-
       {/* Listado */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexGrow: 1 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexGrow: 1 }}>
         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-          Resultados ({filteredTecnicos.length})
+          Técnicos ({tecnicos.length})
         </div>
         
         {loading ? (
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
             Cargando técnicos…
           </div>
-        ) : filteredTecnicos.length === 0 ? (
+        ) : tecnicos.length === 0 ? (
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
             No se encontraron técnicos.
           </div>
         ) : (
-          filteredTecnicos.map(t => {
+          tecnicos.map(t => {
             const isSelected = t.id === selectedId;
             const eColor = ESTADO_COLOR[t.estado];
 
@@ -156,13 +70,18 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
                     <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2 }}>
                       {t.nombre}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                      {t.codigoSap} • {t.zona}
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '6px' }}>
+                      <span>{t.codigoSap}</span>
+                      <span>•</span>
+                      <span>{t.zona}</span>
+                      <span>•</span>
+                      <span style={{ fontWeight: 600, color: '#6366F1' }}>{t.tipoBrigada}</span>
                     </div>
                   </div>
                   <div style={{
                     fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '12px',
-                    color: eColor, border: `1px solid ${eColor}40`, background: `${eColor}10`
+                    color: eColor, border: `1px solid ${eColor}40`, background: `${eColor}10`,
+                    whiteSpace: 'nowrap',
                   }}>
                     {t.estado}
                   </div>
@@ -170,14 +89,27 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px' }}>
                   <div style={{ fontSize: '11px', color: '#6b7280' }}>
-                    Supervisor: <span style={{ color: 'var(--text-main)' }}>{t.supervisor}</span>
+                    <span>{t.supervisor}</span>
                   </div>
-                  <div style={{ display: 'flex', gap: '6px' }}>
-                    <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-                      Fase {t.fase}
+                  <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <span style={{
+                      fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
+                      background: t.fase === 3 ? '#FEE2E2' : t.fase === 2 ? '#FEF3C7' : '#F1F5F9',
+                      color: t.fase === 3 ? '#DC2626' : t.fase === 2 ? '#D97706' : '#475569',
+                      fontWeight: 600,
+                    }}>
+                      F{t.fase}
                     </span>
-                    <span style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px' }}>
-                      {t.productividadPromedio} cortes
+                    {t.advertenciasActivas > 0 && (
+                      <span style={{
+                        fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
+                        background: '#FEE2E2', color: '#DC2626', fontWeight: 600,
+                      }}>
+                        {t.advertenciasActivas} adv.
+                      </span>
+                    )}
+                    <span style={{ fontSize: '10px', background: '#F1F5F9', padding: '2px 6px', borderRadius: '4px', color: '#475569' }}>
+                      {t.productividadPromedio > 0 ? `${t.productividadPromedio} cortes` : '—'}
                     </span>
                   </div>
                 </div>

@@ -8,7 +8,74 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-def actualizar_resultados(db: Session, df: pd.DataFrame) -> int:
+
+def _reemplazar_causas_fallidas(
+    db: Session,
+    resultados: pd.DataFrame,
+    causas_fallidas: pd.DataFrame,
+) -> None:
+    """Reemplaza el desglose de causas para las brigadas reprocesadas."""
+    from app.models.cyr_models import (
+        RendimientoTecnicoCausaFallida,
+        RendimientoTecnicoDiario,
+    )
+
+    pares_validos = {
+        (row.fecha_operacional, str(row.codigo_sap))
+        for row in resultados[['fecha_operacional', 'codigo_sap']]
+        .drop_duplicates()
+        .itertuples(index=False)
+    }
+    if not pares_validos:
+        return
+
+    fechas = {fecha for fecha, _ in pares_validos}
+    codigos = {codigo for _, codigo in pares_validos}
+    rendimientos = db.query(
+        RendimientoTecnicoDiario.id,
+        RendimientoTecnicoDiario.fecha_operacional,
+        RendimientoTecnicoDiario.codigo_sap,
+    ).filter(
+        RendimientoTecnicoDiario.fecha_operacional.in_(fechas),
+        RendimientoTecnicoDiario.codigo_sap.in_(codigos),
+    ).all()
+    rendimiento_id_por_par = {
+        (r.fecha_operacional, r.codigo_sap): r.id
+        for r in rendimientos
+        if (r.fecha_operacional, r.codigo_sap) in pares_validos
+    }
+
+    # El archivo reprocesado es la fuente completa del día: primero quitamos el
+    # detalle anterior, incluso si ahora la brigada quedó con cero fallidas.
+    for fecha, codigo in pares_validos:
+        db.query(RendimientoTecnicoCausaFallida).filter(
+            RendimientoTecnicoCausaFallida.fecha_operacional == fecha,
+            RendimientoTecnicoCausaFallida.codigo_sap == codigo,
+        ).delete(synchronize_session=False)
+
+    if causas_fallidas.empty:
+        return
+
+    for row in causas_fallidas.itertuples(index=False):
+        par = (row.fecha_operacional, str(row.codigo_sap))
+        if par not in pares_validos or int(row.cantidad) <= 0:
+            continue
+        db.add(RendimientoTecnicoCausaFallida(
+            fecha_operacional=row.fecha_operacional,
+            codigo_sap=str(row.codigo_sap),
+            rendimiento_diario_id=rendimiento_id_por_par.get(par),
+            causa_fallida=str(row.causa_fallida)[:200],
+            cantidad=int(row.cantidad),
+            observacion=row.observacion if pd.notna(row.observacion) else None,
+            origen='PROCESAMIENTO_OPERACIONAL',
+        ))
+
+
+def actualizar_resultados(
+    db: Session,
+    df: pd.DataFrame,
+    causas_fallidas: pd.DataFrame | None = None,
+) -> int:
     """
     Actualiza los registros en control_brigadas_diario.
     Solo realiza UPDATE, nunca INSERT.
@@ -54,7 +121,19 @@ def actualizar_resultados(db: Session, df: pd.DataFrame) -> int:
             
             resultado = db.execute(stmt)
             total_actualizadas += resultado.rowcount
-            
+
+        if causas_fallidas is not None:
+            _reemplazar_causas_fallidas(db, df, causas_fallidas)
+
+        from app.modules.productividad.sync import sincronizar_rendimientos_para_pares
+        pares = {
+            (row.fecha_operacional, str(row.codigo_sap))
+            for row in df[['fecha_operacional', 'codigo_sap']]
+            .drop_duplicates()
+            .itertuples(index=False)
+        }
+        sincronizar_rendimientos_para_pares(db, pares)
+
         db.commit()
         return total_actualizadas
         

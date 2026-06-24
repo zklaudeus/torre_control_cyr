@@ -4,6 +4,10 @@ from typing import List, Dict
 
 from app.schemas.brigada_diaria import BrigadaDiaria, BrigadaDiariaCreate, BrigadaDiariaUpdate, ResumenBrigadasZona
 from app.repositories.brigada_diaria_repository import BrigadaDiariaRepository
+from app.modules.productividad.sync import (
+    eliminar_rendimiento_si_no_hay_brigada,
+    sincronizar_rendimiento_desde_brigada,
+)
 
 class BrigadaDiariaService:
     def __init__(self):
@@ -14,20 +18,32 @@ class BrigadaDiariaService:
 
     def create(self, db: Session, item: BrigadaDiariaCreate) -> BrigadaDiaria:
         self._validate_brigada(item)
-        return self.repo.create(db, item)
+        brigada = self.repo.create(db, item)
+        sincronizar_rendimiento_desde_brigada(db, brigada)
+        db.commit()
+        db.refresh(brigada)
+        return brigada
 
     def update(self, db: Session, id: int, item: BrigadaDiariaUpdate) -> BrigadaDiaria:
         self._validate_brigada(item)
         db_item = self.repo.get_by_id(db, id)
         if not db_item:
             return None
-        return self.repo.update(db, db_item, item)
+        brigada = self.repo.update(db, db_item, item)
+        sincronizar_rendimiento_desde_brigada(db, brigada)
+        db.commit()
+        db.refresh(brigada)
+        return brigada
 
     def delete(self, db: Session, id: int) -> bool:
         db_item = self.repo.get_by_id(db, id)
         if not db_item:
             return False
+        fecha_operacional = db_item.fecha_operacional
+        codigo_sap = db_item.codigo_sap
         self.repo.delete(db, db_item)
+        eliminar_rendimiento_si_no_hay_brigada(db, fecha_operacional, codigo_sap)
+        db.commit()
         return True
 
     def get_resumen_by_fecha(self, db: Session, fecha: date) -> List[ResumenBrigadasZona]:

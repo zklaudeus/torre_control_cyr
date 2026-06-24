@@ -1,0 +1,60 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    container_name: torre_control_db
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-torre_control_cyr}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - torre_network
+
+  backend:
+    build: ./backend
+    container_name: torre_control_backend
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Configuramos el acceso a base de datos usando el nombre del contenedor "db"
+      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-root}@db:5432/${POSTGRES_DB:-torre_control_cyr}
+      - APP_NAME=torre_control_cyr
+      - APP_ENV=production
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
+      - SECRET_KEY=${SECRET_KEY:-"cambiar_por_una_clave_segura_en_produccion"}
+    networks:
+      - torre_network
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        # En producción el nginx dirigirá /api hacia el backend internamente
+        - VITE_API_URL=/api
+    container_name: torre_control_frontend
+    restart: always
+    ports:
+      # Mapeamos el puerto 80 del VPS al puerto 80 del Nginx en el contenedor
+      - "80:80"
+    depends_on:
+      - backend
+    networks:
+      - torre_network
+
+volumes:
+  postgres_data:
+
+networks:
+  torre_network:
+    driver: bridge

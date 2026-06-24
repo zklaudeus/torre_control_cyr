@@ -3,7 +3,7 @@
 // -----------------------------------------------------------------------------
 
 // -- Selector de Técnicos
-export type EstadoTecnico = 'Crítico' | 'En recuperación' | 'Estable' | 'Alto desempeño';
+export type EstadoTecnico = 'Sin evaluación' | 'Crítico' | 'En recuperación' | 'Estable' | 'Alto desempeño';
 
 export type TecnicoResumen = {
   id: string;
@@ -13,6 +13,8 @@ export type TecnicoResumen = {
   supervisor: string;
   estado: EstadoTecnico;
   fase: number;
+  tipoBrigada: string;
+  advertenciasActivas: number;
   productividadPromedio: number;
 };
 

@@ -22,7 +22,7 @@ export const HomePage = () => {
   }, []);
 
   return (
-    <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
+    <div style={{ padding: '2rem', fontFamily: 'var(--sans)' }}>
       <h1>Torre de Control CYR EISESA</h1>
       <h2>Beta funcional</h2>
       

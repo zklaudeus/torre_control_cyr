@@ -55,7 +55,8 @@ export const ResumenZonaDashboardView = ({
                 border: 'none',
                 color: '#1E293B',
                 fontSize: '0.9rem',
-                fontFamily: 'monospace',
+                fontFamily: 'var(--mono)',
+                fontVariantNumeric: 'tabular-nums',
                 outline: 'none',
                 cursor: 'pointer'
               }}
