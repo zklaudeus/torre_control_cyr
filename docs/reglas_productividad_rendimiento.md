@@ -2,8 +2,8 @@
 
 **Proyecto:** Torre de Control CyR / EISESA  
 **Fecha:** 23 de junio de 2026  
-**Estado:** documento de decisión previo a implementación  
-**Alcance:** análisis funcional; no incluye cambios de base de datos, backend, endpoints ni frontend.
+**Estado:** reglas funcionales aprobadas para implementación
+**Alcance:** fuente funcional del módulo de Productividad y Rendimiento Técnico.
 
 ## 1. Resumen ejecutivo
 
@@ -11,7 +11,7 @@ El módulo de Productividad y Rendimiento Técnico debe permitir conocer de mane
 
 La recomendación principal de este documento es:
 
-> Usar la **cortes productivos** como indicador principal: corte en poste, corte en empalme y corte fuera de rango, con mínimo cero. Los cortes productivos son corte en poste, corte en empalme y corte fuera de rango. Las reconexiones y actividades totales permanecen como indicadores complementarios.
+> Usar los **cortes productivos** como indicador principal: corte en poste, corte en empalme y corte fuera de rango, con mínimo cero. Las reconexiones y actividades totales permanecen como indicadores complementarios.
 
 La unidad productiva es la misma para PXQ y CF: cortes productivos. Las reconexiones no forman parte del numerador de cumplimiento. Las visitas fallidas NO se descuentan de la productividad, y solo se usarán para análisis y seguimiento.
 
@@ -83,10 +83,10 @@ También se confirma que:
 
 ### 3.1 Reglas cerradas por negocio
 
-1. La productividad principal es la **cortes productivos**.
+1. La productividad principal son los **cortes productivos**.
 2. `Cortes productivos = corte en poste + corte en empalme + corte fuera de rango`.
-3. `Cortes productivos = corte en poste + corte en empalme + corte fuera de rango`.
-4. Desmantelamiento no contabiliza como corte efectivo.
+3. Las visitas fallidas se contabilizan solo para análisis y no descuentan productividad ni afectan estados, fases o rachas.
+4. Desmantelamiento no contabiliza como corte productivo.
 5. La meta PXQ es 25 cortes diarios y reemplaza el valor técnico actual de 30.
 6. La meta CF se mantiene en 6 cortes diarios.
 7. PXQ y CF usan la misma unidad productiva: cortes productivos.
@@ -102,8 +102,9 @@ También se confirma que:
 17. Toda salida de fase requiere aprobación de Torre de Control.
 18. Una ausencia es un día no evaluable y no rompe, no suspende ni reinicia la racha.
 19. Los 3 días requeridos para Alto desempeño deben ser evaluables y consecutivos.
-20. Para PXQ, En recuperación corresponde a 13–24 cortes netos y Estable a 25–29 cortes netos.
-21. Para CF, En recuperación corresponde a 3–5 cortes netos y Estable a 6 o más hasta completar la racha de Alto desempeño.
+20. Para PXQ, En recuperación corresponde a 13–24 cortes productivos y Estable a 25–29 cortes productivos.
+21. Para CF, En recuperación corresponde a 3–5 cortes productivos y Estable a 6 o más hasta completar la racha de Alto desempeño.
+22. Fase 3 se activa cuando un técnico en Fase 2 acumula tres advertencias activas registradas por Torre de Control.
 
 ### 3.2 Reglas de diseño propuestas
 
@@ -113,7 +114,7 @@ También se confirma que:
 4. Los promedios y rachas incluyen exclusivamente cuentas SAP presentes en Bitácora durante días evaluables lunes–viernes.
 5. La clave de la evaluación diaria debe ser `cuenta_sap + fecha_operacional`; la patente es un atributo mutable.
 6. Estado de rendimiento y fase de seguimiento son conceptos distintos.
-7. Toda evaluación debe conservar meta aplicada, cortes productivos, fallidas, cortes productivos, porcentaje y regla utilizada.
+7. Toda evaluación debe conservar meta aplicada, componentes de cortes productivos, fallidas, porcentaje y regla utilizada.
 
 ## 4. Reglas pendientes de confirmación
 
@@ -121,9 +122,7 @@ También se confirma que:
 
 | ID | Decisión pendiente | Motivo |
 |---|---|---|
-| PC-01 | Disparador exacto de Fase 3. | La reincidencia grave aún no tiene ventana ni cantidad aprobada. |
 | PC-02 | Criterio de salida de Fase 3. | Solo está confirmado que Torre de Control debe aprobarla. |
-| PC-03 | Causas de visitas fallidas y tratamiento por causa. | En la primera versión todas restan; una fase posterior puede exceptuar causas no imputables. |
 | PC-04 | Flujo formal de aprobación de salida de fases. | Falta definir roles, estados, motivo, evidencia y rechazo. |
 | PC-05 | Historial/bitácora de aprobación. | Debe definirse el nivel de detalle y retención requerido. |
 | PC-06 | Estado PXQ con 30 o más cortes antes de completar la racha de Alto desempeño. | El rango Estable termina en 29 y Alto desempeño exige 3 días consecutivos. |
@@ -154,21 +153,19 @@ Para un técnico/brigada en un día `d`:
 ```text
 Cortes productivos del día = CP_d + CE_d + CFR_d
 
-Cortes productivos diaria = (Cortes productivos del día / Meta aplicable del día) * 100
-
 Cumplimiento diario (%) =
-  (Cortes productivos diaria / Meta aplicable del día) × 100
+  (Cortes productivos del día / Meta aplicable del día) × 100
 
 Actividades totales = Cortes productivos del día + Reconexiones válidas del día
 
 Productividad acumulada del período =
-  suma de cortes productivos diaria en días evaluables
+  suma de cortes productivos en días evaluables
 
 Productividad promedio =
-  suma de cortes productivos diaria / cantidad de días evaluables
+  suma de cortes productivos / cantidad de días evaluables
 
 Mejor productividad =
-  máximo de cortes productivos diaria entre los días evaluables del período
+  máximo de cortes productivos entre los días evaluables del período
 ```
 
 ### 5.3 Fórmula principal recomendada
@@ -177,7 +174,7 @@ Mejor productividad =
 Productividad diaria principal = cortes productivos
 ```
 
-**Decisión confirmada:** las metas se expresan en cortes productivos y las fallidas se descuentan directamente. Las reconexiones no forman parte del cumplimiento; `Actividades totales` continúa como KPI complementario.
+**Decisión confirmada:** las metas se expresan en cortes productivos. Las fallidas no se descuentan y se conservan exclusivamente para análisis. Las reconexiones no forman parte del cumplimiento; `Actividades totales` continúa como KPI complementario.
 
 ### 5.4 Agregación por técnico, zona y tipo
 
@@ -209,7 +206,7 @@ No se recomienda promediar porcentajes diarios sin ponderación cuando las metas
 ### 5.5 Visitas fallidas
 
 ```text
-Cortes productivos = cortes productivos
+Cortes productivos = corte en poste + corte en empalme + corte fuera de rango
 
 Cumplimiento productividad (%) =
   cortes productivos / meta diaria × 100
@@ -220,7 +217,7 @@ Reglas confirmadas:
 Las visitas fallidas **NO deben usarse para**:
 - Categoría productiva o estado productivo.
 - Racha bajo 50% o racha de cumplimiento.
-- Activación automática de fase.
+- Activación o cambio de fase.
 
 Las visitas fallidas **solo deben usarse para**:
 - Total del día por usuario SAP.
@@ -442,8 +439,6 @@ no cambia estado ni fase hasta resolución.
 
 “Tres días seguidos” significa **tres días evaluables consecutivos de la cuenta SAP**. Sábado y domingo no cuentan como días, y tampoco generan por sí solos bajo rendimiento.
 
-**Pendiente de confirmación:** efecto de una ausencia/inactividad intermedia sobre una racha ya iniciada.
-
 ### 9.5 Salvaguarda de cierre de Bitácora
 
 Una ausencia:
@@ -528,13 +523,13 @@ Regla de subida de fase =
 
 Regla de recuperación =
   estado Crítico -> En recuperación:
-  PXQ alcanza entre 13 y 24 cortes netos;
-  CF alcanza entre 3 y 5 cortes netos.
+  PXQ alcanza entre 13 y 24 cortes productivos;
+  CF alcanza entre 3 y 5 cortes productivos.
 
   En recuperación -> Estable:
-  PXQ alcanza entre 25 y 29 cortes netos
+  PXQ alcanza entre 25 y 29 cortes productivos
   sin haber completado todavía la racha de Alto desempeño;
-  CF alcanza 6 o más cortes netos
+  CF alcanza 6 o más cortes productivos
   sin haber completado todavía la racha de Alto desempeño.
 
   Fase 2 -> Fase 1:
@@ -565,7 +560,7 @@ Regla de reincidencia =
 | Crítico | Duplicar fuera de rango como corte y reconexión. | Actividad/productividad inflada y ranking incorrecto. |
 | Crítico | Evaluar antes de que el supervisor cierre la Bitácora. | Cuentas aún no cargadas se interpretarían erróneamente como permiso/licencia. |
 | Alto | Usar carga mayor que cero como requisito de evaluación. | Una cuenta presente y operativa con carga cero quedaría excluida contra la regla confirmada. |
-| Alto | Seguir contabilizando desmantelamiento como corte efectivo. | Productividad incompatible con la regla confirmada. |
+| Alto | Seguir contabilizando desmantelamiento como corte productivo. | Productividad incompatible con la regla confirmada. |
 | Alto | Mezclar cortes y reconexiones contra una meta de cortes. | Cumplimiento aparente sin alcanzar el objetivo contractual. |
 | Alto | No versionar metas y reglas. | La historia cambia al recalcular y deja de ser auditable. |
 | Alto | Cambiar fase automáticamente con datos incompletos. | Acciones de capacitación o intervención basadas en información errónea. |
@@ -591,6 +586,6 @@ La Fase 0 queda suficientemente cerrada para diseñar el modelo mínimo de datos
 - Fase 2 por 3 días evaluables consecutivos bajo 50%;
 - salida de fases con aprobación de Torre de Control.
 
-Antes de automatizar estados/fases deben cerrarse los pendientes restantes: Fase 3, salida de Fase 3, causas de fallidas, posible excepción por causa, flujo/bitácora de aprobación y tratamiento de datos incompletos. PXQ conserva sus rangos aprobados sin introducir un rango provisional adicional.
+Antes de automatizar completamente los estados y fases deben cerrarse los pendientes restantes: salida de Fase 3, flujo/bitácora de aprobación y tratamiento de datos incompletos. PXQ conserva sus rangos aprobados sin introducir un rango provisional adicional.
 
-El próximo paso recomendado es diseñar, todavía sin migrar, el modelo de datos y una matriz de casos de prueba con cuentas SAP reales anonimizadas. Esa matriz debe cubrir al menos PXQ/CF, cuenta presente con carga cero, cuenta ausente, Bitácora abierta/cerrada, fallidas mayores a cortes, cambio de patente, cambio de carga, tres días bajo 50% y tres días cumpliendo meta.
+Con la revisión DBA y la migración completadas, el siguiente paso es implementar la calculadora y el servicio backend. La matriz de pruebas debe cubrir al menos PXQ/CF, cuenta presente con carga cero, cuenta ausente, Bitácora abierta/cerrada, fallidas mayores a cortes, cambio de patente, cambio de carga, tres días bajo 50%, tres días cumpliendo meta y tercera advertencia activa en Fase 2.

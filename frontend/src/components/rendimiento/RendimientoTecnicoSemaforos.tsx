@@ -1,7 +1,7 @@
 import React from 'react';
 
 import type { SemaforoTecnico } from '../../types/rendimientoTecnico.types';
-import { MOCK_SEMAFOROS, CONFIG_SEMAFOROS } from '../../data/rendimientoTecnico.mock';
+import { CONFIG_SEMAFOROS } from '../../data/rendimientoTecnico.config';
 
 
 interface SemaforoCardProps {
@@ -105,7 +105,7 @@ interface RendimientoTecnicoSemaforosProps {
 }
 
 export const RendimientoTecnicoSemaforos: React.FC<RendimientoTecnicoSemaforosProps> = ({
-  semaforos = MOCK_SEMAFOROS,
+  semaforos,
 }) => {
   return (
     <div>
@@ -152,19 +152,6 @@ export const RendimientoTecnicoSemaforos: React.FC<RendimientoTecnicoSemaforosPr
           }}>
             Semáforos Operacionales
           </span>
-          <span style={{
-            marginLeft: '4px',
-            fontSize: '10px',
-            padding: '2px 8px',
-            borderRadius: '20px',
-            background: 'rgba(0,229,255,0.08)',
-            border: '1px solid rgba(0,229,255,0.2)',
-            color: 'var(--secondary)',
-            fontWeight: 600,
-            letterSpacing: '0.5px',
-          }}>
-            MOCK
-          </span>
         </div>
         <p style={{
           margin: 0,
@@ -176,12 +163,25 @@ export const RendimientoTecnicoSemaforos: React.FC<RendimientoTecnicoSemaforosPr
         </p>
       </div>
 
-      {/* Grid de semáforos */}
-      <div className="semaforos-grid">
-        {semaforos.map(s => (
-          <SemaforoCard key={s.id} semaforo={s} />
-        ))}
-      </div>
+      {!semaforos || semaforos.length === 0 ? (
+        <div style={{
+          padding: '40px 20px',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontSize: '13px',
+          background: 'var(--bg-panel)',
+          border: '1px dashed var(--border)',
+          borderRadius: '8px',
+        }}>
+          Sin semáforos disponibles.
+        </div>
+      ) : (
+        <div className="semaforos-grid">
+          {semaforos.map(s => (
+            <SemaforoCard key={s.id} semaforo={s} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

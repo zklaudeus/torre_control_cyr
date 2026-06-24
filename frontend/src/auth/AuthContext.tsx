@@ -1,13 +1,21 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import type { ReactNode } from 'react';
-import type { UsuarioApp } from './supervisoresTemp';
+
+export interface UsuarioApp {
+  id: string;
+  nombre: string;
+  usuario: string;
+  rol: 'supervisor' | 'admin' | 'superadmin' | 'torre_control' | 'gerencia';
+  zonasAsignadas?: string[];
+  tiposBrigadaPermitidos?: ('PXQ' | 'CF')[];
+  supervisorId?: number;
+}
 
 export type UserRole = 'supervisor' | 'admin' | 'superadmin' | 'torre_control' | 'gerencia';
 
 interface AuthContextType {
   user: UsuarioApp | null;
-  loginAsSupervisor: (user: UsuarioApp) => void;
-  loginAsAdmin: () => void;
+  login: (user: UsuarioApp) => void;
   logout: () => void;
 }
 
@@ -25,20 +33,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoaded(true);
   }, []);
 
-  const loginAsSupervisor = (supervisorUser: UsuarioApp) => {
-    setUser(supervisorUser);
-    localStorage.setItem('torreControlUser', JSON.stringify(supervisorUser));
-  };
-
-  const loginAsAdmin = () => {
-    const adminUser: UsuarioApp = {
-      id: 'admin-local',
-      nombre: 'Administrador Local',
-      usuario: 'admin',
-      rol: 'admin'
-    };
-    setUser(adminUser);
-    localStorage.setItem('torreControlUser', JSON.stringify(adminUser));
+  const login = (user: UsuarioApp) => {
+    setUser(user);
+    localStorage.setItem('torreControlUser', JSON.stringify(user));
   };
 
   const logout = () => {
@@ -51,7 +48,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   if (!isLoaded) return null; // Prevent flash of unauthenticated state
 
   return (
-    <AuthContext.Provider value={{ user, loginAsSupervisor, loginAsAdmin, logout }}>
+    <AuthContext.Provider value={{ user, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

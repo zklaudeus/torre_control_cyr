@@ -1,11 +1,11 @@
 import os
 import sys
+import json
+from pathlib import Path
 
-# Agregar la ruta base del proyecto para importar módulos
 BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BACKEND_DIR)
 
-# Cargar el .env desde la carpeta backend antes de importar cualquier módulo de la app
 from dotenv import load_dotenv
 load_dotenv(os.path.join(BACKEND_DIR, '.env'))
 
@@ -14,30 +14,45 @@ from app.core.database import SessionLocal, engine
 from app.models.cyr_models import Base, ControlUsuarios
 from app.core.security import get_password_hash
 
+SECRETS_FILE = Path(BACKEND_DIR).parent / ".secrets" / "seed_passwords.json"
+
+def load_seed_passwords() -> dict:
+    if not SECRETS_FILE.exists():
+        print(f"ERROR: No se encuentra {SECRETS_FILE}")
+        print("Ejecuta primero: python backend/scripts/generate_seed_passwords.py")
+        sys.exit(1)
+    with open(SECRETS_FILE) as f:
+        return json.load(f)
+
 def seed_users():
     print("Creando tablas si no existen...")
     Base.metadata.create_all(bind=engine)
-    
+
     db = SessionLocal()
-    
+    seed_passwords = load_seed_passwords()
+
     users = [
-        {"usuario": "admin", "password_plain": "admin123", "rol": "admin", "supervisor_id": None},
-        {"usuario": "claudio", "password_plain": "admin123", "rol": "torre_control", "supervisor_id": None},
-        {"usuario": "juan.munoz", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 1},
-        {"usuario": "jose.masso", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 3},
-        {"usuario": "nicolas.farias", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 5},
-        {"usuario": "eduardo.beltran", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 4},
-        {"usuario": "cynthia.garrido", "password_plain": "admin123", "rol": "supervisor", "supervisor_id": 6},
-        {"usuario": "gerencia", "password_plain": "admin123", "rol": "gerencia", "supervisor_id": None},
+        {"usuario": "admin", "rol": "admin", "supervisor_id": None},
+        {"usuario": "claudio", "rol": "torre_control", "supervisor_id": None},
+        {"usuario": "juan.munoz", "rol": "supervisor", "supervisor_id": 1},
+        {"usuario": "jose.masso", "rol": "supervisor", "supervisor_id": 3},
+        {"usuario": "nicolas.farias", "rol": "supervisor", "supervisor_id": 5},
+        {"usuario": "eduardo.beltran", "rol": "supervisor", "supervisor_id": 4},
+        {"usuario": "cynthia.garrido", "rol": "supervisor", "supervisor_id": 6},
+        {"usuario": "gerencia", "rol": "gerencia", "supervisor_id": None},
     ]
 
     try:
         for u in users:
             existing_user = db.query(ControlUsuarios).filter(ControlUsuarios.usuario == u["usuario"]).first()
             if not existing_user:
+                password_plain = seed_passwords.get(u["usuario"])
+                if not password_plain:
+                    print(f"  [SKIP] {u['usuario']}: sin contraseña en {SECRETS_FILE}")
+                    continue
                 new_user = ControlUsuarios(
                     usuario=u["usuario"],
-                    password_hash=get_password_hash(u["password_plain"]),
+                    password_hash=get_password_hash(password_plain),
                     rol=u["rol"],
                     supervisor_id=u["supervisor_id"],
                     activo=True

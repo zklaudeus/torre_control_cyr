@@ -175,8 +175,10 @@ erDiagram
 ### Tablas Específicas de CF (Activas y en Paralelo)
 - **`control_parametros_cf_generales`**
 - **`control_parametros_cf_zona`**
-- **`control_programacion_cf_zona`**
-**Propósito:** Estas tablas **siguen activas y en uso** (soportadas por `cf_repository.py`), administrando parámetros y programación separada exclusivamente para brigadas Corte Fijo (CF). Aunque las tablas principales (`control_programacion_zona` y `control_parametros_zona`) han incorporado la columna `tipo_brigada` para diferenciar PXQ de CF, el flujo de CF se sigue manejando de forma independiente en el backend usando estas tablas.
+- **`control_programacion_cf_zona`** (legacy temporal)
+**Propósito:** Estas tablas administraban parámetros y programación separada exclusivamente para brigadas Corte Fijo (CF). Desde Stage 7, `control_programacion_zona` con `tipo_brigada='CF'` es la tabla oficial. Las tablas legacy se conservan temporalmente pero ya no son fuente principal.
+
+> **Actualización Stage 7:** Se ejecutó backfill de `control_programacion_cf_zona` → `control_programacion_zona` con `tipo_brigada='CF'`. El nuevo flujo es: el frontend escribe en `control_programacion_zona` y el backend la lee como fuente única para ambos tipos de brigada.
 
 ### Tablas de Configuración de Supervisor
 - **`control_supervisores`**: Almacena el catálogo de supervisores del sistema.
@@ -187,7 +189,7 @@ erDiagram
 
 1. **Inicio del día:** Se crea/inicializa la entrada en `reportes_cyr` utilizando la `fecha_operacional` de hoy en estado 'borrador'. Se leen los `control_parametros_zona` y `control_parametros_cf_zona` para proyectar el esfuerzo esperado del día.
 2. **Brigadas del día:** Los datos de asistencia y asignación de personal ingresan a `control_brigadas_diario`. El sistema cruza al usuario asignado con la tabla `dim_tipo_brigada_usuario` para etiquetar correctamente la fila como `PXQ` o `CF`.
-3. **Programación diaria:** El coordinador registra la meta y la asignación de carga consolidada en `control_programacion_zona` para PXQ (y posiblemente CF mixto) o en `control_programacion_cf_zona` para métricas exclusivas de CF.
+3. **Programación diaria:** El coordinador registra la meta y la asignación de carga consolidada en `control_programacion_zona` para PXQ y CF (diferenciados por `tipo_brigada`). La tabla legacy `control_programacion_cf_zona` ya no es fuente principal desde Stage 7.
 4. **Reporte gerencial:** Durante la jornada, se registran resultados acumulados por horas y visitas efectivas. Estos resultados parciales por individuo se actualizan en `control_brigadas_diario`, y los totales de zona se calculan/guardan en `control_resultados_reales_zona`. Al final, se puede cerrar el día en `reportes_cyr`.
 
 ## 9. Observaciones y Riesgos
@@ -196,4 +198,4 @@ erDiagram
 
 ## 10. Mejoras Recomendadas para Etapa Futura
 1. **Implementar Integridad Referencial:** Agregar `FOREIGN KEY` reales de base de datos desde `control_brigadas_diario` y las de programación apuntando a un maestro `reportes_cyr` y maestros dimensionales (`dim_zona`, `dim_usuario`).
-2. **Consolidar Tablas CF:** Puesto que las tablas matrices ya aceptan `tipo_brigada`, se sugiere migrar los datos restantes de `control_programacion_cf_zona` y parámetros CF a sus contrapartes principales, dejando una única tabla de programación y una de parámetros.
+2. **Consolidar Tablas CF:** (Completado Stage 7) Los datos de programación CF fueron migrados desde `control_programacion_cf_zona` hacia `control_programacion_zona` con `tipo_brigada='CF'`. `control_programacion_zona` es ahora la tabla oficial para PXQ y CF. Pendiente retiro futuro de tablas legacy `control_programacion_cf_zona`, `control_parametros_cf_zona` y `control_parametros_cf_generales`.

@@ -1,7 +1,7 @@
 import React from 'react';
 
 import type { RecomendacionSupervisorData } from '../../types/rendimientoTecnico.types';
-import { MOCK_RECOMENDACION, CONFIG_PRIORIDAD_RECOMENDACION, CONFIG_ESTADO_ACCION } from '../../data/rendimientoTecnico.mock';
+import { CONFIG_PRIORIDAD_RECOMENDACION, CONFIG_ESTADO_ACCION } from '../../data/rendimientoTecnico.config';
 
 
 interface RendimientoTecnicoRecomendacionProps {
@@ -9,8 +9,36 @@ interface RendimientoTecnicoRecomendacionProps {
 }
 
 export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomendacionProps> = ({
-  data = MOCK_RECOMENDACION,
+  data,
 }) => {
+  if (!data) {
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{
+              width: '3px', height: '18px', borderRadius: '2px',
+              background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
+            }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Recomendación del Supervisor
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '11px' }}>
+            Acción sugerida para mejorar o estabilizar el desempeño del técnico.
+          </p>
+        </div>
+        <div style={{
+          padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)',
+          fontSize: '13px', background: 'var(--bg-panel)',
+          border: '1px dashed var(--border)', borderRadius: '8px',
+        }}>
+          Sin recomendación disponible.
+        </div>
+      </div>
+    );
+  }
+
   const prioCfg = CONFIG_PRIORIDAD_RECOMENDACION[data.prioridad];
   const estadoCfg = CONFIG_ESTADO_ACCION[data.estadoAccion];
 
@@ -26,11 +54,6 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Recomendación del Supervisor
           </span>
-          <span style={{
-            fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-            background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-            color: 'var(--secondary)', fontWeight: 600, letterSpacing: '0.5px',
-          }}>MOCK</span>
         </div>
         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '11px' }}>
           Acción sugerida para mejorar o estabilizar el desempeño del técnico.
@@ -78,7 +101,7 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
         {/* Separador */}
         <hr style={{ border: 'none', borderTop: '1px solid rgba(255,255,255,0.06)', margin: 0 }} />
 
-        {/* Recomendación (Protagonista) */}
+        {/* Recomendación */}
         <div>
           <span style={{ display: 'block', fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px', marginBottom: '8px' }}>
             Recomendación

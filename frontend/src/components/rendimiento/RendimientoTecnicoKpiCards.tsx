@@ -60,16 +60,15 @@ const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'va
   </div>
 );
 
+import type { RendimientoDiarioBackend } from '../../api/productividad.api';
 import type { RendimientoTecnicoKpiData } from '../../types/rendimientoTecnico.types';
-import { MOCK_KPIS as MOCK_DATA } from '../../data/rendimientoTecnico.mock';
 
 interface RendimientoTecnicoKpiCardsProps {
-  data?: RendimientoTecnicoKpiData;
+  kpiData?: RendimientoDiarioBackend;
+  loading?: boolean;
 }
 
-export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProps> = ({
-  data = MOCK_DATA,
-}) => {
+function buildCards(data: RendimientoTecnicoKpiData) {
   const cumplimientoColor =
     data.cumplimientoPct >= 80
       ? '#22c55e'
@@ -77,7 +76,7 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
       ? '#f59e0b'
       : '#ef4444';
 
-  const cards = [
+  return [
     {
       titulo: 'Productividad diaria',
       valor: `${data.productividadDiaria} cortes`,
@@ -127,6 +126,28 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
       color: '#ef4444',
     },
   ];
+}
+
+function mapRendimientoToKpi(r: RendimientoDiarioBackend): RendimientoTecnicoKpiData {
+  return {
+    productividadDiaria: r.cortes_productivos,
+    productividadPromedio: r.cortes_productivos,
+    mejorProductividad: r.cortes_productivos,
+    cumplimientoPct: Math.round(r.cumplimiento_pct),
+    totalCortesAcumulados: r.cortes_productivos,
+    diasBajoMeta: 0,
+    diasCriticos: 0,
+    fallidasFrustrados: r.visita_fallida,
+  };
+}
+
+export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProps> = ({
+  kpiData,
+  loading,
+}) => {
+  const data: RendimientoTecnicoKpiData | null = kpiData
+    ? mapRendimientoToKpi(kpiData)
+    : null;
 
   return (
     <div>
@@ -171,26 +192,39 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
         }}>
           KPIs del técnico
         </span>
-        <span style={{
-          marginLeft: '6px',
-          fontSize: '10px',
-          padding: '2px 8px',
-          borderRadius: '20px',
-          background: 'rgba(0,229,255,0.08)',
-          border: '1px solid rgba(0,229,255,0.2)',
-          color: 'var(--secondary)',
-          fontWeight: 600,
-          letterSpacing: '0.5px',
-        }}>
-          MOCK
-        </span>
       </div>
 
-      <div className="kpi-grid">
-        {cards.map(card => (
-          <KpiCard key={card.titulo} {...card} />
-        ))}
-      </div>
+      {loading ? (
+        <div style={{
+          padding: '40px 20px',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontSize: '13px',
+          background: 'var(--bg-panel)',
+          border: '1px dashed var(--border)',
+          borderRadius: '8px',
+        }}>
+          Cargando KPIs…
+        </div>
+      ) : !data ? (
+        <div style={{
+          padding: '40px 20px',
+          textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontSize: '13px',
+          background: 'var(--bg-panel)',
+          border: '1px dashed var(--border)',
+          borderRadius: '8px',
+        }}>
+          Sin datos de rendimiento disponibles.
+        </div>
+      ) : (
+        <div className="kpi-grid">
+          {buildCards(data).map(card => (
+            <KpiCard key={card.titulo} {...card} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

@@ -41,7 +41,7 @@ const AppContent = () => {
             <Route path="/torre-control/dashboard-cyr" element={<ResumenGeneralPanel fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-general" onChangeSection={() => {}} />} />
           </Route>
 
-          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control', 'gerencia']} />}>
+          <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'torre_control', 'gerencia', 'supervisor']} />}>
             <Route path="/torre-control/resumen-zona" element={<ResumenZonaDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="resumen-zona" onChangeSection={() => {}} />} />
             <Route path="/torre-control/rendimiento-tecnico" element={<RendimientoTecnicoDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="rendimiento-tecnico" onChangeSection={() => {}} />} />
           </Route>

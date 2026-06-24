@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
 import { TarjetaUsuarioRendimiento } from './TarjetaUsuarioRendimiento';
 import { RendimientoTecnicoKpiCards } from './RendimientoTecnicoKpiCards';
@@ -8,7 +8,8 @@ import { RendimientoTecnicoCursos } from './RendimientoTecnicoCursos';
 import { RendimientoTecnicoHallazgos } from './RendimientoTecnicoHallazgos';
 import { RendimientoTecnicoRecomendacion } from './RendimientoTecnicoRecomendacion';
 import { RendimientoTecnicoSelector } from './RendimientoTecnicoSelector';
-import type { TecnicoResumen } from '../../types/rendimientoTecnico.types';
+import { useProductividad } from '../../hooks/useProductividad';
+import { useAuth } from '../../auth/AuthContext';
 
 interface RendimientoTecnicoDashboardViewProps {
   fechaOperacional: string;
@@ -23,7 +24,18 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
   activeSection,
   onChangeSection
 }) => {
-  const [selectedTecnico, setSelectedTecnico] = useState<TecnicoResumen | null>(null);
+  const { user } = useAuth();
+  const {
+    tecnicos,
+    loadingTecnicos,
+    selectedTecnico,
+    selectTecnico,
+    rendimiento,
+    rendimientoList,
+    loadingRendimiento,
+    historial,
+    alertas,
+  } = useProductividad();
 
   return (
     <DashboardLayout
@@ -69,7 +81,12 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
         
         {/* Listado Lateral Izquierdo */}
         <div style={{ position: 'sticky', top: '20px' }}>
-          <RendimientoTecnicoSelector selectedId={selectedTecnico?.id || null} onSelect={setSelectedTecnico} />
+          <RendimientoTecnicoSelector
+            tecnicos={tecnicos}
+            loading={loadingTecnicos}
+            selectedId={selectedTecnico?.id || null}
+            onSelect={selectTecnico}
+          />
         </div>
 
         {/* Ficha a la Derecha */}
@@ -125,14 +142,21 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                 </div>
 
                 {/* Fase de Seguimiento */}
-                <RendimientoTecnicoFaseSeguimiento />
+                <RendimientoTecnicoFaseSeguimiento
+                  historial={historial}
+                  faseActual={selectedTecnico.fase}
+                  estadoActual={selectedTecnico.estado}
+                />
               </div>
 
               {/* Separador */}
               <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
 
               {/* KPI Cards */}
-              <RendimientoTecnicoKpiCards />
+              <RendimientoTecnicoKpiCards
+                kpiData={rendimiento ?? undefined}
+                loading={loadingRendimiento}
+              />
 
               {/* Separador */}
               <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
@@ -155,7 +179,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                 gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
                 gap: '20px',
               }}>
-                <RendimientoTecnicoHallazgos />
+                <RendimientoTecnicoHallazgos alertas={alertas} />
                 <RendimientoTecnicoRecomendacion />
               </div>
             </>

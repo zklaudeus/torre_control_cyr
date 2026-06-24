@@ -227,7 +227,7 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
 
         {NAV_ITEMS
           .filter(item => {
-            if (user?.rol === 'supervisor') return item.route === '/supervisor/bitacora';
+            if (user?.rol === 'supervisor') return item.route === '/supervisor/bitacora' || item.route === '/torre-control/rendimiento-tecnico';
             if (user?.rol === 'torre_control') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona' || item.route === '/torre-control/rendimiento-tecnico';
             if (user?.rol === 'gerencia') return item.route === '/torre-control/resumen-zona' || item.route === '#/reporte-gerencial' || item.route === '/torre-control/rendimiento-tecnico';
             return true;

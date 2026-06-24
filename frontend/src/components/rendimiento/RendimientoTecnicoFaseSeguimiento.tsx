@@ -1,7 +1,8 @@
 import React from 'react';
 
-import type { FaseSeguimiento, RendimientoTecnicoFaseData } from '../../types/rendimientoTecnico.types';
-import { MOCK_FASE, COLOR_ESTADO_FASE } from '../../data/rendimientoTecnico.mock';
+import type { FaseSeguimiento, RendimientoTecnicoFaseData, EstadoTecnico } from '../../types/rendimientoTecnico.types';
+import { COLOR_ESTADO_FASE } from '../../data/rendimientoTecnico.config';
+import type { HistorialItemBackend } from '../../api/productividad.api';
 
 const FASES = [
   { num: 1 as FaseSeguimiento, label: 'Inicial',    descripcion: 'Seguimiento preventivo' },
@@ -107,12 +108,71 @@ const InfoRow: React.FC<InfoRowProps> = ({ label, value, color }) => (
 
 interface RendimientoTecnicoFaseSeguimientoProps {
   data?: RendimientoTecnicoFaseData;
+  historial?: HistorialItemBackend[];
+  faseActual?: number;
+  estadoActual?: EstadoTecnico;
+}
+
+function buildFaseData(historial: HistorialItemBackend[], faseActual: number, estadoActual: EstadoTecnico): RendimientoTecnicoFaseData {
+  const ultimo = historial.length > 0 ? historial[0] : null;
+  const estadoMap: Record<string, string> = {
+    'Crítico': 'Crítico',
+    'En recuperación': 'En recuperación',
+    'Estable': 'Estable',
+    'Alto desempeño': 'Alto desempeño',
+  };
+  return {
+    faseActual: faseActual as FaseSeguimiento,
+    estadoActual: `${estadoMap[estadoActual] ?? 'Estable'}${faseActual >= 2 ? ` - Fase ${faseActual}` : ''}` as never,
+    motivoFase: ultimo?.motivo ?? 'Seguimiento preventivo estándar.',
+    fechaInicioFase: ultimo?.fecha_cambio
+      ? new Date(ultimo.fecha_cambio).toLocaleDateString('es-CL')
+      : '—',
+    proximaRevision: '—',
+    responsableSeguimiento: '—',
+    accionSugerida: ultimo?.regla_disparadora ?? 'Mantener seguimiento diario.',
+  };
 }
 
 export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseSeguimientoProps> = ({
-  data = MOCK_FASE,
+  data,
+  historial,
+  faseActual,
+  estadoActual,
 }) => {
-  const estadoColor = COLOR_ESTADO_FASE[data.estadoActual];
+  const resolved: RendimientoTecnicoFaseData | null = historial && faseActual !== undefined && estadoActual
+    ? buildFaseData(historial, faseActual, estadoActual)
+    : (data ?? null);
+
+  if (!resolved) {
+    return (
+      <div style={{
+        background: 'var(--bg-panel)',
+        border: '1px solid var(--border)',
+        borderRadius: '10px',
+        padding: '20px 22px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+          <span style={{
+            width: '3px', height: '18px', borderRadius: '2px',
+            background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
+          }} />
+          <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+            Fase de Seguimiento
+          </span>
+        </div>
+        <div style={{
+          padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)',
+          fontSize: '13px',
+        }}>
+          Sin datos de seguimiento disponibles.
+        </div>
+      </div>
+    );
+  }
+
+  const estadoColor = COLOR_ESTADO_FASE[resolved.estadoActual];
 
   return (
     <div style={{
@@ -135,11 +195,6 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Fase de Seguimiento
           </span>
-          <span style={{
-            fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-            background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-            color: 'var(--secondary)', fontWeight: 600, letterSpacing: '0.5px',
-          }}>MOCK</span>
         </div>
         <div style={{
           fontSize: '12px', fontWeight: 700,
@@ -149,12 +204,12 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
           background: `${estadoColor}15`,
           border: `1px solid ${estadoColor}40`,
         }}>
-          {data.estadoActual}
+          {resolved.estadoActual}
         </div>
       </div>
 
       {/* Stepper */}
-      <Stepper faseActual={data.faseActual} />
+      <Stepper faseActual={resolved.faseActual} />
 
       {/* Separador */}
       <div style={{ borderTop: '1px solid var(--border)' }} />
@@ -165,10 +220,10 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
         gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))',
         gap: '14px',
       }}>
-        <InfoRow label="Fase actual"         value={`Fase ${data.faseActual}`}           color={estadoColor} />
-        <InfoRow label="Inicio de fase"       value={data.fechaInicioFase} />
-        <InfoRow label="Próxima revisión"     value={data.proximaRevision} />
-        <InfoRow label="Responsable"          value={data.responsableSeguimiento} />
+        <InfoRow label="Fase actual"         value={`Fase ${resolved.faseActual}`}           color={estadoColor} />
+        <InfoRow label="Inicio de fase"       value={resolved.fechaInicioFase} />
+        <InfoRow label="Próxima revisión"     value={resolved.proximaRevision} />
+        <InfoRow label="Responsable"          value={resolved.responsableSeguimiento} />
       </div>
 
       {/* Motivo */}
@@ -177,7 +232,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
           Motivo
         </span>
         <span style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5 }}>
-          {data.motivoFase}
+          {resolved.motivoFase}
         </span>
       </div>
 
@@ -197,7 +252,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             Acción sugerida
           </div>
           <div style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5 }}>
-            {data.accionSugerida}
+            {resolved.accionSugerida}
           </div>
         </div>
       </div>

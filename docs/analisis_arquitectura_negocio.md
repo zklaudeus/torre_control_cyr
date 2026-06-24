@@ -1,7 +1,7 @@
 # Análisis de arquitectura y negocio — Torre de Control CyR / EISESA
 
 **Fecha del análisis:** 23 de junio de 2026  
-**Alcance:** revisión estática del repositorio, sin ejecutar la aplicación, conectarse a la base de datos, modificar código funcional, crear migraciones ni realizar commits.  
+**Alcance:** diagnóstico del sistema legacy y decisiones arquitectónicas del módulo; la migración 012 fue aplicada y validada en la base configurada el 24 de junio de 2026.
 **Fuente del diagnóstico:** código y documentación presentes en el árbol de trabajo actual, incluidos cambios locales no confirmados del módulo de rendimiento técnico.  
 
 ## 1. Resumen ejecutivo
@@ -17,19 +17,19 @@ El sistema aún no tiene una única fuente de verdad. Conviven:
 - maestros SAP, zonas y permisos en SQL, scripts Python y archivos TypeScript;
 - autenticación backend con un fallback local que permite cuentas y un acceso administrador de prueba.
 
-El módulo de **Rendimiento Técnico** es actualmente un prototipo visual: técnicos, KPIs, semáforos, fases, cursos, hallazgos y recomendaciones provienen de `frontend/src/data/rendimientoTecnico.mock.ts`. No existen aún tablas, servicios ni endpoints de productividad individual. Por tanto, ningún estado de rendimiento o fase mostrado allí debe considerarse dato real.
+El frontend de **Rendimiento Técnico** continúa siendo un prototipo visual: técnicos, KPIs, semáforos, fases, cursos, hallazgos y recomendaciones provienen de `frontend/src/data/rendimientoTecnico.mock.ts`. Las siete tablas del módulo ya existen y fueron validadas, pero todavía no existen servicios ni endpoints productivos. Por tanto, ningún estado o fase mostrado en la UI debe considerarse dato real.
 
 Las mayores brechas son:
 
 1. autenticación y autorización temporal o incompleta;
 2. definiciones contradictorias de meta y cumplimiento;
-3. ausencia de un modelo normalizado para técnicos, zonas, brigadas y actividad operacional;
+3. identidad SAP legacy sin unicidad global histórica; el módulo reutiliza `control_supervisor_usuarios_sap` y no crea otro maestro de personal;
 4. falta de claves foráneas y trazabilidad histórica consistente;
 5. lógica y permisos de negocio todavía presentes en el frontend;
 6. migraciones manuales sin un mecanismo formal de versionado;
 7. falta de pruebas automatizadas de las fórmulas operacionales.
 
-La próxima fase no debería comenzar creando pantallas. Primero se deben aprobar las definiciones de negocio pendientes y diseñar la migración de datos para un modelo canónico. En particular, debe resolverse si la meta productiva oficial es **25 cortes** (regla base entregada para este análisis), **30 cortes PXQ** (valor actual de la aplicación) o una meta versionada por tipo de brigada, zona y vigencia.
+La meta aprobada para el módulo es **25 cortes productivos para PXQ** y **6 para CF**. El valor legacy de 30 no debe alimentar los snapshots nuevos. La siguiente fase no debe conectar pantallas: primero corresponde validar la migración contra el catálogo PostgreSQL real y construir el dominio backend con pruebas.
 
 ## 2. Estado actual del proyecto
 
@@ -124,6 +124,7 @@ No se encontraron archivos JSON de negocio; los JSON existentes corresponden al 
 ### 3.1 Convención del análisis
 
 - **Detectada:** existe explícitamente en código o documentación actual.
+- **Aprobada:** decisión final del módulo de rendimiento; prevalece sobre comportamientos legacy detectados.
 - **Propuesta:** diseño inicial sugerido; no está aprobado ni implementado.
 - **Pendiente de confirmación:** existe ambigüedad o contradicción que debe resolver negocio.
 
@@ -153,12 +154,12 @@ El backend ya consolida Excel por `fecha_operacional + codigo_sap`, pero aún no
 
 | Métrica/regla | Definición recomendada | Estado |
 |---|---|---|
-| Productividad diaria | **Propuesta:** cortes válidos ejecutados por técnico en un día elegible. Mantener por separado reconexiones y actividades totales. | Pendiente de confirmar si “productividad” incluye reconexiones. |
-| Productividad promedio | **Propuesta:** promedio de productividad diaria sobre días elegibles del período solicitado. | Pendiente: definir días sin asignación, inactivos, licencias y feriados. |
+| Productividad diaria | `corte_en_poste + corte_en_empalme + corte_fuera_de_rango`. Reconexiones y fallidas se conservan separadas. | Aprobada. |
+| Productividad promedio | Promedio de cortes productivos sobre días evaluables del período solicitado. | Aprobada; las ausencias no participan. |
 | Mejor productividad | **Propuesta:** máximo diario del período, guardando fecha y meta vigente. | Propuesta. |
-| Cumplimiento diario | **Propuesta:** `productividad_diaria / meta_aplicable × 100`. | Propuesta; meta aplicable debe quedar versionada. |
-| Días bajo rendimiento | **Propuesta:** cantidad de días elegibles con cumplimiento menor al umbral estable aprobado. | Pendiente de umbral. |
-| Días consecutivos bajo 50% | **Propuesta base solicitada:** racha de días operacionales elegibles con productividad `< 50%` de la meta. La ausencia no debe convertirse automáticamente en cero. | Propuesta; confirmar calendario y tratamiento de inactividad. |
+| Cumplimiento diario | `cortes_productivos / meta_aplicada × 100`. | Aprobada; `meta_aplicada` queda en el snapshot. |
+| Días bajo rendimiento | Cantidad de días evaluables con cumplimiento `< 50%`. | Aprobada. |
+| Días consecutivos bajo 50% | Racha de días evaluables con cumplimiento `< 50%`; una ausencia no rompe ni reinicia la racha. | Aprobada. |
 | Estado del técnico | Derivado por motor de reglas versionado, nunca seleccionado libremente desde la UI salvo override auditado. | Propuesta. |
 | Fase actual | Estado persistido con inicio, motivo, regla disparadora, responsable y próxima revisión. | Propuesta. |
 | Recomendación operacional | Generada desde reglas y editable/aprobable por supervisor, conservando autoría e historial. | Propuesta. |
@@ -191,42 +192,32 @@ El backend ya consolida Excel por `fecha_operacional + codigo_sap`, pero aún no
 | Total ejecutado | Total de cortes y, por separado, total de actividades. | Propuesta de nomenclatura para evitar ambigüedad. |
 | Fallidas por zona | Suma de visitas fallidas; agregar tasa `fallidas / intentos` cuando exista denominador fiable. | Cantidad detectada; tasa propuesta. |
 
-### 3.6 Propuesta inicial de semáforo y fases
+### 3.6 Semáforo y fases aprobados
 
-La siguiente matriz es **propuesta** y requiere aprobación de Operaciones/Gerencia. Usa la meta base solicitada de 25 cortes solo como referencia inicial; no debe codificarse hasta resolver la discrepancia con 30 PXQ y 6 CF existentes.
-
-| Estado | Regla inicial propuesta | Salvaguardas |
+| Estado | Regla aprobada | Salvaguardas |
 |---|---|---|
-| Crítico | Cumplimiento diario `< 50%`, o racha de 3 días elegibles `< 50%`, o fase 3 vigente. | Una inactividad justificada no cuenta como día productivo. Registrar la regla exacta que disparó el estado. |
-| En recuperación | Último cumplimiento entre `50%` y `< 80%`, o técnico que salió de crítico pero aún no completa 3 días elegibles consecutivos `>= 80%`. | El umbral 80% y los 3 días de salida son propuesta. |
-| Estable | Promedio móvil de la ventana `>= 80%` y `< 100%`, sin racha grave ni hallazgo crítico abierto. | Ventana inicial sugerida: 5 días elegibles; pendiente de confirmación. |
-| Alto desempeño | Promedio móvil `>= 100%`, al menos 3 días elegibles, sin hallazgos críticos abiertos y con tasa de fallidas dentro del límite. | No premiar volumen si hay incumplimiento de seguridad/calidad. El límite de fallidas está pendiente. |
+| Crítico | PXQ 0–12; CF 0–2 cortes productivos. | Una ausencia justificada no cuenta como día productivo. |
+| En recuperación | PXQ 13–24; CF 3–5 cortes productivos. | Se evalúa exclusivamente con cortes productivos. |
+| Estable | PXQ 25–29; CF 6 o más mientras no complete la racha de alto desempeño. | El borde PXQ 30+ antes de completar racha sigue pendiente. |
+| Alto desempeño | Cumplir la meta durante tres días evaluables consecutivos. | Las fallidas no alteran la categoría ni la racha. |
 
 **Fases propuestas**
 
 - **Fase 1 — seguimiento preventivo:** fase inicial; alertas y revisión ordinaria.
 - **Fase 2 — seguimiento reforzado:** activar automáticamente al completar 3 días operacionales elegibles consecutivos bajo 50% de la meta. Registrar fecha, regla, evidencias y responsable.
-- **Fase 3 — intervención formal:** reservar para reincidencia grave o bajo rendimiento mantenido. Propuesta inicial: nueva racha grave dentro de 30 días después de una fase 2, o 5 días consecutivos bajo 50%. **Pendiente de confirmación**.
-- **Desescalamiento:** requiere una regla explícita. Propuesta: 3 días consecutivos sobre el umbral estable para pasar de fase 2 a 1; fase 3 requiere cierre manual autorizado además de recuperación objetiva. **Pendiente de confirmación**.
+- **Fase 3 — intervención formal:** se activa cuando un técnico en Fase 2 acumula tres advertencias activas registradas por Torre de Control.
+- **Desescalamiento:** nunca es automático; requiere aprobación y motivo de Torre de Control.
 
 ## 4. Reglas de negocio faltantes o pendientes de confirmación
 
-1. Definición oficial y versionada de productividad: ¿solo cortes o cortes + reconexiones?
-2. Meta oficial: 25 general, 30 PXQ, 6 CF u otra por zona/tipo/vigencia.
-3. Diferencia semántica y fórmula de `corte_programado` versus `asignacion_carga`.
-4. Tratamiento de `corte_fuera_de_rango`: corte, reconexión, ambos o categoría independiente.
-5. Tratamiento de desmantelamiento en corte en empalme.
-6. Qué brigadas integran denominadores: reportadas, operativas o efectivas.
-7. Calendario de días elegibles y manejo de licencias, feriados, falta de carga e inactividad.
-8. Ventana para productividad promedio y mejor productividad.
-9. Umbrales definitivos de estable y alto desempeño.
-10. Condición exacta, salida y reincidencia de fases 1, 2 y 3.
-11. Fórmula de reducción de frustrados y denominador de tasa de fallidas.
-12. Reglas de calidad, seguridad, reclamos, cursos y protocolos usadas por los semáforos mock.
-13. Quién puede cambiar manualmente fase/estado y bajo qué motivo obligatorio.
-14. Vigencia y sustitución histórica de técnico, supervisor, zona, brigada, patente y tipo.
-15. Unicidad permitida para un SAP en un día y manejo de parejas/brigadas con más de un técnico.
-16. Política de cierre/reapertura de día operacional y bloqueo de ediciones históricas.
+1. Diferencia semántica y fórmula de `corte_programado` versus `asignacion_carga` para KPIs ajenos al módulo.
+2. Ventana de consulta predeterminada para promedio y mejor productividad.
+3. Estado PXQ para 30 o más cortes antes de completar la racha de alto desempeño.
+4. Fórmula de reducción de frustrados y denominador de tasa de fallidas.
+5. Reglas de calidad, seguridad, reclamos, cursos y protocolos usadas por los semáforos mock.
+6. Flujo detallado de aprobación y salida de fases, siempre bajo Torre de Control.
+7. Vigencia histórica de supervisor, zona, patente y tipo de brigada.
+8. Política de reapertura de día operacional y bloqueo de ediciones históricas.
 
 ## 5. Análisis de base de datos
 
@@ -244,7 +235,7 @@ No se consultó un servidor PostgreSQL en vivo. “Existe” en esta sección si
 | `control_resultados_reales_zona` | Consolidado persistido por zona/fecha. | El flujo actual calcula desde brigadas y no usa el repositorio; riesgo de tabla obsoleta o desincronizada. |
 | `control_parametros_cf_generales` | Parámetros generales CF. | Solapa el modelo general. Incluye metas horarias y umbrales no presentes para PXQ. |
 | `control_parametros_cf_zona` | Dotación CF por zona. | Solapa `control_parametros_zona` con `tipo_brigada='CF'`. |
-| `control_programacion_cf_zona` | Programación CF. | Solapa `control_programacion_zona`. |
+| `control_programacion_cf_zona` | Programación CF (legacy). | Solapaba `control_programacion_zona`. Desde Stage 7 la tabla oficial es `control_programacion_zona` con `tipo_brigada='CF'`. Legacy se conserva temporalmente. |
 | `dim_tipo_brigada_usuario` | Tipo de brigada por nombre normalizado. | Duplica información disponible en maestro SAP; usa nombre como clave en lugar de técnico/SAP. |
 | `control_supervisores` | Maestro de supervisores. | Falta identificador de negocio único y vínculo ORM con usuario. |
 | `control_supervisor_comunas_zonas` | Asignación supervisor–comuna–zona. | SQL 002 crea FK; ORM no la declara. No tiene vigencia. |
@@ -275,7 +266,7 @@ Los nombres son tentativos. La migración debe coexistir con las tablas actuales
 | `zonas` | `id`, `codigo`, `nombre`, `activa` | `codigo` y nombre normalizado únicos. |
 | `comunas` | `id`, `codigo`, `nombre`, `zona_id`, `activa` | FK a `zonas`; elimina mapeos Python/TS. |
 | `supervisores` | `id`, `codigo`, `nombre`, `activo` | Sustituye/normaliza `control_supervisores`. |
-| `tecnicos` | `id`, `codigo_sap`, `nombre`, `activo`, fechas de vigencia | `codigo_sap` único y obligatorio. No usar nombre como clave. |
+| `control_supervisor_usuarios_sap` | `id`, `codigo_sap`, `cuenta`, `supervisor_id`, `tipo_brigada`, `activo` | Maestro existente reutilizado. La migración impide más de una asignación activa por `codigo_sap`. |
 | `tipos_brigada` | `id`, `codigo` (`PXQ`, `CF`), `nombre`, `activo` | Código único. |
 | `brigadas` | `id`, `codigo`, `patente`, `tipo_brigada_id`, `activa` | Definir si patente identifica brigada o vehículo; pendiente de negocio. |
 | `usuarios_aplicacion` | `id`, `usuario`, `password_hash`, `rol_id`, `supervisor_id`, `activo` | FKs y usuario único. Roles/permisos normalizados o enum estable. |
@@ -287,9 +278,9 @@ Los nombres son tentativos. La migración debe coexistir con las tablas actuales
 | Tabla propuesta | Objetivo |
 |---|---|
 | `supervisor_zona_vigencia` | Qué zonas/comunas puede operar un supervisor en un período. |
-| `tecnico_supervisor_vigencia` | Responsable del técnico por rango de fechas. |
-| `tecnico_tipo_brigada_vigencia` | Tipo aplicable por rango de fechas. |
-| `tecnico_brigada_vigencia` | Pertenencia del técnico a una brigada/pareja cuando aplique. |
+| `asignacion_sap_supervisor_vigencia` | Evolución futura del responsable de una cuenta SAP por rango de fechas. |
+| `asignacion_sap_tipo_vigencia` | Evolución futura del tipo aplicable por rango de fechas. |
+| `asignacion_sap_brigada_vigencia` | Evolución futura de la pertenencia a una brigada cuando aplique. |
 
 #### Tablas transaccionales
 
@@ -305,13 +296,12 @@ Los nombres son tentativos. La migración debe coexistir con las tablas actuales
 
 | Tabla propuesta | Responsabilidad |
 |---|---|
-| `productividad_diaria` | Snapshot por técnico+fecha: cortes por tipo, reconexiones, fallidas, actividades, meta aplicada, cumplimiento y versión de cálculo. |
-| `rendimiento_tecnico` | Estado/fase vigente y resumen de ventana del técnico; una fila vigente por técnico. |
-| `reglas_rendimiento` | Código, versión, métrica, operador, umbral, ventana, prioridad, vigencia y configuración JSON validada cuando sea necesario. |
-| `fases_rendimiento` | Catálogo de fases 1–3, descripción, orden y requisitos de salida/entrada. |
-| `hallazgos_tecnico` | Técnico, tipo, nivel, período, evidencia, estado y regla origen. |
-| `recomendaciones_tecnico` | Recomendación, prioridad, responsable, estado, fechas y vínculo a hallazgo/fase. |
-| `historial_estados_tecnico` | Técnico, estado/fase anterior/nueva, motivo, regla, autor, timestamp y override. Inmutable. |
+| `rendimiento_tecnico_diario` | Snapshot por SAP+fecha: componentes, reconexiones, fallidas, meta aplicada, cumplimiento, evaluabilidad y estado diario. |
+| `rendimiento_tecnico_actual` | Estado, fase y rachas vigentes; una fila por `codigo_sap`. |
+| `rendimiento_tecnico_historial` | Cambios de estado/fase, advertencias, recálculos y overrides. |
+| `rendimiento_tecnico_advertencias` | Advertencias formales activas/anuladas que gobiernan el paso a Fase 3. |
+| `rendimiento_tecnico_ausencias` | Justificaciones de días no evaluables. |
+| `rendimiento_tecnico_causas_fallidas` | Desglose analítico de fallidas, sin impacto en productividad. |
 
 #### Parámetros y metas
 
@@ -324,7 +314,7 @@ Los nombres son tentativos. La migración debe coexistir con las tablas actuales
 
 #### Métricas calculadas
 
-Preferir vistas SQL o consultas de servicio para agregados simples. Persistir `productividad_diaria` porque requiere reproducibilidad histórica y versión de regla. Usar vistas/materialized views solo cuando haya evidencia de necesidad de rendimiento, por ejemplo:
+Preferir vistas SQL o consultas de servicio para agregados simples. Persistir `rendimiento_tecnico_diario` porque requiere reproducibilidad histórica mediante componentes, meta aplicada y timestamps. Usar vistas/materialized views solo cuando haya evidencia de necesidad de rendimiento, por ejemplo:
 
 - `vw_productividad_zona_diaria`;
 - `vw_ranking_tecnicos_periodo`;
@@ -335,30 +325,28 @@ Preferir vistas SQL o consultas de servicio para agregados simples. Persistir `p
 ```text
 usuarios_aplicacion -> supervisores
 supervisores -> supervisor_zona_vigencia -> zonas
-tecnicos -> tecnico_supervisor_vigencia -> supervisores
-tecnicos -> tecnico_tipo_brigada_vigencia -> tipos_brigada
-tecnicos -> tecnico_brigada_vigencia -> brigadas
-jornadas_brigada -> tecnico + brigada + zona + supervisor + tipo_brigada
-actividades_operacionales -> jornada_brigada + tecnico + lote_importacion
+control_supervisor_usuarios_sap -> supervisor + cuenta SAP activa
+jornadas_brigada -> cuenta SAP + brigada + zona + supervisor + tipo_brigada
+actividades_operacionales -> jornada_brigada + cuenta SAP + lote_importacion
 visitas_fallidas -> actividad_operacional + motivo_visita_fallida
-productividad_diaria -> tecnico + jornada + meta/regla aplicada
-rendimiento_tecnico -> tecnico + fase vigente
-historial_estados_tecnico -> tecnico + regla/fase + usuario autor
+rendimiento_tecnico_diario -> codigo_sap + bitácora + meta aplicada
+rendimiento_tecnico_actual -> codigo_sap + fase vigente
+rendimiento_tecnico_historial -> codigo_sap + regla/fase + usuario autor
 ```
 
 ## 6. Datos que deben pasar a base de datos
 
 | Archivo actual | Dato encontrado | Problema | Recomendación | Tabla sugerida | Prioridad |
 |---|---|---|---|---|---|
-| `frontend/src/data/rendimientoTecnico.mock.ts` | `MOCK_TECNICOS` | Técnicos, SAP, zona, supervisor, estado y fase ficticios. | Reemplazar por consulta al maestro y rendimiento vigente. | `tecnicos`, asignaciones, `rendimiento_tecnico` | Alta |
-| mismo archivo | `MOCK_KPIS` | KPIs no dependen del técnico ni fecha seleccionados. | Calcular en backend por período y meta versionada. | `productividad_diaria` | Alta |
+| `frontend/src/data/rendimientoTecnico.mock.ts` | `MOCK_TECNICOS` | Técnicos, SAP, zona, supervisor, estado y fase ficticios. | Reemplazar por consulta al maestro y rendimiento vigente. | `control_supervisor_usuarios_sap`, `rendimiento_tecnico_actual` | Alta |
+| mismo archivo | `MOCK_KPIS` | KPIs no dependen del técnico ni fecha seleccionados. | Calcular en backend por período y meta aplicada. | `rendimiento_tecnico_diario` | Alta |
 | mismo archivo | `MOCK_SEMAFOROS` | Estados y descripciones manuales. | Evaluar reglas backend y devolver evidencia. | `reglas_rendimiento`, `hallazgos_tecnico` | Alta |
-| mismo archivo | `MOCK_FASE` | Fase, motivo, fechas y responsable ficticios. | Persistir estado vigente e historial. | `rendimiento_tecnico`, `historial_estados_tecnico` | Alta |
+| mismo archivo | `MOCK_FASE` | Fase, motivo, fechas y responsable ficticios. | Persistir estado vigente e historial. | `rendimiento_tecnico_actual`, `rendimiento_tecnico_historial` | Alta |
 | mismo archivo | `MOCK_CURSOS` | Cursos y vencimientos ficticios. | Integrar fuente oficial o crear módulo de capacitación. | `cursos`, `tecnico_curso` (si se confirma alcance) | Media |
 | mismo archivo | `MOCK_HALLAZGOS` | Hallazgos y frecuencias manuales. | Generar desde reglas y permitir gestión auditada. | `hallazgos_tecnico` | Alta |
 | mismo archivo | `MOCK_RECOMENDACION` | Recomendación y prioridad manuales. | Persistir flujo de recomendación/seguimiento. | `recomendaciones_tecnico` | Alta |
 | `frontend/src/components/rendimiento/RendimientoTecnicoKpiCards.tsx` | Umbrales visuales 80%/50%; “día crítico” 0 o 1 corte | Regla vive en UI y no está aprobada. | Parametrizar/evaluar en backend; UI solo colorea estado recibido. | `reglas_rendimiento` | Alta |
-| `frontend/src/components/rendimiento/RendimientoTecnicoFaseSeguimiento.tsx` | Nombres/semántica de fases | Presentación incluye significado de negocio. | Catálogo de fases desde API; textos visuales pueden permanecer en UI si son solo copy. | `fases_rendimiento` | Media |
+| `frontend/src/components/rendimiento/RendimientoTecnicoFaseSeguimiento.tsx` | Nombres/semántica de fases | Presentación incluye significado de negocio. | Servir fase y estado desde API; los textos visuales pueden permanecer en UI si son solo copy. | `rendimiento_tecnico_actual` | Media |
 | `frontend/src/auth/supervisoresTemp.ts` | Usuarios, contraseñas, zonas, supervisor IDs, permisos CF | Seguridad y permisos dependen del cliente. | Eliminar fallback tras migrar usuarios, roles y asignaciones. | `usuarios_aplicacion`, asignaciones, permisos | Alta |
 | `frontend/src/pages/LoginPage.tsx` | Fallback local y bypass de administrador | Permite acceso sin autenticación backend. | Retirar cuando auth real esté validada. | No aplica; política de seguridad | Alta |
 | `backend/scripts/seed_users.py` | Usuarios y contraseña común `admin123` | Credenciales conocidas y IDs frágiles. | Seed solo para desarrollo, parametrizado y bloqueado en producción. | `usuarios_aplicacion` | Alta |
@@ -369,9 +357,9 @@ historial_estados_tecnico -> tecnico + regla/fase + usuario autor
 | mismo archivo | Flags de automatización siempre `true` | Configuración aparente pero no efectiva/persistente. | Persistir o retirar de UI hasta estar soportada. | `parametros_operacionales` | Alta |
 | `backend/app/cleaning_engine/rules.py` | Catálogo de medidas y fallidas | Cambiar clasificación requiere código/despliegue. | Llevar reglas estables a catálogo versionado; mantener código para algoritmo. | `tipos_actividad`, `motivos_visita_fallida`, reglas de clasificación | Alta |
 | mismo archivo | `PROCESO_A_ZONA`, `COMUNA_A_ZONA` | Maestro geográfico duplicado. | Resolver por IDs/catálogos BD. | `zonas`, `comunas`, `procesos_operacionales` | Alta |
-| mismo archivo | `USUARIO_ALIAS` con SAP/nombres | Correcciones personales dentro del código. | Maestro técnico y tabla de alias con auditoría. | `tecnicos`, `alias_tecnico` | Alta |
+| mismo archivo | `USUARIO_ALIAS` con SAP/nombres | Correcciones personales dentro del código. | Consolidar alias auditados sobre el maestro SAP existente. | `control_supervisor_usuarios_sap` | Alta |
 | `backend/sql/001_fase_2_base_datos_minima.sql` | Zonas, dotaciones, meta 30 y usuarios CF | Seed inicial mezclado con DDL y datos cambiantes. | Separar migración estructural de seed versionado. | Catálogos/metas/asignaciones | Alta |
-| `backend/sql/002`, `005`, `007`, `010` | Supervisores y maestro SAP | Varias versiones corrigen/duplican personas y asignaciones. | Importador idempotente a maestros con vigencia y validación. | `supervisores`, `tecnicos`, asignaciones | Alta |
+| `backend/sql/002`, `005`, `007`, `010` | Supervisores y maestro SAP | Varias versiones corrigen/duplican personas y asignaciones. | Importador idempotente al maestro SAP con vigencia y validación. | `control_supervisores`, `control_supervisor_usuarios_sap` | Alta |
 | `backend/app/models/cyr_models.py` | Defaults de 30, 6, horarios y umbrales CF | Defaults de esquema pueden contradecir negocio. | Dejar defaults técnicos mínimos; metas reales en tablas con vigencia. | Parámetros/metas | Alta |
 | `frontend/src/components/supervisor/SupervisorBitacoraLogic.ts` | Validaciones SAP, zona, patente y agregados | Se pueden omitir llamando directamente a API. | Duplicar solo validación UX; autoridad en backend/BD. | Maestros + constraints | Alta |
 
@@ -544,14 +532,14 @@ Se propone versionar como `/api/v1`. Si se mantiene el prefijo actual, los mismo
 
 | Método y endpoint | Objetivo | Retorna / recibe | Fuente principal | Cálculo | Prioridad |
 |---|---|---|---|---|---|
-| `GET /api/v1/productividad/tecnicos` | Buscar/listar técnicos con estado vigente. | Paginación, SAP, nombre, zona, supervisor, tipo, estado, fase, promedio. Filtros por fecha/zona/supervisor/estado. | `tecnicos`, asignaciones, `rendimiento_tecnico` | Agregado liviano | Alta |
-| `GET /api/v1/productividad/tecnicos/{id}/resumen` | Ficha KPI del período. | Productividad diaria/promedio/máxima, meta, cumplimiento, rachas, fallidas y estado. | `productividad_diaria`, metas, rendimiento | Sí | Alta |
-| `GET /api/v1/productividad/tecnicos/{id}/historial` | Serie diaria auditable. | Filas por fecha con numeradores, meta aplicada, cumplimiento y versión. | `productividad_diaria` | No o mínimo | Alta |
+| `GET /api/v1/productividad/tecnicos` | Buscar/listar técnicos con estado vigente. | Paginación, SAP, nombre, zona, supervisor, tipo, estado, fase, promedio. Filtros por fecha/zona/supervisor/estado. | `control_supervisor_usuarios_sap`, `rendimiento_tecnico_actual` | Agregado liviano | Alta |
+| `GET /api/v1/productividad/tecnicos/{id}/resumen` | Ficha KPI del período. | Productividad diaria/promedio/máxima, meta, cumplimiento, rachas, fallidas y estado. | `rendimiento_tecnico_diario`, `rendimiento_tecnico_actual` | Sí | Alta |
+| `GET /api/v1/productividad/tecnicos/{id}/historial` | Serie diaria auditable. | Filas por fecha con componentes, meta aplicada y cumplimiento. | `rendimiento_tecnico_diario` | No o mínimo | Alta |
 | `GET /api/v1/productividad/tecnicos/{id}/hallazgos` | Consultar hallazgos y evidencia. | Hallazgos abiertos/cerrados, nivel, regla, fechas y acción. | `hallazgos_tecnico` | No | Alta |
-| `GET /api/v1/productividad/tecnicos/{id}/estado-historial` | Trazar cambios de estado/fase. | Transiciones, motivo, regla y actor. | `historial_estados_tecnico` | No | Alta |
+| `GET /api/v1/productividad/tecnicos/{id}/estado-historial` | Trazar cambios de estado/fase. | Transiciones, motivo, regla y actor. | `rendimiento_tecnico_historial` | No | Alta |
 | `GET /api/v1/productividad/tecnicos/{id}/recomendaciones` | Seguimiento supervisor. | Recomendaciones, prioridad, estado y fechas. | `recomendaciones_tecnico` | No | Media |
 | `POST /api/v1/productividad/tecnicos/{id}/recomendaciones` | Registrar recomendación humana. | Recomendación creada. | `recomendaciones_tecnico` | Validación, no cálculo | Media |
-| `GET /api/v1/productividad/ranking` | Ranking comparable por período. | Posición, productividad, cumplimiento, fallidas y elegibilidad. | `productividad_diaria` | Sí; filtros y mínimo de días | Media |
+| `GET /api/v1/productividad/ranking` | Ranking comparable por período. | Posición, productividad, cumplimiento, fallidas y elegibilidad. | `rendimiento_tecnico_diario` | Sí; filtros y mínimo de días | Media |
 | `GET /api/v1/productividad/alertas` | Bandeja de técnicos que requieren acción. | Alerta, gravedad, evidencia, fase, responsable y antigüedad. | rendimiento, hallazgos, historial | Sí | Alta |
 | `GET /api/v1/productividad/zonas/{zona_id}` | Resumen de productividad de zona. | Totales, promedios, distribución de estados y fallidas. | productividad, zonas, jornadas | Sí | Media |
 | `GET /api/v1/productividad/reglas` | Consultar reglas vigentes y explicabilidad. | Versión, umbrales, ventana y vigencia. | `reglas_rendimiento`, fases, parámetros | No | Media |
@@ -659,14 +647,14 @@ Requisitos transversales:
 
 ## 13. Recomendación final
 
-Continuar con una modernización incremental, no con un refactor masivo. La primera decisión técnica debe ser establecer un **modelo canónico de técnicos, zonas, brigadas, actividades y metas con vigencia**. La primera decisión de negocio debe ser aprobar una ficha única de métricas: nombre, numerador, denominador, exclusiones, periodicidad, meta y responsable.
+Continuar con una modernización incremental, no con un refactor masivo. La identidad canónica del módulo es `control_supervisor_usuarios_sap.codigo_sap`; no se crea una tabla nueva de técnicos. Las reglas aprobadas usan exclusivamente cortes productivos, metas PXQ 25/CF 6, ausencias no evaluables y Fase 3 por tres advertencias activas en Fase 2.
 
 Orden recomendado:
 
-1. cerrar las 16 definiciones pendientes de la sección 4;
+1. cerrar las decisiones remanentes de la sección 4 sin reabrir las reglas ya aprobadas;
 2. corregir en una fase de seguridad separada las credenciales, bypass y autorización backend;
 3. inventariar y respaldar el esquema PostgreSQL real;
-4. crear maestros e historial sin eliminar legacy;
+4. validar las siete tablas aditivas y su integridad con los maestros legacy;
 5. implementar productividad en backend con pruebas contra datos dorados;
 6. conectar la UI y retirar mocks solo después de validar paridad;
 7. automatizar fases cuando las reglas hayan operado en modo sombra.

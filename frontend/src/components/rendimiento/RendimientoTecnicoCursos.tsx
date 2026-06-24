@@ -1,7 +1,7 @@
 import React from 'react';
 
 import type { CursoTecnico, EstadoCurso } from '../../types/rendimientoTecnico.types';
-import { MOCK_CURSOS, CONFIG_ESTADO_CURSO } from '../../data/rendimientoTecnico.mock';
+import { CONFIG_ESTADO_CURSO } from '../../data/rendimientoTecnico.config';
 
 // ── Mini KPI badge para el resumen ──────────────────────────────────────────
 interface ResumenCardProps {
@@ -111,8 +111,36 @@ interface RendimientoTecnicoCursosProps {
 }
 
 export const RendimientoTecnicoCursos: React.FC<RendimientoTecnicoCursosProps> = ({
-  cursos = MOCK_CURSOS,
+  cursos,
 }) => {
+  if (!cursos || cursos.length === 0) {
+    return (
+      <div>
+        <div style={{ marginBottom: '14px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+            <span style={{
+              width: '3px', height: '18px', borderRadius: '2px',
+              background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
+            }} />
+            <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              Cursos Realizados
+            </span>
+          </div>
+          <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '11px' }}>
+            Control visual de capacitaciones, cumplimiento y cursos pendientes del técnico.
+          </p>
+        </div>
+        <div style={{
+          padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)',
+          fontSize: '13px', background: 'var(--bg-panel)',
+          border: '1px dashed var(--border)', borderRadius: '8px',
+        }}>
+          Sin cursos registrados.
+        </div>
+      </div>
+    );
+  }
+
   const completados = cursos.filter(c => c.estado === 'Completado').length;
   const pendientes  = cursos.filter(c => c.estado === 'Pendiente').length;
   const vencidos    = cursos.filter(c => c.estado === 'Vencido').length;
@@ -165,11 +193,6 @@ export const RendimientoTecnicoCursos: React.FC<RendimientoTecnicoCursosProps> =
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Cursos Realizados
           </span>
-          <span style={{
-            fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-            background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-            color: 'var(--secondary)', fontWeight: 600, letterSpacing: '0.5px',
-          }}>MOCK</span>
         </div>
         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '11px' }}>
           Control visual de capacitaciones, cumplimiento y cursos pendientes del técnico.

@@ -1,13 +1,10 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../auth/AuthContext';
-import { USUARIOS_TEMP } from '../auth/supervisoresTemp';
 import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../api/client';
 
-// Using CSS variables globally defined in index.css
-
 export const LoginPage = () => {
-  const { loginAsSupervisor, loginAsAdmin } = useAuth();
+  const { login } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -18,33 +15,25 @@ export const LoginPage = () => {
     setError('');
 
     try {
-      // 1. Intentar login en el backend
       const response = await apiClient.post('/api/auth/login', {
         usuario: username,
         password: password
       });
 
       const { access_token, user } = response.data;
-      
-      // Guardar token
-      localStorage.setItem('torreControlToken', access_token);
-      
-      // 2. Fallback a USUARIOS_TEMP si el backend falla o el usuario no está en BD
-      const tempUser = USUARIOS_TEMP.find(u => u.usuario === user.usuario);
 
-      // Mapear user del backend a UsuarioApp del frontend preservando permisos legacy
+      localStorage.setItem('torreControlToken', access_token);
+
       const mappedUser = {
         id: String(user.id),
-        nombre: tempUser?.nombre || user.usuario,
+        nombre: user.usuario,
         usuario: user.usuario,
         rol: user.rol,
-        supervisorId: user.supervisor_id || tempUser?.supervisorId,
-        zonasAsignadas: tempUser?.zonasAsignadas,
-        tiposBrigadaPermitidos: tempUser?.tiposBrigadaPermitidos
+        supervisorId: user.supervisor_id,
       };
 
-      loginAsSupervisor(mappedUser as any);
-      
+      login(mappedUser as any);
+
       if (mappedUser.rol === 'supervisor') {
         navigate('/supervisor/bitacora');
       } else if (mappedUser.rol === 'torre_control') {
@@ -54,35 +43,10 @@ export const LoginPage = () => {
       } else {
         navigate('/torre-control/inicio-dia');
       }
-      return;
     } catch (err: any) {
-      console.warn("Backend login falló, intentando fallback local", err);
-      const supervisor = USUARIOS_TEMP.find(s => {
-        const decodedTargetPass = s.password && s.password === btoa('admin123') ? atob(s.password) : s.password;
-        return s.usuario === username && decodedTargetPass === password;
-      });
-      
-      if (supervisor) {
-        const { password: _, ...userWithoutPassword } = supervisor;
-        loginAsSupervisor(userWithoutPassword);
-        if (userWithoutPassword.rol === 'supervisor') {
-          navigate('/supervisor/bitacora');
-        } else if (userWithoutPassword.rol === 'torre_control') {
-          navigate('/torre-control/dashboard-cyr');
-        } else if (userWithoutPassword.rol === 'gerencia') {
-          navigate('/reporte-gerencial');
-        } else {
-          navigate('/torre-control/inicio-dia');
-        }
-      } else {
-        setError('Credenciales incorrectas');
-      }
+      console.warn("Backend login falló", err);
+      setError('Credenciales incorrectas');
     }
-  };
-
-  const handleAdminBypass = () => {
-    loginAsAdmin();
-    navigate('/torre-control/inicio-dia');
   };
 
   return (
@@ -94,7 +58,7 @@ export const LoginPage = () => {
       background: 'var(--bg-main)',
       color: 'var(--text-main)',
       fontFamily: 'var(--sans)',
-      padding: '1rem' // Added padding for mobile
+      padding: '1rem'
     }}>
       <div style={{
         background: 'var(--bg-panel)',
@@ -132,7 +96,7 @@ export const LoginPage = () => {
               }}
             />
           </div>
-          
+
           <div>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>Contraseña</label>
             <input
@@ -157,16 +121,6 @@ export const LoginPage = () => {
             Ingresar
           </button>
         </form>
-
-        <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: `1px solid var(--border)`, textAlign: 'center' }}>
-          <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginBottom: '1rem' }}>¿Eres administrador global?</p>
-          <button onClick={handleAdminBypass} style={{
-            padding: '0.6rem 1rem', background: 'transparent', color: 'var(--secondary)',
-            border: `1px solid rgba(0, 229, 255, 0.2)`, borderRadius: '8px', fontSize: '0.85rem', cursor: 'pointer'
-          }}>
-            Entrar como Administrador
-          </button>
-        </div>
       </div>
     </div>
   );

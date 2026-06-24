@@ -1,27 +1,31 @@
 import React, { useState, useMemo } from 'react';
 
 import type { TecnicoResumen, EstadoTecnico } from '../../types/rendimientoTecnico.types';
-import { MOCK_TECNICOS, COLOR_ESTADO_TECNICO as ESTADO_COLOR } from '../../data/rendimientoTecnico.mock';
+import { COLOR_ESTADO_TECNICO as ESTADO_COLOR } from '../../data/rendimientoTecnico.config';
 
 
 interface RendimientoTecnicoSelectorProps {
   selectedId: string | null;
   onSelect: (tecnico: TecnicoResumen) => void;
+  tecnicos: TecnicoResumen[];
+  loading?: boolean;
 }
 
 export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProps> = ({
   selectedId,
   onSelect,
+  tecnicos,
+  loading,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<EstadoTecnico | 'Todos'>('Todos');
   const [filterZona, setFilterZona] = useState<string>('Todas');
   const [filterFase, setFilterFase] = useState<string>('Todas');
 
-  const zonas = ['Todas', ...Array.from(new Set(MOCK_TECNICOS.map(t => t.zona)))];
+  const zonas = ['Todas', ...Array.from(new Set(tecnicos.map(t => t.zona)))];
 
   const filteredTecnicos = useMemo(() => {
-    return MOCK_TECNICOS.filter(t => {
+    return tecnicos.filter(t => {
       const matchSearch =
         t.nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
         t.codigoSap.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -34,7 +38,7 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
 
       return matchSearch && matchEstado && matchZona && matchFase;
     });
-  }, [searchTerm, filterEstado, filterZona, filterFase]);
+  }, [searchTerm, filterEstado, filterZona, filterFase, tecnicos]);
 
   return (
     <div style={{
@@ -118,7 +122,11 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
           Resultados ({filteredTecnicos.length})
         </div>
         
-        {filteredTecnicos.length === 0 ? (
+        {loading ? (
+          <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
+            Cargando técnicos…
+          </div>
+        ) : filteredTecnicos.length === 0 ? (
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
             No se encontraron técnicos.
           </div>

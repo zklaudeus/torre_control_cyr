@@ -1,7 +1,8 @@
 import React from 'react';
 
-import type { HallazgoTecnico } from '../../types/rendimientoTecnico.types';
-import { MOCK_HALLAZGOS, CONFIG_NIVEL_HALLAZGO } from '../../data/rendimientoTecnico.mock';
+import type { HallazgoTecnico, NivelHallazgo } from '../../types/rendimientoTecnico.types';
+import { CONFIG_NIVEL_HALLAZGO } from '../../data/rendimientoTecnico.config';
+import type { AlertaItemBackend } from '../../api/productividad.api';
 
 const HallazgoCard: React.FC<{ hallazgo: HallazgoTecnico }> = ({ hallazgo }) => {
   const cfg = CONFIG_NIVEL_HALLAZGO[hallazgo.nivel];
@@ -64,7 +65,31 @@ const HallazgoCard: React.FC<{ hallazgo: HallazgoTecnico }> = ({ hallazgo }) => 
   );
 };
 
-export const RendimientoTecnicoHallazgos: React.FC = () => {
+function mapAlertaAHallazgo(a: AlertaItemBackend): HallazgoTecnico {
+  const nivel: NivelHallazgo = a.estado === 'ACTIVA'
+    ? (a.fase_al_momento >= 3 ? 'Crítico' : a.fase_al_momento === 2 ? 'Advertencia' : 'Observación')
+    : 'Normal';
+  return {
+    id: String(a.id),
+    titulo: a.motivo,
+    nivel,
+    frecuencia: `${a.numero_advertencia ? `${a.numero_advertencia}ª advertencia` : 'Registrado'} - ${new Date(a.fecha_registro).toLocaleDateString('es-CL')}`,
+    detalle: a.motivo,
+    accionSugerida: a.motivo_anulacion ?? 'Revisar causas y realizar seguimiento.',
+  };
+}
+
+interface RendimientoTecnicoHallazgosProps {
+  alertas?: AlertaItemBackend[];
+}
+
+export const RendimientoTecnicoHallazgos: React.FC<RendimientoTecnicoHallazgosProps> = ({
+  alertas,
+}) => {
+  const hallazgos: HallazgoTecnico[] | null = alertas && alertas.length > 0
+    ? alertas.map(mapAlertaAHallazgo)
+    : null;
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Encabezado */}
@@ -77,23 +102,27 @@ export const RendimientoTecnicoHallazgos: React.FC = () => {
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
             Hallazgos Recurrentes
           </span>
-          <span style={{
-            fontSize: '10px', padding: '2px 8px', borderRadius: '20px',
-            background: 'rgba(0,229,255,0.08)', border: '1px solid rgba(0,229,255,0.2)',
-            color: 'var(--secondary)', fontWeight: 600, letterSpacing: '0.5px',
-          }}>MOCK</span>
         </div>
         <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '11px' }}>
           Desviaciones operativas detectadas en el seguimiento del técnico.
         </p>
       </div>
 
-      {/* Lista de Hallazgos */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-        {MOCK_HALLAZGOS.map(h => (
-          <HallazgoCard key={h.id} hallazgo={h} />
-        ))}
-      </div>
+      {!hallazgos ? (
+        <div style={{
+          padding: '40px 20px', textAlign: 'center', color: 'var(--text-muted)',
+          fontSize: '13px', background: 'var(--bg-panel)',
+          border: '1px dashed var(--border)', borderRadius: '8px',
+        }}>
+          Sin hallazgos registrados.
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          {hallazgos.map(h => (
+            <HallazgoCard key={h.id} hallazgo={h} />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

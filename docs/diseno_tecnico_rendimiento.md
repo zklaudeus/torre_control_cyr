@@ -2,9 +2,9 @@
 
 **Proyecto:** Torre de Control CyR / EISESA  
 **Fecha:** 23 de junio de 2026  
-**Estado:** diseño previo a implementación  
+**Estado:** diseño materializado, migrado y validado en la base configurada
 **Documento funcional de referencia:** `docs/reglas_productividad_rendimiento.md`  
-**Alcance de esta etapa:** definir el diseño; no crear tablas, migraciones, endpoints ni cambios de frontend todavía.
+**Alcance de esta etapa:** modelos y migración aditiva aplicados y validados; aún no incluye endpoints ni cambios de frontend.
 
 ## 1. Objetivo del MVP
 
@@ -41,13 +41,13 @@ La solución debe conservar los datos utilizados para cada cálculo y permitir r
 - Estados Crítico, En recuperación, Estable y Alto desempeño.
 - Rachas de bajo 50% y cumplimiento de meta.
 - Activación automática de Fase 2.
+- Activación de Fase 3 al completar tres advertencias activas registradas por Torre de Control durante Fase 2.
 - Salida de fase con aprobación de Torre de Control.
 - Historial de cálculos y transiciones.
 - Filtros por cuenta SAP, supervisor, zona, tipo, estado y período.
 
 ### 2.2 Fuera del MVP inicial
 
-- Disparador automático de Fase 3.
 - Tratamiento diferente de visitas fallidas según causa.
 - Cursos/capacitaciones y vencimientos.
 - Semáforos de seguridad, calidad, protocolos y atención al cliente sin una fuente de datos real.
@@ -63,11 +63,11 @@ La solución debe conservar los datos utilizados para cada cálculo y permitir r
 3. Se agregará una cabecera de Bitácora para saber si la lista del supervisor está abierta o cerrada.
 4. La productividad se calculará y persistirá por cuenta SAP + fecha operacional.
 5. Los cálculos serán idempotentes: recalcular los mismos datos no generará duplicados.
-6. Las metas y reglas tendrán versión/vigencia para no cambiar silenciosamente la historia.
+6. Cada snapshot conservará `meta_aplicada` y el historial conservará `regla_disparadora`; una tabla general de versionado de reglas queda diferida.
 7. Las métricas diarias y el estado vigente estarán separados.
 8. Las transiciones de estado/fase tendrán historial inmutable.
 9. No se expondrán endpoints de productividad sin autenticación.
-10. Fase 3 permanecerá manual/no automatizada hasta cerrar sus reglas.
+10. Fase 3 se activa al registrar la tercera advertencia activa en Fase 2; las advertencias son acciones explícitas de Torre de Control.
 
 ## 4. Mapeo de fuentes actuales
 
@@ -84,7 +84,7 @@ La solución debe conservar los datos utilizados para cada cálculo y permitir r
 | Corte poste | `control_brigadas_diario` | `corte_en_poste` | Suma productividad. |
 | Corte empalme | `control_brigadas_diario` | `corte_en_empalme` | Suma productividad, pero hoy puede incluir desmantelamientos. |
 | Fuera de rango | `control_brigadas_diario` | `corte_fuera_de_rango` | Suma productividad y debe dejar de contar también como reconexión. |
-| Fallidas | `control_brigadas_diario` | `visita_fallida` | Se resta de cortes productivos. |
+| Fallidas | `control_brigadas_diario` | `visita_fallida` | Se conserva para análisis; no descuenta cortes productivos. |
 | Supervisor | Maestro SAP/comuna | `supervisor_id` | La tabla diaria no lo persiste actualmente; debe quedar explícito. |
 | Estado del día | `reportes_cyr` | `estado` | No representa de forma suficiente el cierre de cada supervisor. |
 
@@ -97,7 +97,7 @@ Hoy la ausencia de una cuenta puede significar permiso/licencia o simplemente qu
 Se necesita una cabecera diaria por supervisor con estado:
 
 ```text
-BORRADOR -> CERRADA
+ABIERTA -> CERRADA_TC
 ```
 
 Una reapertura, si se permite, debe registrar actor, fecha y motivo, e invalidar/recalcular las métricas afectadas.
@@ -126,95 +126,69 @@ Debe existir una sola evaluación por cuenta SAP y fecha. Antes de crear la rest
 
 `control_brigadas_diario` no tiene `supervisor_id`. El MVP debe registrar el supervisor responsable al momento de crear la lista, no inferirlo después desde el maestro actual.
 
-## 6. Modelo de datos mínimo propuesto
+## 6. Modelo de datos final de la primera migración
 
-Los nombres son tentativos y se validarán antes de crear migraciones.
+La primera migración crea siete tablas del módulo y reutiliza los maestros y parámetros existentes. Los identificadores propios del módulo son `BIGSERIAL`; las referencias a tablas legacy conservan `INTEGER`, porque sus PK actuales son `SERIAL`.
 
-### 6.1 `tecnicos`
+### 6.1 `control_supervisor_usuarios_sap` (Maestro existente)
 
-Maestro canónico de cuentas SAP.
+Maestro canónico de cuentas SAP. No se creará una tabla nueva de técnicos, se reutilizará esta.
 
-| Columna | Tipo sugerido | Regla |
+| Columna | Tipo actual | Regla |
 |---|---|---|
-| `id` | `bigserial` | PK. |
-| `cuenta_sap` | `varchar(50)` | Única, obligatoria; corresponde inicialmente al `codigo_sap` actual. |
-| `nombre` | `varchar(150)` | Solo presentación. |
-| `activo` | `boolean` | Default `true`. |
-| `created_at`, `updated_at` | `timestamptz` | Auditoría técnica. |
+| `codigo_sap` | `varchar` | Clave técnica del MVP y de negocio. Identifica unívocamente a la unidad productiva. |
+| `usuario` / `cuenta` | `varchar` | Solo presentación/nombre visible. |
+
+La migración agrega un índice único parcial sobre `codigo_sap` para impedir que una cuenta SAP esté activa bajo más de un supervisor. No se declara una FK directa desde las tablas de rendimiento a `codigo_sap`, porque el esquema legacy no posee una restricción única global utilizable como destino de FK.
 
 ### 6.2 `bitacoras_supervisor_diarias`
 
 Cabecera que vuelve confiable la presencia/ausencia.
 
-| Columna | Tipo sugerido | Regla |
+| Columna | Tipo final | Regla |
 |---|---|---|
 | `id` | `bigserial` | PK. |
 | `fecha_operacional` | `date` | Obligatoria. |
-| `supervisor_id` | `bigint` | FK a supervisor. |
-| `estado` | `varchar(20)` | `BORRADOR` o `CERRADA`. |
-| `cerrada_at` | `timestamptz` | Nulo mientras esté abierta. |
-| `cerrada_por_usuario_id` | `bigint` | Actor del cierre. |
-| `reabierta_at`, `reabierta_por` | nullable | Si se autoriza reapertura. |
-| `motivo_reapertura` | `text` | Obligatorio al reabrir. |
+| `supervisor_id` | `integer` | FK a `control_supervisores.id`. |
+| `estado` | `varchar(50)` | `ABIERTA` o `CERRADA_TC`. |
+| `fecha_apertura` / `fecha_cierre` | `timestamptz` | El cierre es nulo mientras está abierta. |
+| `cerrada_por_id` | `integer` | FK a `control_usuarios.id`; obligatorio al cerrar. |
+| `created_at` / `updated_at` | `timestamptz` | Auditoría técnica. |
 
 Restricción única: `fecha_operacional + supervisor_id`.
 
-Las filas de `control_brigadas_diario` deben vincularse posteriormente mediante `bitacora_supervisor_diaria_id` y conservar `supervisor_id` como snapshot.
+### 6.3 `rendimiento_tecnico_ausencias`
 
-### 6.3 `reglas_productividad`
+Registra la justificación que convierte una fecha en no evaluable sin romper ni reiniciar rachas. Conserva `codigo_sap`, fecha, causa controlada, actor y timestamps. Su unicidad es `codigo_sap + fecha_operacional`.
 
-Versiona metas y umbrales.
-
-| Columna | Tipo sugerido | Regla |
-|---|---|---|
-| `id` | `bigserial` | PK. |
-| `version` | `integer` | Versión creciente. |
-| `tipo_brigada` | `varchar(10)` | PXQ o CF. |
-| `meta_diaria` | `integer` | PXQ 25; CF 6. |
-| `critico_max` | `integer` | PXQ 12; CF 2. |
-| `recuperacion_min/max` | `integer` | PXQ 13/24; CF 3/5. |
-| `estable_min/max` | `integer nullable` | PXQ 25/29; CF 6/sin máximo. |
-| `dias_alto_desempeno` | `integer` | 3. |
-| `dias_fase_2` | `integer` | 3. |
-| `vigente_desde`, `vigente_hasta` | `date` | Evita reescribir historia. |
-| `activo` | `boolean` | Solo una versión vigente por tipo/fecha. |
-
-### 6.4 `productividad_diaria`
+### 6.4 `rendimiento_tecnico_diario`
 
 Snapshot reproducible por cuenta SAP y fecha.
 
-| Columna | Tipo sugerido | Regla |
+| Columna | Tipo final | Regla |
 |---|---|---|
 | `id` | `bigserial` | PK. |
 | `fecha_operacional` | `date` | Parte de unicidad. |
-| `tecnico_id` | `bigint` | FK a `tecnicos`. |
-| `brigada_diaria_id` | `bigint nullable` | FK al registro legacy cuando estuvo presente. |
-| `bitacora_id` | `bigint` | Cabecera cerrada usada para evaluar. |
-| `supervisor_id` | `bigint` | Snapshot del responsable. |
-| `zona` / `zona_id` | según etapa | Snapshot de zona. |
-| `tipo_brigada` | `varchar(10)` | PXQ o CF. |
-| `presente_bitacora` | `boolean` | Fuente de operatividad. |
-| `evaluable` | `boolean` | Solo lunes–viernes y Bitácora cerrada/presente. |
-| `motivo_no_evaluable` | `varchar(50)` | Ej. `AUSENTE_BITACORA`, `FIN_SEMANA`, `DATOS_INCOMPLETOS`. |
-| `carga_asignada` | `integer nullable` | Informativa; no tiene mínimo. |
-| `corte_poste` | `integer` | >= 0. |
-| `corte_empalme` | `integer` | >= 0, sin desmantelamiento. |
-| `corte_fuera_rango` | `integer` | >= 0. |
-| `desmantelamiento` | `integer` | Se registra pero no suma. |
-| `visitas_fallidas` | `integer` | >= 0. |
-| `cortes_efectivos` | `integer` | Poste + empalme + fuera de rango. |
-| `productividad_neta` | `integer` | `max(0, cortes_efectivos - fallidas)`. |
+| `codigo_sap` / `usuario` | `varchar` | Identidad técnica y nombre visible del snapshot. |
+| `supervisor_id` | `integer nullable` | FK a `control_supervisores.id`; snapshot del responsable. |
+| `zona` / `tipo_brigada` | `varchar nullable` | Snapshot operacional; tipo restringido a PXQ o CF. |
+| `bitacora_id` | `bigint nullable` | FK a la cabecera usada para evaluar; obligatorio cuando `es_evaluable=true`. |
+| `ausencia_id` | `bigint nullable` | FK a la justificación, solo para días no evaluables. |
+| `es_evaluable` | `boolean` | Los días evaluables requieren estado y no pueden tener motivo/ausencia. |
+| `estado_diario` | `varchar(50) nullable` | Crítico, recuperación, estable o alto desempeño. |
+| `motivo_no_evaluable` | `varchar(100) nullable` | Obligatorio cuando `es_evaluable=false`. |
+| `corte_en_poste` / `corte_en_empalme` / `corte_fuera_de_rango` | `integer` | Componentes no negativos. |
+| `visita_fallida` / `reconexiones` | `integer` | Métricas analíticas; no descuentan productividad. |
+| `cortes_productivos` | `integer` | Poste + empalme + fuera de rango. |
 | `meta_aplicada` | `integer` | Snapshot de regla. |
 | `cumplimiento_pct` | `numeric(7,2)` | Cortes productivos / meta × 100. |
-| `bajo_50` | `boolean` | Facilita rachas auditables. |
-| `cumple_meta` | `boolean` | Cortes productivos >= meta. |
-| `regla_productividad_id` | `bigint` | Versión utilizada. |
-| `calculado_at` | `timestamptz` | Timestamp. |
-| `estado_calculo` | `varchar(20)` | `VALIDO`, `PENDIENTE`, `ERROR`. |
+| `created_at` / `updated_at` | `timestamptz` | Auditoría técnica. |
 
-Restricción única: `fecha_operacional + tecnico_id`.
+Restricción única: `fecha_operacional + codigo_sap`.
 
-Se recomienda crear fila no evaluable para las cuentas activas del supervisor que no aparecen en la Bitácora cerrada. Esto permite explicar la ausencia sin incorporarla a promedios ni rachas. La causa específica permiso/licencia no se inventa: se registra inicialmente como `AUSENTE_BITACORA`.
+Las referencias a ausencia y Bitácora usan FKs compuestas para garantizar que correspondan al mismo SAP/fecha y supervisor del snapshot.
+
+Se crea una fila no evaluable para las cuentas activas del supervisor que no aparecen en la Bitácora cerrada. La causa específica se conserva mediante `rendimiento_tecnico_ausencias`; esa fila no se incorpora a promedios ni rachas.
 
 ### 6.5 `rendimiento_tecnico_actual`
 
@@ -222,33 +196,64 @@ Snapshot de consulta rápida.
 
 | Columna | Contenido |
 |---|---|
-| `tecnico_id` | PK/FK. |
-| `estado_actual` | Crítico, En recuperación, Estable o Alto desempeño. |
-| `fase_actual` | 1, 2 o 3. Fase 3 no se activa automáticamente en MVP. |
+| `codigo_sap` | PK. |
+| `estado_productivo_actual` | Sin evaluación, Crítico, En recuperación, Estable o Alto desempeño. |
+| `fase_actual` | 1, 2 o 3. |
 | `dias_consecutivos_bajo_50` | Racha vigente. |
-| `dias_consecutivos_cumple_meta` | Racha para Alto desempeño. |
-| `productividad_promedio` | Ventana solicitada. |
-| `mejor_productividad` | Máximo y fecha. |
-| `ultima_fecha_evaluable` | Último día usado. |
-| `regla_productividad_id` | Versión vigente usada. |
+| `dias_consecutivos_alto_desempeno` | Racha de cumplimiento de meta. |
+| `advertencias_fase2` | Advertencias activas contabilizadas en Fase 2. |
+| `fecha_ultima_evaluacion` | Último día evaluable procesado. |
 | `updated_at` | Último recálculo. |
 
-### 6.6 `historial_rendimiento_tecnico`
+### 6.6 `rendimiento_tecnico_historial`
 
 | Columna | Contenido |
 |---|---|
 | `id` | PK. |
-| `tecnico_id` | Cuenta afectada. |
-| `fecha_evento` | Momento de transición. |
+| `codigo_sap` | Cuenta afectada. |
+| `fecha_cambio` | Momento de transición. |
+| `tipo_cambio` | Fase, estado, override, advertencia o recálculo. |
 | `estado_anterior/nuevo` | Trazabilidad de estado. |
 | `fase_anterior/nueva` | Trazabilidad de fase. |
 | `motivo` | Regla o aprobación. |
-| `productividad_diaria_id` | Evidencia disparadora. |
-| `automatico` | Regla o acción humana. |
-| `usuario_actor_id` | Obligatorio para aprobaciones/overrides. |
-| `version_regla` | Reproducibilidad. |
+| `usuario_id` | FK a `control_usuarios`; obligatorio para overrides manuales. |
+| `regla_disparadora` | Identificador textual de la regla aplicada. |
 
-### 6.7 `recalculos_productividad`
+### 6.7 `rendimiento_tecnico_advertencias`
+
+Registra advertencias formales activas o anuladas, sus actores y la consistencia de anulación. La tercera advertencia activa registrada mientras el técnico está en Fase 2 activa Fase 3.
+
+### 6.8 `rendimiento_tecnico_causas_fallidas`
+
+Persiste el detalle de las causas de fallidas para análisis gerencial.
+
+| Columna | Contenido |
+|---|---|
+| `id` | PK. |
+| `fecha_operacional` | Obligatoria. |
+| `codigo_sap` | Obligatorio. |
+| `rendimiento_diario_id` | FK a tabla de productividad diaria. |
+| `causa_fallida` | Obligatoria. |
+| `cantidad` | Obligatoria y mayor que cero. |
+| `observacion` | Opcional. |
+| `origen` | Opcional. |
+
+Restricción única: `fecha_operacional + codigo_sap + causa_fallida`.
+La suma de `cantidad` debe coincidir con `rendimiento_tecnico_diario.visita_fallida` para el mismo `codigo_sap` y `fecha_operacional`. Esta validación debe hacerse en el servicio backend, NO mediante un CHECK de base de datos porque cruza tablas.
+Cuando `rendimiento_diario_id` está presente, una FK compuesta garantiza que el ID, SAP y fecha correspondan al mismo snapshot.
+
+### 6.9 Tablas finales oficiales
+
+El módulo se compone de las siguientes tablas nuevas oficiales (sin contar parametrización):
+- `bitacoras_supervisor_diarias`
+- `rendimiento_tecnico_ausencias`
+- `rendimiento_tecnico_diario`
+- `rendimiento_tecnico_actual`
+- `rendimiento_tecnico_historial`
+- `rendimiento_tecnico_advertencias`
+- `rendimiento_tecnico_causas_fallidas`
+
+### 6.10 `recalculos_productividad` (diferido)
 
 Audita ejecuciones manuales o por rango: solicitante, fechas, versión, estado, cantidad de filas, errores e inicio/fin. Puede omitirse en la primera migración si el recálculo se limita estrictamente a un día y queda registrado en logs estructurados.
 
@@ -256,16 +261,18 @@ Audita ejecuciones manuales o por rango: solicitante, fechas, versión, estado, 
 
 ```text
 supervisor
-  └── bitacora_supervisor_diaria (fecha, estado)
-        └── control_brigadas_diario (lista de cuentas presentes)
+  └── bitacoras_supervisor_diarias (fecha, estado)
+        └── rendimiento_tecnico_diario (snapshot evaluable/no evaluable)
 
-tecnico (cuenta SAP)
-  ├── productividad_diaria (una por fecha)
+control_supervisor_usuarios_sap (codigo_sap)
+  ├── rendimiento_tecnico_diario (una por fecha)
   ├── rendimiento_tecnico_actual (una vigente)
-  └── historial_rendimiento_tecnico (muchas transiciones)
+  ├── rendimiento_tecnico_historial (muchas transiciones)
+  ├── rendimiento_tecnico_advertencias (acciones formales)
+  └── rendimiento_tecnico_ausencias (justificaciones)
 
-reglas_productividad
-  └── productividad_diaria (versión utilizada)
+rendimiento_tecnico_diario
+  └── rendimiento_tecnico_causas_fallidas (detalle analítico)
 ```
 
 ## 8. Algoritmo de cálculo
@@ -274,20 +281,19 @@ reglas_productividad
 
 1. Recibir `fecha_operacional` y supervisor/alcance.
 2. Verificar que la fecha sea lunes–viernes.
-3. Verificar que la Bitácora del supervisor esté `CERRADA`.
+3. Verificar que la Bitácora del supervisor esté `CERRADA_TC`.
 4. Obtener todas las cuentas activas asignadas al supervisor.
 5. Compararlas con las filas de `control_brigadas_diario` de la fecha.
 6. Para cada cuenta presente:
-   - marcar `presente_bitacora=true`, `evaluable=true`;
+   - marcar `es_evaluable=true` y asociar `bitacora_id`;
    - resolver tipo PXQ/CF y regla vigente;
    - leer poste, empalme, fuera de rango y fallidas;
    - excluir desmantelamiento;
    - calcular cortes productivos;
-   - calcular cortes productivos;
-   - calcular cumplimiento y flags.
+   - calcular cumplimiento y estado diario.
 7. Para cada cuenta activa ausente de la lista cerrada:
-   - crear/actualizar snapshot `evaluable=false`;
-   - usar motivo `AUSENTE_BITACORA`;
+   - crear/actualizar snapshot `es_evaluable=false`;
+   - asociar la justificación de `rendimiento_tecnico_ausencias` y un motivo no evaluable;
    - no sumar cero ni modificar rachas productivas.
 8. Hacer upsert por fecha+cuenta dentro de una transacción.
 9. Recalcular rachas y rendimiento actual desde días evaluables ordenados.
@@ -296,21 +302,20 @@ reglas_productividad
 ### 8.2 Fórmulas
 
 ```text
-cortes_efectivos =
+cortes_productivos =
   corte_poste + corte_empalme + corte_fuera_rango
 
-productividad_neta =
-  max(0, cortes_efectivos - visitas_fallidas)
-
 cumplimiento_pct =
-  productividad_neta / meta_aplicada * 100
+  cortes_productivos / meta_aplicada * 100
 
 bajo_50 =
   cumplimiento_pct < 50
 
 cumple_meta =
-  productividad_neta >= meta_aplicada
+  cortes_productivos >= meta_aplicada
 ```
+
+Las visitas fallidas NO descuentan productividad, NO afectan categoría, NO afectan fase, y NO afectan rachas. Se usan solo para análisis, causas, acumulados y tendencia.
 
 ### 8.3 Estados
 
@@ -332,10 +337,9 @@ cumple_meta =
 
 ### 8.4 Rachas
 
-- Solo se recorren filas `evaluable=true`.
+- Solo se recorren filas `es_evaluable=true`.
 - Sábado y domingo no crean filas evaluables ni rompen la secuencia.
-- Una cuenta ausente no suma un día malo.
-- Está pendiente decidir si una ausencia entre dos días evaluables suspende o reinicia la racha.
+- Una ausencia es día no evaluable: no suma cero, no rompe racha, no suspende racha, no reinicia racha.
 - Tres días evaluables consecutivos con `bajo_50=true` activan Fase 2.
 - Tres días evaluables consecutivos con `cumple_meta=true` activan Alto desempeño.
 
@@ -345,7 +349,8 @@ cumple_meta =
 - El sistema puede subir automáticamente de Fase 1 a Fase 2.
 - No puede bajar automáticamente de fase.
 - Torre de Control aprueba la salida con motivo obligatorio.
-- Fase 3 no se calcula automáticamente en el MVP.
+- Fase 3 se activa por advertencias de Torre Control. Si un técnico está en Fase 2 y acumula 3 advertencias activas, pasa a Fase 3.
+- Las fallidas no activan Fase 3 automáticamente.
 - Toda transición crea historial.
 
 ## 9. Momentos de recálculo
@@ -370,8 +375,7 @@ Torre de Control/Admin puede recalcular una fecha o rango limitado. Debe registr
 
 ```text
 ProductividadCalculator
-  - calcular_cortes_efectivos(...)
-  - calcular_productividad_neta(...)
+  - calcular_cortes_productivos(...)
   - calcular_cumplimiento(...)
 
 CalendarioProductividadPolicy
@@ -438,7 +442,7 @@ Se conserva el estilo actual `/api` para minimizar cambios. El versionado `/api/
 
 ### 11.2 Historial diario esperado
 
-Cada fila debe devolver como mínimo fecha, presencia, evaluable, motivo, tipo, meta, cortes por tipo, fallidas, cortes productivos, cumplimiento, flags y versión de regla.
+Cada fila debe devolver como mínimo fecha, evaluabilidad, motivo, tipo, meta aplicada, cortes por tipo, fallidas, cortes productivos, cumplimiento, estado diario y referencias de ausencia/Bitácora.
 
 ## 12. Autorización
 
@@ -455,28 +459,28 @@ El backend debe aplicar el alcance. Ocultar botones en React no es una medida de
 
 | ID | Escenario | Entrada principal | Resultado esperado |
 |---|---|---|---|
-| CP-01 | PXQ normal | Poste 10, empalme 8, FDR 2, fallidas 3 | Efectivos 20; neta 17; 68%; En recuperación. |
-| CP-02 | Piso cero | Efectivos 4, fallidas 9 | Neta 0; 0%; Crítico. |
-| CP-03 | Desmantelamiento | Solo 5 desmantelamientos | Efectivos 0; neta 0. |
-| CP-04 | Fuera de rango | FDR 4 | Suma 4 cortes; no suma reconexión. |
-| CP-05 | CF recuperación | Neta 4 | En recuperación. |
-| CP-06 | CF estable inicial | Neta 6, primera fecha | Estable; racha meta 1. |
-| CP-07 | CF alto desempeño | Neta >= 6 en 3 evaluables consecutivos | Alto desempeño; racha 3. |
-| CP-08 | PXQ estable | Neta 27 | Estable según rango aprobado. |
+| CP-01 | PXQ normal | Poste 10, empalme 8, FDR 2, fallidas 3 | Productivos 20; 80%; En recuperación. |
+| CP-02 | Piso cero | Productivos 4, fallidas 9 | Productivos 4; 16%; Crítico. (Fallidas solo análisis) |
+| CP-03 | Desmantelamiento | Solo 5 desmantelamientos | Productivos 0; 0%; Crítico. |
+| CP-04 | Fuera de rango | FDR 4 | Suma 4 cortes productivos; no suma reconexión. |
+| CP-05 | CF recuperación | Productivos 4 | En recuperación. |
+| CP-06 | CF estable inicial | Productivos 6, primera fecha | Estable; racha meta 1. |
+| CP-07 | CF alto desempeño | Productivos >= 6 en 3 evaluables consecutivos | Alto desempeño; racha 3. |
+| CP-08 | PXQ estable | Productivos 27 | Estable según rango aprobado. |
 | CP-09 | Cuenta ausente | Bitácora cerrada sin esa cuenta | No evaluable; motivo `AUSENTE_BITACORA`; no suma cero. |
 | CP-10 | Bitácora abierta | Cuenta aún no cargada | No calcular ausencia ni estado. |
 | CP-11 | Carga cero | Cuenta presente, carga 0 | Evaluable; productividad según resultados. |
 | CP-12 | Fin de semana | Cuenta presente un sábado | No evaluable. |
 | CP-13 | Racha con fin de semana | Jueves, viernes y lunes cumplen meta | Tres evaluables consecutivos; Alto desempeño. |
-| CP-14 | Fase 2 PXQ | Tres evaluables seguidos con neta <= 12 | Fase 2 automática una sola vez. |
-| CP-15 | Fase 2 CF | Tres evaluables seguidos con neta <= 2 | Fase 2 automática una sola vez. |
+| CP-14 | Fase 2 PXQ | Tres evaluables seguidos con bajo 50% | Fase 2 automática una sola vez. |
+| CP-15 | Fase 2 CF | Tres evaluables seguidos con bajo 50% | Fase 2 automática una sola vez. |
 | CP-16 | Salida fase | Usuario no TC intenta bajar fase | 403; sin cambios. |
 | CP-17 | Cambio patente | Mismo SAP/fecha, patente nueva | Misma evaluación diaria. |
 | CP-18 | Cambio carga | Mismo SAP/fecha, carga modificada | Misma evaluación; snapshot actualizado y auditable. |
 | CP-19 | Duplicado | Dos filas para SAP/fecha | Rechazo o conciliación explícita; nunca doble productividad. |
 | CP-20 | Recálculo repetido | Ejecutar dos veces mismos datos | Una fila diaria; mismo resultado. |
 | CP-21 | Cambio de regla | Recalcular con versión nueva autorizada | Resultado vinculado a nueva versión; historia explicable. |
-| CP-22 | PXQ 30+ sin racha | Neta 31, primer día | Pendiente de definición de estado; métrica se persiste correctamente. |
+| CP-22 | PXQ 30+ sin racha | Productivos 31, primer día | Pendiente de definición de estado; métrica se persiste correctamente. |
 
 ## 14. Pruebas técnicas
 
@@ -615,7 +619,7 @@ Si se mantiene temporalmente la estructura plana actual, las mismas responsabili
 9. Tres días bajo 50% activan Fase 2 una sola vez.
 10. Tres días cumpliendo meta activan Alto desempeño.
 11. La salida de fase exige Torre de Control y motivo.
-12. Toda cifra diaria muestra sus componentes y versión de regla.
+12. Toda cifra diaria muestra sus componentes y `meta_aplicada`; las transiciones conservan `regla_disparadora`.
 13. El recálculo es idempotente.
 14. Supervisor no accede a cuentas ajenas.
 15. Los casos dorados reales coinciden con la plataforma.
@@ -625,19 +629,17 @@ Si se mantiene temporalmente la estructura plana actual, las mismas responsabili
 Estas decisiones no bloquean la creación de tablas de métricas, pero deben cerrarse antes de activar todo el semáforo:
 
 1. Estado PXQ para cortes productivos >= 30 antes de completar la racha de Alto desempeño.
-2. Si una ausencia no evaluable suspende o reinicia una racha previa.
-3. Disparador y salida exactos de Fase 3.
-4. Tratamiento por causa de visita fallida.
-5. Flujo detallado de reapertura/cierre de Bitácora.
-6. Período histórico disponible para reprocesar desmantelamientos.
-7. Fuente formal para distinguir permiso de licencia médica, si se requiere mostrar la causa.
+2. Catálogo y normalización de las causas de visita fallida para análisis; ninguna causa descuenta productividad.
+3. Flujo detallado de reapertura/cierre de Bitácora.
+4. Período histórico disponible para reprocesar desmantelamientos.
+5. Fuente formal para distinguir permiso de licencia médica, si se requiere mostrar la causa.
 
 ## 20. Próximo paso
 
-Revisar y aprobar este diseño con negocio y el responsable de base de datos. Después de esa aprobación, la primera implementación debe limitarse a:
+Con la revisión DBA y la migración completadas, la siguiente implementación debe limitarse a:
 
 1. auditoría de datos;
-2. migraciones aditivas y reversibles;
+2. implementar la calculadora pura y su persistencia transaccional;
 3. calculadora pura con pruebas;
 4. cálculo de una fecha real en entorno de prueba.
 
