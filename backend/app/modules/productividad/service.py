@@ -10,11 +10,16 @@ from sqlalchemy import func, and_
 from app.core.security import get_zonas_permitidas_supervisor
 from app.models.cyr_models import (
     ControlUsuarios,
+    ControlBrigadasDiario,
     RendimientoTecnicoDiario,
     RendimientoTecnicoActual,
     RendimientoTecnicoAdvertencia,
     RendimientoTecnicoCausaFallida,
     ControlSupervisores,
+)
+from app.core.brigadas import (
+    condicion_rendimiento_con_brigada_contabilizable,
+    es_brigada_contabilizable,
 )
 from app.models.domain_models import DimSap
 from app.modules.productividad.repository import ProductividadRepository
@@ -219,9 +224,11 @@ class ProductividadService:
         # La fila más reciente prevalece ante duplicados históricos SAP/fecha.
         por_fecha = {b.fecha_operacional: b for b in brigadas}
         filas = [por_fecha[f] for f in sorted(por_fecha)]
+        # Brigadas inactivas son invisibles para indicadores:
+        # el registro queda en la bitácora pero no aporta a KPIs ni al período.
         filas_operativas = [
             b for b in filas
-            if (b.estado_brigada or "").lower() != "inactiva"
+            if es_brigada_contabilizable(b)
         ]
         periodo = [
             b for b in filas_operativas
@@ -231,7 +238,10 @@ class ProductividadService:
             (b, calcular_metricas_brigada(b)) for b in periodo
         ]
 
-        fila_dia = por_fecha.get(fecha_hasta)
+        filas_operativas_por_fecha = {
+            b.fecha_operacional: b for b in filas_operativas
+        }
+        fila_dia = filas_operativas_por_fecha.get(fecha_hasta)
         metrica_dia = calcular_metricas_brigada(fila_dia) if fila_dia else None
         total_cortes = sum(m["cortes_productivos"] for _, m in metricas_periodo)
         total_meta = sum(m["meta_aplicada"] for _, m in metricas_periodo)
@@ -352,7 +362,13 @@ class ProductividadService:
                 ).label("tecnicos_evaluables"),
                 func.avg(RendimientoTecnicoDiario.cumplimiento_pct).label("promedio_cumplimiento"),
             )
-            .filter(RendimientoTecnicoDiario.fecha_operacional == fecha)
+            .filter(
+                RendimientoTecnicoDiario.fecha_operacional == fecha,
+                condicion_rendimiento_con_brigada_contabilizable(
+                    RendimientoTecnicoDiario,
+                    ControlBrigadasDiario,
+                ),
+            )
         )
         if supervisor_id:
             q = q.filter(RendimientoTecnicoDiario.supervisor_id == supervisor_id)

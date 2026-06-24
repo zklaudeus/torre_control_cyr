@@ -16,12 +16,14 @@ export const useResumenGeneralDashboard = (fechaOperacional: string) => {
 
   const displayProgramacionData = useMemo(() => {
     const sums: Record<string, { corte: number; rec: number }> = {};
-    brigadasHook.originalBrigadas.forEach(b => {
+    brigadasHook.originalBrigadas
+      .filter(b => b.estado_brigada?.trim().toLowerCase() !== 'inactiva')
+      .forEach(b => {
       const key = `${b.zona}_${b.tipo_brigada}`;
       if (!sums[key]) sums[key] = { corte: 0, rec: 0 };
       sums[key].corte += Number(b.corte_programado) || 0;
       sums[key].rec += Number(b.reconexiones_programadas) || 0;
-    });
+      });
 
     return programacionData.map(p => {
       const key = `${p.zona}_${p.tipo_brigada}`;

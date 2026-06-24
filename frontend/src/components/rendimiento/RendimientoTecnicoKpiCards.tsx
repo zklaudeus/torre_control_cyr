@@ -24,6 +24,14 @@ const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'va
       cursor: onClick ? 'pointer' : 'default',
     }}
     onClick={onClick}
+    role={onClick ? 'button' : undefined}
+    tabIndex={onClick ? 0 : undefined}
+    onKeyDown={e => {
+      if (onClick && (e.key === 'Enter' || e.key === ' ')) {
+        e.preventDefault();
+        onClick();
+      }
+    }}
     onMouseEnter={e => {
       (e.currentTarget as HTMLDivElement).style.transform = 'translateY(-2px)';
       (e.currentTarget as HTMLDivElement).style.boxShadow = '0 6px 20px rgba(0,0,0,0.25)';
@@ -64,20 +72,46 @@ const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'va
   </div>
 );
 
-import type { RendimientoDiarioBackend } from '../../api/productividad.api';
+import type { RendimientoDiarioBackend, ResumenKpiTecnicoBackend } from '../../api/productividad.api';
 import type { RendimientoTecnicoKpiData } from '../../types/rendimientoTecnico.types';
+import { formatFecha } from '../../utils/formatFecha';
 
 interface RendimientoTecnicoKpiCardsProps {
   kpiData?: RendimientoDiarioBackend;
+  resumen?: ResumenKpiTecnicoBackend;
   loading?: boolean;
 }
 
-type ModalTipo = 'productividad' | 'fallidas' | null;
+type ModalTipo =
+  | 'productividad'
+  | 'promedio'
+  | 'mejor'
+  | 'cumplimiento'
+  | 'acumulado'
+  | 'bajo_meta'
+  | 'criticos'
+  | 'fallidas'
+  | null;
+
+const TITULOS_MODAL: Record<Exclude<ModalTipo, null>, string> = {
+  productividad: 'Detalle de productividad diaria',
+  promedio: 'Detalle de productividad promedio',
+  mejor: 'Detalle de mejor productividad',
+  cumplimiento: 'Detalle de cumplimiento',
+  acumulado: 'Detalle de cortes acumulados',
+  bajo_meta: 'Días bajo meta',
+  criticos: 'Días críticos',
+  fallidas: 'Detalle de fallidas / frustrados',
+};
+
+function formatNumero(valor: number): string {
+  return new Intl.NumberFormat('es-CL', { maximumFractionDigits: 1 }).format(valor);
+}
 
 function formatValor(data: RendimientoTecnicoKpiData, campo: keyof RendimientoTecnicoKpiData, sufijo: string = ''): string {
   const v = data[campo] as number;
   if (v === -1) return '—';
-  return `${v}${sufijo}`;
+  return `${formatNumero(v)}${sufijo}`;
 }
 
 function formatCausa(causa: string): string {
@@ -85,7 +119,11 @@ function formatCausa(causa: string): string {
   return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : 'Causa no informada';
 }
 
-function buildCards(data: RendimientoTecnicoKpiData, onProductividad: () => void, onFallidas: () => void) {
+function buildCards(
+  data: RendimientoTecnicoKpiData,
+  resumen: ResumenKpiTecnicoBackend | undefined,
+  onOpen: (tipo: Exclude<ModalTipo, null>) => void,
+) {
   const cumplimientoColor =
     data.cumplimientoPct === -1
       ? '#6b7280'
@@ -99,64 +137,85 @@ function buildCards(data: RendimientoTecnicoKpiData, onProductividad: () => void
     {
       titulo: 'Productividad diaria',
       valor: formatValor(data, 'productividadDiaria', ' cortes'),
-      subtitulo: 'Último día registrado',
+      subtitulo: formatFecha(resumen?.fecha_hasta, 'Fecha seleccionada'),
       color: 'var(--primary)',
-      onClick: onProductividad,
+      onClick: () => onOpen('productividad'),
     },
     {
       titulo: 'Productividad promedio',
       valor: formatValor(data, 'productividadPromedio', ' cortes'),
-      subtitulo: 'Período actual',
+      subtitulo: `${resumen?.dias_con_datos ?? 0} días del mes`,
       color: 'var(--primary)',
+      onClick: () => onOpen('promedio'),
     },
     {
       titulo: 'Mejor productividad',
       valor: formatValor(data, 'mejorProductividad', ' cortes'),
-      subtitulo: 'Máximo registrado',
+      subtitulo: formatFecha(resumen?.fecha_mejor_productividad, 'Sin fecha registrada'),
       color: '#22c55e',
+      onClick: () => onOpen('mejor'),
     },
     {
       titulo: 'Cumplimiento',
       valor: formatValor(data, 'cumplimientoPct', '%'),
-      subtitulo: 'Vs. meta diaria',
+      subtitulo: 'Vs. meta del día',
       color: cumplimientoColor,
+      onClick: () => onOpen('cumplimiento'),
     },
     {
       titulo: 'Total cortes acumulados',
       valor: formatValor(data, 'totalCortesAcumulados'),
-      subtitulo: 'Período actual',
+      subtitulo: 'Acumulado del mes',
       color: 'var(--secondary)',
+      onClick: () => onOpen('acumulado'),
     },
     {
       titulo: 'Días bajo meta',
       valor: `${data.diasBajoMeta}`,
-      subtitulo: 'Días con productividad baja',
+      subtitulo: 'Resultado menor a la meta',
       color: '#f59e0b',
+      onClick: () => onOpen('bajo_meta'),
     },
     {
       titulo: 'Días críticos',
       valor: `${data.diasCriticos}`,
-      subtitulo: 'Días con 0 o 1 corte',
+      subtitulo: 'Cumplimiento menor a 50%',
       color: '#ef4444',
+      onClick: () => onOpen('criticos'),
     },
     {
       titulo: 'Fallidas / frustrados',
       valor: `${data.fallidasFrustrados}`,
-      subtitulo: 'Visitas no concretadas',
+      subtitulo: formatFecha(resumen?.fecha_hasta, 'Fecha seleccionada'),
       color: '#ef4444',
-      onClick: onFallidas,
+      onClick: () => onOpen('fallidas'),
     },
   ];
 }
 
-function mapRendimientoToKpi(r: RendimientoDiarioBackend): RendimientoTecnicoKpiData {
-  const sinDatos = r.cortes_productivos === 0 && r.cumplimiento_pct === 0;
+function mapRendimientoToKpi(
+  r: RendimientoDiarioBackend | undefined,
+  resumen: ResumenKpiTecnicoBackend | undefined,
+): RendimientoTecnicoKpiData | null {
+  if (resumen) {
+    return {
+      productividadDiaria: resumen.productividad_diaria ?? -1,
+      productividadPromedio: resumen.productividad_promedio ?? -1,
+      mejorProductividad: resumen.mejor_productividad ?? -1,
+      cumplimientoPct: resumen.cumplimiento_diario_pct ?? -1,
+      totalCortesAcumulados: resumen.total_cortes_acumulados,
+      diasBajoMeta: resumen.dias_bajo_meta,
+      diasCriticos: resumen.dias_criticos,
+      fallidasFrustrados: resumen.fallidas_dia,
+    };
+  }
+  if (!r) return null;
   return {
-    productividadDiaria: sinDatos ? -1 : r.cortes_productivos,
-    productividadPromedio: sinDatos ? -1 : r.cortes_productivos,
-    mejorProductividad: sinDatos ? -1 : r.cortes_productivos,
-    cumplimientoPct: sinDatos ? -1 : Math.round(r.cumplimiento_pct),
-    totalCortesAcumulados: sinDatos ? -1 : r.cortes_productivos,
+    productividadDiaria: r.cortes_productivos,
+    productividadPromedio: r.cortes_productivos,
+    mejorProductividad: r.cortes_productivos,
+    cumplimientoPct: r.cumplimiento_pct,
+    totalCortesAcumulados: r.cortes_productivos,
     diasBajoMeta: 0,
     diasCriticos: 0,
     fallidasFrustrados: r.visita_fallida,
@@ -165,20 +224,173 @@ function mapRendimientoToKpi(r: RendimientoDiarioBackend): RendimientoTecnicoKpi
 
 export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProps> = ({
   kpiData,
+  resumen,
   loading,
 }) => {
   const [modalTipo, setModalTipo] = useState<ModalTipo>(null);
 
-  const data: RendimientoTecnicoKpiData | null = kpiData
-    ? mapRendimientoToKpi(kpiData)
-    : null;
+  const data = mapRendimientoToKpi(kpiData, resumen);
 
-  const cerrado = kpiData && data && data.productividadDiaria !== -1;
   const causasFallidas = kpiData?.causas_fallidas ?? [];
   const totalCausasDetalladas = causasFallidas.reduce((total, causa) => total + causa.cantidad, 0);
   const fallidasSinDetalle = kpiData
     ? Math.max(0, kpiData.visita_fallida - totalCausasDetalladas)
     : 0;
+  const diasBajoMeta = resumen?.dias.filter(
+    dia => dia.cortes_productivos < dia.meta_aplicada,
+  ) ?? [];
+  const diasCriticos = resumen?.dias.filter(dia => dia.cumplimiento_pct < 50) ?? [];
+
+  const modalRow = (label: string, value: React.ReactNode) => (
+    <div className="modal-row">
+      <span className="modal-row-label">{label}</span>
+      <span className="modal-row-value">{value}</span>
+    </div>
+  );
+
+  const renderDias = (dias: ResumenKpiTecnicoBackend['dias'], emptyText: string) => {
+    if (dias.length === 0) {
+      return <div className="modal-detail-notice">{emptyText}</div>;
+    }
+    return (
+      <div style={{ marginTop: '10px' }}>
+        {dias.map(dia => (
+          <div className="modal-row" key={dia.fecha_operacional}>
+            <span className="modal-row-label">{formatFecha(dia.fecha_operacional)}</span>
+            <span className="modal-row-value">
+              {dia.cortes_productivos}/{dia.meta_aplicada} · {formatNumero(dia.cumplimiento_pct)}%
+            </span>
+          </div>
+        ))}
+      </div>
+    );
+  };
+
+  const renderModalContent = () => {
+    if (!modalTipo) return null;
+    if (modalTipo === 'productividad') {
+      if (!kpiData) return <div className="modal-detail-notice">No hay datos para la fecha seleccionada.</div>;
+      return (
+        <>
+          {modalRow('Fecha operacional', formatFecha(kpiData.fecha_operacional))}
+          {modalRow('Cortes en poste', kpiData.corte_en_poste)}
+          {modalRow('Cortes en empalme', kpiData.corte_en_empalme)}
+          {modalRow('Cortes fuera de rango', kpiData.corte_fuera_de_rango)}
+          {modalRow('Total cortes productivos', kpiData.cortes_productivos)}
+          {modalRow('Reconexiones', kpiData.reconexiones)}
+        </>
+      );
+    }
+    if (!resumen) {
+      return <div className="modal-detail-notice">No hay resumen disponible para este período.</div>;
+    }
+    if (modalTipo === 'promedio') {
+      return (
+        <>
+          {modalRow('Período', `${formatFecha(resumen.fecha_desde)} → ${formatFecha(resumen.fecha_hasta)}`)}
+          {modalRow('Días considerados', resumen.dias_con_datos)}
+          {modalRow('Cortes acumulados', resumen.total_cortes_acumulados)}
+          {modalRow('Promedio diario', resumen.productividad_promedio == null ? '—' : formatNumero(resumen.productividad_promedio))}
+          <div className="modal-detail-notice">Promedio = cortes acumulados ÷ días operacionales con datos.</div>
+        </>
+      );
+    }
+    if (modalTipo === 'mejor') {
+      return (
+        <>
+          {modalRow('Mejor productividad', resumen.mejor_productividad ?? '—')}
+          {modalRow('Fecha del máximo', formatFecha(resumen.fecha_mejor_productividad))}
+          {modalRow('Días comparados', resumen.dias_con_datos)}
+        </>
+      );
+    }
+    if (modalTipo === 'cumplimiento') {
+      return (
+        <>
+          {modalRow('Cortes del día', resumen.productividad_diaria ?? '—')}
+          {modalRow('Meta del día', resumen.meta_diaria ?? '—')}
+          {modalRow('Cumplimiento diario', resumen.cumplimiento_diario_pct == null ? '—' : `${formatNumero(resumen.cumplimiento_diario_pct)}%`)}
+          {modalRow('Cumplimiento mensual', resumen.cumplimiento_acumulado_pct == null ? '—' : `${formatNumero(resumen.cumplimiento_acumulado_pct)}%`)}
+          <div className="modal-detail-notice">Las visitas fallidas no descuentan productividad ni cumplimiento.</div>
+        </>
+      );
+    }
+    if (modalTipo === 'acumulado') {
+      return (
+        <>
+          {modalRow('Período', `${formatFecha(resumen.fecha_desde)} → ${formatFecha(resumen.fecha_hasta)}`)}
+          {modalRow('Cortes en poste', resumen.corte_en_poste_acumulado)}
+          {modalRow('Cortes en empalme', resumen.corte_en_empalme_acumulado)}
+          {modalRow('Cortes fuera de rango', resumen.corte_fuera_de_rango_acumulado)}
+          {modalRow('Total cortes productivos', resumen.total_cortes_acumulados)}
+          {modalRow('Meta acumulada', resumen.total_meta_acumulada)}
+        </>
+      );
+    }
+    if (modalTipo === 'bajo_meta') {
+      return (
+        <>
+          {modalRow('Total de días bajo meta', resumen.dias_bajo_meta)}
+          {renderDias(diasBajoMeta, 'No existen días bajo meta en el período.')}
+        </>
+      );
+    }
+    if (modalTipo === 'criticos') {
+      return (
+        <>
+          {modalRow('Total de días críticos', resumen.dias_criticos)}
+          {renderDias(diasCriticos, 'No existen días con cumplimiento menor a 50%.')}
+        </>
+      );
+    }
+
+    const variacion = resumen.fallidas_variacion_abs == null
+      ? 'Sin base comparativa'
+      : `${resumen.fallidas_variacion_abs > 0 ? '+' : ''}${resumen.fallidas_variacion_abs}${
+          resumen.fallidas_variacion_pct == null ? '' : ` · ${formatNumero(resumen.fallidas_variacion_pct)}%`
+        }`;
+    return (
+      <>
+        {modalRow('Fecha operacional', formatFecha(resumen.fecha_hasta))}
+        {modalRow('Fallidas del día', resumen.fallidas_dia)}
+        {modalRow('Variación vs. día anterior', variacion)}
+        {modalRow('Acumulado últimos 7 días', resumen.fallidas_ultimos_7_dias)}
+        {modalRow('Acumulado últimos 14 días', resumen.fallidas_ultimos_14_dias)}
+        {modalRow('Acumulado del mes', resumen.fallidas_acumuladas)}
+        {causasFallidas.length > 0 && (
+          <div style={{ marginTop: '12px' }}>
+            <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '6px', textTransform: 'uppercase' }}>
+              Causas del día
+            </div>
+            {causasFallidas.map(c => {
+              const porcentaje = resumen.fallidas_dia > 0
+                ? Math.round((c.cantidad / resumen.fallidas_dia) * 100)
+                : 0;
+              return (
+                <div className="modal-row" key={c.causa_fallida}>
+                  <div>
+                    <span className="modal-row-label">{formatCausa(c.causa_fallida)}</span>
+                    {c.observacion && <div className="modal-cause-observation">{c.observacion}</div>}
+                  </div>
+                  <span className="modal-row-value">{c.cantidad} · {porcentaje}%</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {resumen.fallidas_dia > 0 && causasFallidas.length === 0 && (
+          <div className="modal-detail-notice">
+            El total existe, pero la fuente histórica no conserva el desglose de causas para esta fecha.
+          </div>
+        )}
+        {causasFallidas.length > 0 && fallidasSinDetalle > 0 && (
+          <div className="modal-detail-notice">
+            Hay {fallidasSinDetalle} {fallidasSinDetalle === 1 ? 'visita' : 'visitas'} sin una causa asociada.
+          </div>
+        )}
+      </>
+    );
+  };
 
   return (
     <div>
@@ -223,7 +435,7 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
           font-size: 16px;
           font-weight: 700;
           margin-bottom: 20px;
-          color: var(--text);
+          color: var(--text-main);
         }
         .modal-row {
           display: flex;
@@ -239,7 +451,7 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
           color: var(--text-muted);
         }
         .modal-row-value {
-          color: var(--text);
+          color: var(--text-main);
           font-weight: 600;
           font-family: var(--mono);
           font-variant-numeric: tabular-nums;
@@ -264,7 +476,7 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
           margin-top: 20px;
           width: 100%;
           padding: 10px;
-          background: var(--bg);
+          background: var(--bg-main);
           border: 1px solid var(--border);
           border-radius: 8px;
           color: var(--text-muted);
@@ -329,98 +541,24 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
         <div className="kpi-grid">
           {buildCards(
             data,
-            () => setModalTipo('productividad'),
-            () => setModalTipo('fallidas'),
+            resumen,
+            setModalTipo,
           ).map(card => (
             <KpiCard key={card.titulo} {...card} />
           ))}
         </div>
       )}
 
-      {modalTipo === 'productividad' && cerrado && kpiData && (
+      {modalTipo && data && (
         <div className="modal-overlay" onClick={() => setModalTipo(null)}>
           <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Detalle de productividad diaria</div>
-            <div className="modal-row">
-              <span className="modal-row-label">Cortes en poste</span>
-              <span className="modal-row-value">{kpiData.corte_en_poste}</span>
-            </div>
-            <div className="modal-row">
-              <span className="modal-row-label">Cortes en empalme</span>
-              <span className="modal-row-value">{kpiData.corte_en_empalme}</span>
-            </div>
-            <div className="modal-row">
-              <span className="modal-row-label">Cortes fuera de rango</span>
-              <span className="modal-row-value">{kpiData.corte_fuera_de_rango}</span>
-            </div>
-            <div className="modal-row" style={{ fontWeight: 700 }}>
-              <span className="modal-row-label">Total cortes productivos</span>
-              <span className="modal-row-value">{kpiData.cortes_productivos}</span>
-            </div>
-            <div className="modal-row" style={{ color: 'var(--text-muted)', fontSize: '13px', borderBottom: 'none', marginTop: '4px' }}>
-              <span>Reconexiones</span>
-              <span>{kpiData.reconexiones}</span>
-            </div>
+            <div className="modal-title">{TITULOS_MODAL[modalTipo]}</div>
+            {renderModalContent()}
             <button className="modal-close" onClick={() => setModalTipo(null)}>Cerrar</button>
           </div>
         </div>
       )}
 
-      {modalTipo === 'fallidas' && kpiData && (
-        <div className="modal-overlay" onClick={() => setModalTipo(null)}>
-          <div className="modal-content" onClick={e => e.stopPropagation()}>
-            <div className="modal-title">Detalle de fallidas / frustrados</div>
-            <div className="modal-row">
-              <span className="modal-row-label">Fecha operacional</span>
-              <span className="modal-row-value">{kpiData.fecha_operacional}</span>
-            </div>
-            <div className="modal-row">
-              <span className="modal-row-label">Total visitas fallidas</span>
-              <span className="modal-row-value">{kpiData.visita_fallida}</span>
-            </div>
-            {causasFallidas.length > 0 && (
-              <div style={{ marginTop: '4px', borderTop: '1px solid var(--border)', paddingTop: '10px' }}>
-                <div style={{ fontSize: '12px', fontWeight: 600, color: 'var(--text-muted)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Por causa
-                </div>
-                {causasFallidas.map(c => {
-                  const porcentaje = kpiData.visita_fallida > 0
-                    ? Math.round((c.cantidad / kpiData.visita_fallida) * 100)
-                    : 0;
-                  return (
-                  <div className="modal-row" key={c.causa_fallida}>
-                    <div>
-                      <span className="modal-row-label">{formatCausa(c.causa_fallida)}</span>
-                      {c.observacion && (
-                        <div className="modal-cause-observation">{c.observacion}</div>
-                      )}
-                    </div>
-                    <span className="modal-row-value">{c.cantidad} · {porcentaje}%</span>
-                  </div>
-                  );
-                })}
-              </div>
-            )}
-            {kpiData.visita_fallida > 0 && causasFallidas.length === 0 && (
-              <div className="modal-detail-notice">
-                Este registro fue cargado sin el desglose de causas. Para recuperarlo es necesario
-                volver a procesar el archivo operacional del {kpiData.fecha_operacional}.
-              </div>
-            )}
-            {causasFallidas.length > 0 && fallidasSinDetalle > 0 && (
-              <div className="modal-detail-notice">
-                Hay {fallidasSinDetalle} {fallidasSinDetalle === 1 ? 'visita' : 'visitas'} sin una causa asociada.
-              </div>
-            )}
-            {kpiData.visita_fallida === 0 && (
-              <div style={{ padding: '14px 0 2px', color: 'var(--text-muted)', fontSize: '13px' }}>
-                No se registraron visitas fallidas en esta fecha.
-              </div>
-            )}
-            <button className="modal-close" onClick={() => setModalTipo(null)}>Cerrar</button>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

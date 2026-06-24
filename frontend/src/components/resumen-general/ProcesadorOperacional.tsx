@@ -1,4 +1,5 @@
 import React, { useState, useRef } from 'react';
+import { formatFecha } from '../../utils/formatFecha';
 
 interface ProcesamientoResultado {
   ok: boolean;
@@ -157,8 +158,8 @@ export const ProcesadorOperacional: React.FC<ProcesadorOperacionalProps> = ({
           
           {resultado && resultado.fecha_frontend && resultado.fecha_excel_detectada && (
             <div style={{ marginTop: '8px', padding: '8px', backgroundColor: '#fff', borderRadius: '4px', border: '1px solid #FECACA' }}>
-              <div>Fecha seleccionada: <strong>{resultado.fecha_frontend}</strong></div>
-              <div>Fecha en Excel: <strong>{resultado.fecha_excel_detectada}</strong></div>
+              <div>Fecha seleccionada: <strong>{formatFecha(resultado.fecha_frontend)}</strong></div>
+              <div>Fecha en Excel: <strong>{formatFecha(resultado.fecha_excel_detectada)}</strong></div>
             </div>
           )}
         </div>

@@ -48,7 +48,7 @@ export const COLOR_ESTADO_FASE: Record<EstadoFase, string> = {
   'En recuperación':  '#f97316',
   'Estable':          '#60a5fa',
   'Alto desempeño':   '#22c55e',
-  'Crítico - Fase 2': '#ef4444',
+  'Crítico - Nivel 2': '#ef4444',
 };
 
 export const CONFIG_ESTADO_CURSO: Record<EstadoCurso, { color: string; bg: string; border: string }> = {

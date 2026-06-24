@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import type { HallazgoTecnico, NivelHallazgo } from '../../types/rendimientoTecnico.types';
 import { CONFIG_NIVEL_HALLAZGO } from '../../data/rendimientoTecnico.config';
 import type { AlertaItemBackend } from '../../api/productividad.api';
+import { formatFecha } from '../../utils/formatFecha';
 
 const HallazgoCard: React.FC<{
   hallazgo: HallazgoTecnico;
@@ -111,7 +112,7 @@ function mapAlertaAHallazgo(a: AlertaItemBackend): HallazgoTecnico {
     id: String(a.id),
     titulo: a.motivo,
     nivel,
-    frecuencia: `${a.numero_advertencia ? `${a.numero_advertencia}ª advertencia` : 'Registrado'} - ${new Date(a.fecha_registro).toLocaleDateString('es-CL')}`,
+    frecuencia: `${a.numero_advertencia ? `${a.numero_advertencia}ª advertencia` : 'Registrado'} - ${formatFecha(a.fecha_registro)}`,
     detalle: a.motivo,
     accionSugerida: a.motivo_anulacion ?? 'Revisar causas y realizar seguimiento.',
   };

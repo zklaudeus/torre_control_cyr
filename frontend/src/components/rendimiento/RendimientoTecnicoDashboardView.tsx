@@ -35,6 +35,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
     selectedTecnico,
     selectTecnico,
     rendimiento,
+    kpiResumen,
     loadingRendimiento,
     alertas,
     seguimiento,
@@ -280,10 +281,10 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                       cursor: 'pointer',
                     }}
                   >
-                    <option value="Todas">Todas las fases</option>
-                    <option value="1">Fase 1</option>
-                    <option value="2">Fase 2</option>
-                    <option value="3">Fase 3</option>
+                    <option value="Todas">Todos los niveles</option>
+                    <option value="1">Nivel 1</option>
+                    <option value="2">Nivel 2</option>
+                    <option value="3">Nivel 3</option>
                   </select>
                 </div>
 
@@ -295,8 +296,8 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                     { label: 'Recuperación', estado: 'En recuperación' as EstadoTecnico, fase: 'Todas' },
                     { label: 'Estable', estado: 'Estable' as EstadoTecnico, fase: 'Todas' },
                     { label: 'Alto desempeño', estado: 'Alto desempeño' as EstadoTecnico, fase: 'Todas' },
-                    { label: 'Fase 2', estado: 'Todos' as const, fase: '2' },
-                    { label: 'Fase 3', estado: 'Todos' as const, fase: '3' },
+                    { label: 'Nivel 2', estado: 'Todos' as const, fase: '2' },
+                    { label: 'Nivel 3', estado: 'Todos' as const, fase: '3' },
                     { label: 'Sin evaluación', estado: 'Sin evaluación' as EstadoTecnico, fase: 'Todas' },
                   ].map(f => {
                     const isActive = filterEstado === f.estado && filterFase === f.fase;
@@ -390,6 +391,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
 
                   <RendimientoTecnicoKpiCards
                     kpiData={rendimiento ?? undefined}
+                    resumen={kpiResumen ?? undefined}
                     loading={loadingRendimiento}
                   />
 

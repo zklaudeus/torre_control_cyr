@@ -8,6 +8,7 @@ from app.schemas.programacion_cf_zona import ProgramacionCFZonaBulkCreate, Progr
 from app.schemas.resultados_reales_cf import ResultadosRealesCFZonaResponse, ResultadoRealCFZonaCalculado
 from app.repositories.cf_repository import ParametrosCFRepository, ProgramacionCFZonaRepository
 from app.models.cyr_models import ControlBrigadasDiario
+from app.core.brigadas import condicion_brigada_contabilizable
 
 class CFService:
     def __init__(self):
@@ -80,6 +81,7 @@ class CFService:
             )
             .filter(ControlBrigadasDiario.fecha_operacional == fecha)
             .filter(ControlBrigadasDiario.tipo_brigada == 'CF')
+            .filter(condicion_brigada_contabilizable(ControlBrigadasDiario))
             .group_by(ControlBrigadasDiario.zona)
             .order_by(ControlBrigadasDiario.zona)
             .all()

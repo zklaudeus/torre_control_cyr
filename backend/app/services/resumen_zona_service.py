@@ -9,6 +9,10 @@ from app.models.cyr_models import (
     ControlProgramacionZona,
     ControlBrigadasDiario,
 )
+from app.core.brigadas import (
+    condicion_brigada_contabilizable,
+    es_brigada_contabilizable,
+)
 
 
 class ResumenZonaService:
@@ -25,7 +29,11 @@ class ResumenZonaService:
 
         # 2. Datos del día
         programacion = db.query(ControlProgramacionZona).filter(ControlProgramacionZona.fecha_operacional == fecha).all()
-        brigadas = db.query(ControlBrigadasDiario).filter(ControlBrigadasDiario.fecha_operacional == fecha).all()
+        brigadas = db.query(ControlBrigadasDiario).filter(
+            ControlBrigadasDiario.fecha_operacional == fecha,
+            condicion_brigada_contabilizable(ControlBrigadasDiario),
+        ).all()
+        brigadas = [b for b in brigadas if es_brigada_contabilizable(b)]
 
         if not programacion:
             alertas.append("Falta programación para una o más zonas.")
@@ -68,17 +76,10 @@ class ResumenZonaService:
                 brig_zona_tipo = brig_dict.get((nombre_zona, tipo), [])
                 b_rep = len(brig_zona_tipo)
                 
-                inactivas_count = 0
-                observaciones_inactivas = []
                 rec_ejec = 0
                 cortes = 0
                 
                 for b in brig_zona_tipo:
-                    if b.estado_brigada == "Inactiva":
-                        inactivas_count += 1
-                        if b.observacion_brigada:
-                            observaciones_inactivas.append(b.observacion_brigada)
-                            
                     rec_ejec += b.reconexiones_ejecutadas or 0
                     cortes += (b.corte_en_poste or 0) + (b.corte_en_empalme or 0) + (b.corte_fuera_de_rango or 0)
                 
@@ -102,11 +103,6 @@ class ResumenZonaService:
                 prom_actividades = (actividades / b_rep) if b_rep > 0 else 0.0
                 cumpl_prom_meta = (cortes / (b_rep * meta_diaria)) if (b_rep * meta_diaria) > 0 else 0.0
                 
-                obs_text = ""
-                if inactivas_count > 0:
-                    obs_base = f"{inactivas_count} brigada(s) inactiva(s)"
-                    obs_text = f"{obs_base}: {', '.join(observaciones_inactivas)}" if observaciones_inactivas else obs_base
-
                 # Omitir filas vacías donde no hay ni brigadas reportadas ni contrato
                 if b_rep == 0 and brig_contrato == 0 and not param_zona and not prog:
                     continue
@@ -128,7 +124,7 @@ class ResumenZonaService:
                     total_actividades=actividades,
                     promedio_actividades=prom_actividades,
                     cumplimiento_promedio_meta=cumpl_prom_meta,
-                    observacion=obs_text
+                    observacion=""
                 ))
 
         # 4. Filas totales generales por tipo

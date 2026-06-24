@@ -43,7 +43,7 @@ export type SemaforoTecnico = {
 
 // -- Fase de Seguimiento
 export type FaseSeguimiento = 1 | 2 | 3;
-export type EstadoFase = 'Crítico' | 'En recuperación' | 'Estable' | 'Alto desempeño' | 'Crítico - Fase 2';
+export type EstadoFase = 'Crítico' | 'En recuperación' | 'Estable' | 'Alto desempeño' | 'Crítico - Nivel 2';
 
 export type RendimientoTecnicoFaseData = {
   faseActual: FaseSeguimiento;

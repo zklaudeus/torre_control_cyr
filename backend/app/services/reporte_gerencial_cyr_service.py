@@ -9,6 +9,10 @@ from app.models.cyr_models import (
     ControlProgramacionZona,
     ControlBrigadasDiario,
 )
+from app.core.brigadas import (
+    condicion_brigada_contabilizable,
+    es_brigada_contabilizable,
+)
 
 class ReporteGerencialCYRService:
     def calcular_reporte(self, db: Session, fecha: date, filtro: str = "Todo") -> ReporteGerencialData:
@@ -19,7 +23,10 @@ class ReporteGerencialCYRService:
 
         # 2. Datos del día
         q_prog = db.query(ControlProgramacionZona).filter(ControlProgramacionZona.fecha_operacional == fecha)
-        q_brig = db.query(ControlBrigadasDiario).filter(ControlBrigadasDiario.fecha_operacional == fecha)
+        q_brig = db.query(ControlBrigadasDiario).filter(
+            ControlBrigadasDiario.fecha_operacional == fecha,
+            condicion_brigada_contabilizable(ControlBrigadasDiario),
+        )
 
         # Aplicar filtro si corresponde
         filtro_upper = filtro.upper()
@@ -28,7 +35,7 @@ class ReporteGerencialCYRService:
             q_brig = q_brig.filter(ControlBrigadasDiario.tipo_brigada == filtro_upper)
         
         programacion = q_prog.all()
-        brigadas = q_brig.all()
+        brigadas = [b for b in q_brig.all() if es_brigada_contabilizable(b)]
 
         prog_dict = {}
         for p in programacion:

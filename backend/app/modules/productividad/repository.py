@@ -19,6 +19,10 @@ from app.models.cyr_models import (
 )
 from app.models.domain_models import DimSap, DimZona
 from sqlalchemy import and_
+from app.core.brigadas import (
+    condicion_brigada_contabilizable,
+    condicion_rendimiento_con_brigada_contabilizable,
+)
 
 
 class ProductividadRepository:
@@ -53,6 +57,7 @@ class ProductividadRepository:
                     ControlBrigadasDiario.zona.in_(zonas),
                     ControlBrigadasDiario.codigo_sap.isnot(None),
                     ControlBrigadasDiario.codigo_sap != "",
+                    condicion_brigada_contabilizable(ControlBrigadasDiario),
                 )
                 .distinct()
             ))
@@ -74,6 +79,7 @@ class ProductividadRepository:
                     ControlBrigadasDiario.codigo_sap.in_(codigos),
                     ControlBrigadasDiario.zona.isnot(None),
                     ControlBrigadasDiario.zona != "",
+                    condicion_brigada_contabilizable(ControlBrigadasDiario),
                 )
                 .subquery()
             )
@@ -130,6 +136,7 @@ class ProductividadRepository:
                     ControlBrigadasDiario.zona.in_(zonas_permitidas),
                     ControlBrigadasDiario.codigo_sap.isnot(None),
                     ControlBrigadasDiario.codigo_sap != "",
+                    condicion_brigada_contabilizable(ControlBrigadasDiario),
                 )
                 .distinct()
             ))
@@ -153,6 +160,7 @@ class ProductividadRepository:
                     ControlBrigadasDiario.codigo_sap.in_(codigos),
                     ControlBrigadasDiario.zona.isnot(None),
                     ControlBrigadasDiario.zona != "",
+                    condicion_brigada_contabilizable(ControlBrigadasDiario),
                 )
                 .subquery()
             )
@@ -184,6 +192,10 @@ class ProductividadRepository:
         eval_rows = db.query(RendimientoTecnicoDiario.codigo_sap).filter(
             RendimientoTecnicoDiario.fecha_operacional == hoy,
             RendimientoTecnicoDiario.es_evaluable == True,
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            ),
         ).all()
         evaluables_hoy = {r.codigo_sap for r in eval_rows}
 
@@ -262,7 +274,12 @@ class ProductividadRepository:
         limit: int = 100,
         offset: int = 0,
     ) -> List[RendimientoTecnicoDiario]:
-        q = db.query(RendimientoTecnicoDiario)
+        q = db.query(RendimientoTecnicoDiario).filter(
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            )
+        )
         if fecha_desde:
             q = q.filter(RendimientoTecnicoDiario.fecha_operacional >= fecha_desde)
         if fecha_hasta:
@@ -295,6 +312,7 @@ class ProductividadRepository:
         return db.query(ControlBrigadasDiario).filter(
             ControlBrigadasDiario.codigo_sap == codigo_sap,
             ControlBrigadasDiario.fecha_operacional == fecha,
+            condicion_brigada_contabilizable(ControlBrigadasDiario),
         ).order_by(desc(ControlBrigadasDiario.id)).first()
 
     def obtener_brigadas_periodo(
@@ -303,6 +321,7 @@ class ProductividadRepository:
         return db.query(ControlBrigadasDiario).filter(
             ControlBrigadasDiario.codigo_sap == codigo_sap,
             ControlBrigadasDiario.fecha_operacional.between(fecha_desde, fecha_hasta),
+            condicion_brigada_contabilizable(ControlBrigadasDiario),
         ).order_by(
             ControlBrigadasDiario.fecha_operacional,
             ControlBrigadasDiario.id,
@@ -314,7 +333,7 @@ class ProductividadRepository:
         return db.query(ControlBrigadasDiario).filter(
             ControlBrigadasDiario.codigo_sap == codigo_sap,
             ControlBrigadasDiario.fecha_operacional < fecha,
-            ControlBrigadasDiario.estado_brigada != "Inactiva",
+            condicion_brigada_contabilizable(ControlBrigadasDiario),
         ).order_by(
             desc(ControlBrigadasDiario.fecha_operacional),
             desc(ControlBrigadasDiario.id),
@@ -335,7 +354,13 @@ class ProductividadRepository:
             func.coalesce(func.sum(RendimientoTecnicoDiario.corte_fuera_de_rango), 0).label("corte_fuera_de_rango_sum"),
             func.coalesce(func.sum(RendimientoTecnicoDiario.visita_fallida), 0).label("visita_fallida_sum"),
             func.coalesce(func.sum(RendimientoTecnicoDiario.reconexiones), 0).label("reconexiones_sum"),
-        ).filter(RendimientoTecnicoDiario.fecha_operacional == fecha)
+        ).filter(
+            RendimientoTecnicoDiario.fecha_operacional == fecha,
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            ),
+        )
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
         if supervisor_id:
@@ -371,6 +396,10 @@ class ProductividadRepository:
         ).filter(
             RendimientoTecnicoDiario.fecha_operacional == fecha,
             RendimientoTecnicoDiario.es_evaluable == True,
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            ),
         )
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
@@ -410,6 +439,10 @@ class ProductividadRepository:
         ).filter(
             RendimientoTecnicoDiario.fecha_operacional.between(fecha_desde, fecha_hasta),
             RendimientoTecnicoDiario.es_evaluable == True,
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            ),
         )
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
@@ -453,11 +486,19 @@ class ProductividadRepository:
             RendimientoTecnicoDiario.codigo_sap == codigo_sap,
             RendimientoTecnicoDiario.fecha_operacional.between(fecha_desde, mitad),
             RendimientoTecnicoDiario.es_evaluable == True,
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            ),
         ).scalar() or 0
         q2 = db.query(func.avg(RendimientoTecnicoDiario.cumplimiento_pct)).filter(
             RendimientoTecnicoDiario.codigo_sap == codigo_sap,
             RendimientoTecnicoDiario.fecha_operacional.between(mitad + timedelta(days=1), fecha_hasta),
             RendimientoTecnicoDiario.es_evaluable == True,
+            condicion_rendimiento_con_brigada_contabilizable(
+                RendimientoTecnicoDiario,
+                ControlBrigadasDiario,
+            ),
         ).scalar() or 0
         diff = float(q2) - float(q1)
         if diff > 5:
@@ -539,6 +580,10 @@ class ProductividadRepository:
             and_(
                 RendimientoTecnicoDiario.codigo_sap == codigo_sap,
                 RendimientoTecnicoDiario.es_evaluable == True,
+                condicion_rendimiento_con_brigada_contabilizable(
+                    RendimientoTecnicoDiario,
+                    ControlBrigadasDiario,
+                ),
             )
         ).order_by(desc(RendimientoTecnicoDiario.fecha_operacional)).first()
 
@@ -562,6 +607,10 @@ class ProductividadRepository:
                     RendimientoTecnicoDiario.codigo_sap == codigo_sap,
                     RendimientoTecnicoDiario.es_evaluable == True,
                     RendimientoTecnicoDiario.fecha_operacional < ultimo.fecha_operacional,
+                    condicion_rendimiento_con_brigada_contabilizable(
+                        RendimientoTecnicoDiario,
+                        ControlBrigadasDiario,
+                    ),
                 )
             ).order_by(desc(RendimientoTecnicoDiario.fecha_operacional)).limit(2).all()
 
@@ -665,7 +714,9 @@ class ProductividadRepository:
         zona = None
         zona_row = db.execute(text("""
             SELECT zona FROM control_brigadas_diario
-            WHERE codigo_sap = :codigo_sap AND zona IS NOT NULL AND zona != ''
+            WHERE codigo_sap = :codigo_sap
+              AND zona IS NOT NULL AND zona != ''
+              AND LOWER(TRIM(COALESCE(estado_brigada, ''))) != 'inactiva'
             ORDER BY fecha_operacional DESC LIMIT 1
         """), {"codigo_sap": codigo_sap}).first()
         if zona_row:

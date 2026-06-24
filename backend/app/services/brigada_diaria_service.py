@@ -8,6 +8,7 @@ from app.modules.productividad.sync import (
     eliminar_rendimiento_si_no_hay_brigada,
     sincronizar_rendimiento_desde_brigada,
 )
+from app.core.brigadas import es_brigada_contabilizable
 
 class BrigadaDiariaService:
     def __init__(self):
@@ -64,26 +65,31 @@ class BrigadaDiariaService:
                     brigadas_inactivas=0,
                     observacion_automatica=""
                 )
-            
+
             res = resumen_dict[zona]
+            # Toda brigada registrada ese día suma al total reportado
+            # (visible en la bitácora para auditoría).
             res.total_brigadas_reportadas += 1
-            
-            # Contar por tipo
+
+            if not es_brigada_contabilizable(b):
+                # Inactiva: se registra en el contador pero no aporta
+                # a cortes, reconexiones ni al desglose por tipo.
+                res.brigadas_inactivas += 1
+                continue
+
+            # Operativa: aporta a todos los indicadores
+            res.brigadas_operativas += 1
             if b.tipo_brigada == "PXQ":
                 res.brigadas_pxq += 1
             elif b.tipo_brigada == "CF":
                 res.brigadas_cf += 1
                 
-            # Contar por estado
-            if b.estado_brigada == "Operativa":
-                res.brigadas_operativas += 1
-            elif b.estado_brigada == "Inactiva":
-                res.brigadas_inactivas += 1
-
         # Construir la observación automática
         for zona, res in resumen_dict.items():
             if res.brigadas_inactivas > 0:
-                res.observacion_automatica = f"{res.brigadas_inactivas} brigada(s) inactiva(s)"
+                res.observacion_automatica = (
+                    f"{res.brigadas_inactivas} brigada(s) inactiva(s) excluida(s) de indicadores"
+                )
             else:
                 res.observacion_automatica = "Todas operativas"
                 

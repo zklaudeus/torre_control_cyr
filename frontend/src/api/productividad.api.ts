@@ -41,6 +41,42 @@ export interface RendimientoDiarioBackend {
   causas_fallidas: CausaFallidaBackend[];
 }
 
+export interface KpiDiaTecnicoBackend {
+  fecha_operacional: string;
+  cortes_productivos: number;
+  meta_aplicada: number;
+  cumplimiento_pct: number;
+  visita_fallida: number;
+}
+
+export interface ResumenKpiTecnicoBackend {
+  codigo_sap: string;
+  fecha_desde: string;
+  fecha_hasta: string;
+  dias_con_datos: number;
+  productividad_diaria: number | null;
+  meta_diaria: number | null;
+  cumplimiento_diario_pct: number | null;
+  productividad_promedio: number | null;
+  mejor_productividad: number | null;
+  fecha_mejor_productividad: string | null;
+  cumplimiento_acumulado_pct: number | null;
+  total_cortes_acumulados: number;
+  total_meta_acumulada: number;
+  corte_en_poste_acumulado: number;
+  corte_en_empalme_acumulado: number;
+  corte_fuera_de_rango_acumulado: number;
+  dias_bajo_meta: number;
+  dias_criticos: number;
+  fallidas_dia: number;
+  fallidas_acumuladas: number;
+  fallidas_ultimos_7_dias: number;
+  fallidas_ultimos_14_dias: number;
+  fallidas_variacion_abs: number | null;
+  fallidas_variacion_pct: number | null;
+  dias: KpiDiaTecnicoBackend[];
+}
+
 export interface ResumenDiarioZonaBackend {
   zona: string;
   fecha_operacional: string;
@@ -132,6 +168,17 @@ export const getTecnicos = async (params?: {
 
 export const getRendimientoDiario = async (params?: ProductividadFilterParams): Promise<RendimientoDiarioBackend[]> => {
   const res = await apiClient.get<RendimientoDiarioBackend[]>('/api/productividad/rendimiento', { params });
+  return res.data;
+};
+
+export const getResumenKpisTecnico = async (
+  codigoSap: string,
+  fechaHasta: string,
+): Promise<ResumenKpiTecnicoBackend> => {
+  const res = await apiClient.get<ResumenKpiTecnicoBackend>(
+    `/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/resumen`,
+    { params: { fecha_hasta: fechaHasta } },
+  );
   return res.data;
 };
 

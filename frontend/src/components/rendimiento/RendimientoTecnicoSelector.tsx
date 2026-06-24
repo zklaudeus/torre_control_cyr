@@ -98,7 +98,7 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
                       color: t.fase === 3 ? '#DC2626' : t.fase === 2 ? '#D97706' : '#475569',
                       fontWeight: 600,
                     }}>
-                      F{t.fase}
+                      N{t.fase}
                     </span>
                     {t.advertenciasActivas > 0 && (
                       <span style={{

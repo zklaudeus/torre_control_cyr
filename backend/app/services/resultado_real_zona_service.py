@@ -5,6 +5,7 @@ from typing import List
 
 from app.schemas.resultado_real_zona import ResultadoRealZonaCalculado, ResultadosRealesZonaResponse
 from app.models.cyr_models import ControlBrigadasDiario, ControlParametrosZona
+from app.core.brigadas import condicion_brigada_contabilizable
 
 
 class ResultadoRealZonaService:
@@ -42,7 +43,10 @@ class ResultadoRealZonaService:
                 func.sum(func.coalesce(ControlBrigadasDiario.acum_13, 0)).label("acum_13"),
                 func.sum(func.coalesce(ControlBrigadasDiario.acum_14, 0)).label("acum_14"),
             )
-            .filter(ControlBrigadasDiario.fecha_operacional == fecha)
+            .filter(
+                ControlBrigadasDiario.fecha_operacional == fecha,
+                condicion_brigada_contabilizable(ControlBrigadasDiario),
+            )
             .group_by(ControlBrigadasDiario.zona)
             .order_by(ControlBrigadasDiario.zona)
             .all()

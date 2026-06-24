@@ -4,6 +4,7 @@ import type { TecnicoResumen as TecnicoFrontend, EstadoTecnico } from '../types/
 import {
   getTecnicos,
   getRendimientoDiario,
+  getResumenKpisTecnico,
   getHistorial,
   getAlertas,
   getSeguimientoTecnico,
@@ -13,6 +14,7 @@ import {
   cambiarFaseTecnico as apiCambiarFase,
   type TecnicoResumenBackend,
   type RendimientoDiarioBackend,
+  type ResumenKpiTecnicoBackend,
   type HistorialItemBackend,
   type AlertaItemBackend,
   type SeguimientoTecnicoBackend,
@@ -55,6 +57,7 @@ export function useProductividad(fechaOperacional?: string) {
 
   const [rendimiento, setRendimiento] = useState<RendimientoDiarioBackend | null>(null);
   const [rendimientoList, setRendimientoList] = useState<RendimientoDiarioBackend[]>([]);
+  const [kpiResumen, setKpiResumen] = useState<ResumenKpiTecnicoBackend | null>(null);
   const [loadingRendimiento, setLoadingRendimiento] = useState(false);
   const [errorRendimiento, setErrorRendimiento] = useState<string | null>(null);
 
@@ -101,6 +104,7 @@ export function useProductividad(fechaOperacional?: string) {
     if (!selectedCodigoSap) {
       setRendimiento(null);
       setRendimientoList([]);
+      setKpiResumen(null);
       setHistorial([]);
       setAlertas([]);
       return;
@@ -117,13 +121,16 @@ export function useProductividad(fechaOperacional?: string) {
     let cancelled = false;
 
     const load = async () => {
-      const [rendData, histData, alertData, segData] = await Promise.all([
+      const [rendData, resumenData, histData, alertData, segData] = await Promise.all([
         getRendimientoDiario({
           codigo_sap: selectedCodigoSap,
           fecha_desde: fechaOperacional,
           fecha_hasta: fechaOperacional,
           limit: 1,
         }).catch(() => []),
+        fechaOperacional
+          ? getResumenKpisTecnico(selectedCodigoSap, fechaOperacional).catch(() => null)
+          : Promise.resolve(null),
         getHistorial({ codigo_sap: selectedCodigoSap }).catch(() => []),
         getAlertas({ codigo_sap: selectedCodigoSap }).catch(() => []),
         getSeguimientoTecnico(selectedCodigoSap).catch(() => null),
@@ -133,6 +140,7 @@ export function useProductividad(fechaOperacional?: string) {
 
       setRendimiento(rendData[0] ?? null);
       setRendimientoList(rendData);
+      setKpiResumen(resumenData);
       setLoadingRendimiento(false);
       setErrorRendimiento(null);
 
@@ -237,6 +245,7 @@ export function useProductividad(fechaOperacional?: string) {
     selectTecnico,
     rendimiento,
     rendimientoList,
+    kpiResumen,
     loadingRendimiento,
     errorRendimiento,
     historial,

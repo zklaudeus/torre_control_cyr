@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 
 import type { FaseSeguimiento } from '../../types/rendimientoTecnico.types';
 import type { SeguimientoTecnicoBackend } from '../../api/productividad.api';
+import { formatFecha } from '../../utils/formatFecha';
 
 const FASES = [
   { num: 1 as FaseSeguimiento, label: 'Inicial',    descripcion: 'Seguimiento preventivo' },
@@ -63,7 +64,7 @@ const Stepper: React.FC<StepperProps> = ({ faseActual }) => (
             {/* Etiqueta */}
             <div style={{ marginTop: '6px', textAlign: 'center' }}>
               <div style={{ fontSize: '11px', fontWeight: 700, color: labelColor, letterSpacing: '0.3px' }}>
-                Fase {fase.num}
+                Nivel {fase.num}
               </div>
               <div style={{ fontSize: '10px', color: '#6b7280', lineHeight: 1.3 }}>
                 {fase.label}
@@ -166,7 +167,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
           }} />
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Fase de Seguimiento
+            Nivel de Seguimiento
           </span>
         </div>
         <div style={{
@@ -220,14 +221,14 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
         setSuccessMsg('Advertencia registrada correctamente.');
 
         if (seguimiento.fase_actual === 2 && seguimiento.advertencias_fase2 + 1 >= 3) {
-          setSuccessMsg(`El técnico ${codigoSap} pasó a Fase 3 por acumular 3 advertencias activas en Fase 2.`);
+          setSuccessMsg(`El técnico ${codigoSap} pasó a Nivel 3 por acumular 3 advertencias activas en Nivel 2.`);
         }
       } else if (showModal === 'fase') {
         await onCambiarFase(faseNueva, motivo.trim());
         setShowModal(null);
         setMotivo('');
         setFaseNueva(1);
-        setSuccessMsg(`Fase cambiada a ${faseNueva} correctamente.`);
+        setSuccessMsg(`Nivel cambiado a ${faseNueva} correctamente.`);
       } else if (showModal === 'anular' && anularAdvertenciaId !== null) {
         await onAnularAdvertencia(anularAdvertenciaId, motivo.trim());
         setShowModal(null);
@@ -242,7 +243,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
     }
   };
 
-  const estadoDisplay = `${estLabel}${fase >= 2 ? ` - Fase ${fase}` : ''}`;
+  const estadoDisplay = `${estLabel}${fase >= 2 ? ` - Nivel ${fase}` : ''}`;
 
   return (
     <div style={{
@@ -263,7 +264,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
           }} />
           <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-            Fase de Seguimiento
+            Nivel de Seguimiento
           </span>
         </div>
         <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
@@ -297,21 +298,19 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
         gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))',
         gap: '12px',
       }}>
-        <InfoRow label="Fase actual" value={`Fase ${fase}`} color={estColor} />
+        <InfoRow label="Nivel actual" value={`Nivel ${fase}`} color={estColor} />
         <InfoRow label="Estado productivo" value={estLabel} color={estColor} />
         <InfoRow label="Días bajo 50%" value={String(seguimiento.dias_consecutivos_bajo_50)} />
         <InfoRow label="Días alto desempeño" value={String(seguimiento.dias_consecutivos_alto_desempeno)} />
-        <InfoRow label="Advertencias Fase 2" value={`${seguimiento.advertencias_fase2}/3`} />
-        <InfoRow label="Última evaluación" value={seguimiento.fecha_ultima_evaluacion
-          ? new Date(seguimiento.fecha_ultima_evaluacion).toLocaleDateString('es-CL')
-          : '—'} />
+        <InfoRow label="Advertencias Nivel 2" value={`${seguimiento.advertencias_fase2}/3`} />
+        <InfoRow label="Última evaluación" value={formatFecha(seguimiento.fecha_ultima_evaluacion)} />
       </div>
 
       {/* Motivo actual */}
       {ultimoHistorial && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
           <span style={{ fontSize: '10px', fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
-            Último cambio ({new Date(ultimoHistorial.fecha_cambio).toLocaleDateString('es-CL')})
+            Último cambio ({formatFecha(ultimoHistorial.fecha_cambio)})
           </span>
           <span style={{ fontSize: '13px', color: 'var(--text-main)', lineHeight: 1.5 }}>
             {ultimoHistorial.motivo || ultimoHistorial.regla_disparadora}
@@ -338,7 +337,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
                 <span style={{ fontWeight: 600 }}>{a.motivo}</span>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                   <span style={{ fontSize: '10px', color: '#6b7280' }}>
-                    #{a.numero_advertencia || '-'} · {new Date(a.fecha_registro).toLocaleDateString('es-CL')}
+                    #{a.numero_advertencia || '-'} · {formatFecha(a.fecha_registro)}
                   </span>
                   {puedeRegistrar && (
                     <button
@@ -397,7 +396,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
               cursor: cambiandoFase ? 'not-allowed' : 'pointer',
             }}
           >
-            {cambiandoFase ? 'Cambiando…' : 'Cambiar fase'}
+            {cambiandoFase ? 'Cambiando…' : 'Cambiar nivel'}
           </button>
         </div>
       )}
@@ -423,7 +422,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B' }}>
               Técnico: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
-              Fase actual: <strong>Fase {fase}</strong> · Advertencias activas: <strong>{seguimiento.advertencias_fase2}/3</strong>
+              Nivel actual: <strong>Nivel {fase}</strong> · Advertencias activas: <strong>{seguimiento.advertencias_fase2}/3</strong>
             </p>
 
             <div style={{ marginBottom: '12px' }}>
@@ -565,16 +564,16 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             fontFamily: 'var(--sans)',
           }} onClick={e => e.stopPropagation()}>
             <h3 style={{ margin: '0 0 8px', fontSize: '16px', fontWeight: 700, color: '#1E293B' }}>
-              Cambiar fase manualmente
+              Cambiar nivel manualmente
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B' }}>
               Técnico: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
-              Fase actual: <strong>Fase {fase}</strong>
+              Nivel actual: <strong>Nivel {fase}</strong>
             </p>
 
             <div style={{ marginBottom: '12px' }}>
               <label style={{ display: 'block', fontSize: '12px', fontWeight: 600, color: '#475569', marginBottom: '4px' }}>
-                Nueva fase *
+                Nuevo nivel *
               </label>
               <select
                 value={faseNueva}
@@ -585,9 +584,9 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
                   boxSizing: 'border-box',
                 }}
               >
-                <option value={1}>Fase 1 – Preventivo</option>
-                <option value={2}>Fase 2 – Reforzado</option>
-                <option value={3}>Fase 3 – Crítico</option>
+                <option value={1}>Nivel 1 – Preventivo</option>
+                <option value={2}>Nivel 2 – Reforzado</option>
+                <option value={3}>Nivel 3 – Crítico</option>
               </select>
             </div>
 
@@ -598,7 +597,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
               <textarea
                 value={motivo}
                 onChange={e => { setMotivo(e.target.value); setModalError(''); }}
-                placeholder="Indique el motivo del cambio de fase…"
+                placeholder="Indique el motivo del cambio de nivel…"
                 rows={3}
                 style={{
                   width: '100%', padding: '10px 12px', borderRadius: '6px',

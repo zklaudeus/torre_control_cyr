@@ -119,12 +119,12 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
 
             {/* Fases y advertencias */}
             <div style={{ display: 'flex', gap: '16px', fontSize: '12px', color: '#64748B' }}>
-              <span>Fase 1: <strong>{zona.fase_1}</strong></span>
+              <span>Nivel 1: <strong>{zona.fase_1}</strong></span>
               {zona.fase_2 > 0 && (
-                <span style={{ color: '#D97706' }}>Fase 2: <strong>{zona.fase_2}</strong></span>
+                <span style={{ color: '#D97706' }}>Nivel 2: <strong>{zona.fase_2}</strong></span>
               )}
               {zona.fase_3 > 0 && (
-                <span style={{ color: '#DC2626' }}>Fase 3: <strong>{zona.fase_3}</strong></span>
+                <span style={{ color: '#DC2626' }}>Nivel 3: <strong>{zona.fase_3}</strong></span>
               )}
               {zona.advertencias_activas > 0 && (
                 <span style={{ color: '#DC2626' }}>

@@ -11,6 +11,10 @@ from app.models.cyr_models import (
     RendimientoTecnicoCausaFallida,
     RendimientoTecnicoDiario,
 )
+from app.core.brigadas import (
+    condicion_brigada_contabilizable,
+    es_brigada_contabilizable,
+)
 
 
 META_POR_TIPO = {"PXQ": 25, "CF": 6}
@@ -62,6 +66,15 @@ def sincronizar_rendimiento_desde_brigada(
     """
     codigo_sap = (brigada.codigo_sap or "").strip()
     if not codigo_sap or not brigada.fecha_operacional:
+        return None
+
+    if not es_brigada_contabilizable(brigada):
+        _eliminar_snapshot_rendimiento(
+            db,
+            brigada.fecha_operacional,
+            codigo_sap,
+        )
+        db.flush()
         return None
 
     metricas = calcular_metricas_brigada(brigada)
@@ -134,6 +147,22 @@ def sincronizar_rendimiento_desde_brigada(
     return rendimiento
 
 
+def _eliminar_snapshot_rendimiento(
+    db: Session,
+    fecha_operacional,
+    codigo_sap: str,
+) -> None:
+    """Borra métricas derivadas cuando la brigada deja de ser contabilizable."""
+    db.query(RendimientoTecnicoCausaFallida).filter(
+        RendimientoTecnicoCausaFallida.fecha_operacional == fecha_operacional,
+        RendimientoTecnicoCausaFallida.codigo_sap == codigo_sap,
+    ).delete(synchronize_session=False)
+    db.query(RendimientoTecnicoDiario).filter(
+        RendimientoTecnicoDiario.fecha_operacional == fecha_operacional,
+        RendimientoTecnicoDiario.codigo_sap == codigo_sap,
+    ).delete(synchronize_session=False)
+
+
 def sincronizar_rendimientos_para_pares(
     db: Session,
     pares: set[tuple],
@@ -143,9 +172,13 @@ def sincronizar_rendimientos_para_pares(
         return 0
     fechas = {fecha for fecha, _ in pares}
     codigos = {codigo for _, codigo in pares}
+    # Filtrar brigadas inactivas ya en la query: las inactivas deben ser
+    # invisibles para indicadores. Si una brigada pasó a inactiva, su snapshot
+    # de rendimiento habrá sido eliminado por sincronizar_rendimiento_desde_brigada().
     brigadas = db.query(ControlBrigadasDiario).filter(
         ControlBrigadasDiario.fecha_operacional.in_(fechas),
         ControlBrigadasDiario.codigo_sap.in_(codigos),
+        condicion_brigada_contabilizable(ControlBrigadasDiario),
     ).order_by(ControlBrigadasDiario.id).all()
 
     # Si existieran duplicados históricos, la fila más reciente es la fuente.
@@ -170,16 +203,10 @@ def eliminar_rendimiento_si_no_hay_brigada(
     brigada_restante = db.query(ControlBrigadasDiario).filter(
         ControlBrigadasDiario.fecha_operacional == fecha_operacional,
         ControlBrigadasDiario.codigo_sap == codigo_sap,
+        condicion_brigada_contabilizable(ControlBrigadasDiario),
     ).order_by(ControlBrigadasDiario.id.desc()).first()
     if brigada_restante:
         sincronizar_rendimiento_desde_brigada(db, brigada_restante)
         return
 
-    db.query(RendimientoTecnicoCausaFallida).filter(
-        RendimientoTecnicoCausaFallida.fecha_operacional == fecha_operacional,
-        RendimientoTecnicoCausaFallida.codigo_sap == codigo_sap,
-    ).delete(synchronize_session=False)
-    db.query(RendimientoTecnicoDiario).filter(
-        RendimientoTecnicoDiario.fecha_operacional == fecha_operacional,
-        RendimientoTecnicoDiario.codigo_sap == codigo_sap,
-    ).delete(synchronize_session=False)
+    _eliminar_snapshot_rendimiento(db, fecha_operacional, codigo_sap)

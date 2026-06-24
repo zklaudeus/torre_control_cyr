@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 from app.models.cyr_models import ControlSupervisores, ControlSupervisorComunasZonas, ControlSupervisorUsuariosSAP
 from app.schemas.supervisor_bitacora import BitacoraResumenPreviewReq, BitacoraResumenPreviewRes, ZonaResumenOut
 from collections import defaultdict
+from app.core.brigadas import es_estado_brigada_inactivo
 
 def calcular_resumen_preview(db: Session, supervisor_id: int, req: BitacoraResumenPreviewReq) -> BitacoraResumenPreviewRes:
     # 1. Validar supervisor
@@ -31,6 +32,9 @@ def calcular_resumen_preview(db: Session, supervisor_id: int, req: BitacoraResum
     total_reconex_prog = 0.0
 
     for idx, fila in enumerate(req.filas):
+        if es_estado_brigada_inactivo(fila.estado_brigada):
+            continue
+
         # Validaciones
         if fila.codigo_sap not in sap_permitidos:
             errores.append(f"Fila {idx+1}: El SAP {fila.codigo_sap} no pertenece a este supervisor.")
