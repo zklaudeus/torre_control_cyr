@@ -46,6 +46,9 @@ jobs:
             echo "==> Rebuild backend..."
             docker compose build --no-cache backend
 
+            echo "==> Ejecutando migraciones de BD..."
+            docker compose exec -T backend alembic upgrade head
+
             echo "==> Reiniciando servicios..."
             docker compose up -d
 
