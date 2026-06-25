@@ -30,24 +30,15 @@ echo "==> Escribiendo client.ts corregido..."
 cat > "$TARGET_FILE" << 'TSEOF'
 import axios from 'axios';
 
-const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-
-function resolveApiBaseUrl(): string {
-  if (configuredApiUrl) {
-    if (window.location.protocol === 'https:' && configuredApiUrl.startsWith('http://')) {
-      return configuredApiUrl.replace('http://', 'https://').replace(/\/+$/, '');
-    }
-    return configuredApiUrl.replace(/\/+$/, '');
-  }
+const resolveBaseUrl = () => {
   if (import.meta.env.DEV) {
-    const protocol = window.location.protocol;
-    const hostname = window.location.hostname;
-    return `${protocol}//${hostname}:8000`;
+    const url = (import.meta.env.VITE_API_URL?.trim() || `${window.location.protocol}//${window.location.hostname}:8000`).replace(/\/+$/, '');
+    return url;
   }
   return '';
-}
+};
 
-export const API_BASE_URL = resolveApiBaseUrl();
+export const API_BASE_URL = resolveBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

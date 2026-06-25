@@ -1,11 +1,13 @@
 import axios from 'axios';
 
 const resolveBaseUrl = () => {
-  if (import.meta.env.DEV) {
-    const url = (import.meta.env.VITE_API_URL?.trim() || `http://${window.location.hostname}:8000`).replace(/\/+$/, '');
-    return url;
-  }
-  return 'https://' + window.location.host;
+  // En producción usamos URLs relativas (/api/...). Así el mismo origen HTTPS
+  // y el proxy de Nginx resuelven la API sin riesgo de Mixed Content.
+  if (!import.meta.env.DEV) return '';
+
+  const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+  const localApiUrl = `http://${window.location.hostname}:8000`;
+  return (configuredApiUrl || localApiUrl).replace(/\/+$/, '');
 };
 
 export const API_BASE_URL = resolveBaseUrl();
