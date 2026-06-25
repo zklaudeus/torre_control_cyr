@@ -86,7 +86,7 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
             {/* Total y evaluables */}
             <div style={{ display: 'flex', gap: '16px', marginBottom: '16px', fontSize: '13px', color: '#475569' }}>
               <span>
-                Total: <strong style={{ color: '#1E293B' }}>{zona.total_tecnicos}</strong>
+                Total Brigadas: <strong style={{ color: '#1E293B' }}>{zona.total_tecnicos}</strong>
               </span>
               <span>
                 Evaluables hoy: <strong style={{ color: '#1E293B' }}>{zona.tecnicos_evaluables_hoy}</strong>

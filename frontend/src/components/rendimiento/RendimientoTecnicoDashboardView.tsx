@@ -492,7 +492,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                   Panel por Zonas
                 </h2>
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Resumen de técnicos activos agrupados por zona operacional
+                  Resumen de Brigadas activos agrupados por zona operacional
                 </span>
               </div>
 
