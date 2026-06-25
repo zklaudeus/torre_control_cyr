@@ -63,11 +63,11 @@ export const ReporteGerencialPage = () => {
     ? (totalFiltrado.brigadas_operativas / totalFiltrado.total_brigadas) * 100
     : 0;
 
-  const realFuncionCumplimientoMetaPct = porcentajeBrigadasEfectivas > 0
+  const realFuncionCumplimientoMetaPct = totalFiltrado && porcentajeBrigadasEfectivas > 0
     ? (totalFiltrado.cumplimiento_meta_pct / porcentajeBrigadasEfectivas) * 100
     : 0;
 
-  const realFuncionCumplimientoCargaPct = porcentajeBrigadasEfectivas > 0
+  const realFuncionCumplimientoCargaPct = totalFiltrado && porcentajeBrigadasEfectivas > 0
     ? (totalFiltrado.cumplimiento_corte_pct / porcentajeBrigadasEfectivas) * 100
     : 0;
 
