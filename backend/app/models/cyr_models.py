@@ -496,3 +496,31 @@ class RendimientoTecnicoSemaforoManual(Base):
             name='chk_semaforo_manual_estado'
         ),
     )
+
+
+class RendimientoTecnicoRecomendacion(Base):
+    """Recomendaciones/comentarios del supervisor o torre de control sobre un técnico."""
+    __tablename__ = "rendimiento_tecnico_recomendaciones"
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True)
+    codigo_sap = Column(String(50), nullable=False, index=True)
+    comentario = Column(Text, nullable=False)
+    prioridad = Column(String(10), nullable=False, default='MEDIA', server_default=text("'MEDIA'"))
+    estado_accion = Column(String(20), nullable=False, default='PENDIENTE', server_default=text("'PENDIENTE'"))
+    usuario_id = Column(Integer, ForeignKey("control_usuarios.id", ondelete="RESTRICT"), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text('now()'))
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=text('now()'), onupdate=text('now()'))
+
+    __table_args__ = (
+        Index('idx_recomendacion_sap', 'codigo_sap'),
+        CheckConstraint(
+            "prioridad IN ('ALTA', 'MEDIA', 'BAJA')",
+            name='chk_recomendacion_prioridad'
+        ),
+        CheckConstraint(
+            "estado_accion IN ('PENDIENTE', 'EN_CURSO', 'COMPLETADO', 'CANCELADO')",
+            name='chk_recomendacion_estado_accion'
+        ),
+    )
+

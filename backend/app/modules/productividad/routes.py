@@ -278,3 +278,55 @@ def actualizar_semaforo_tecnico(
     return servicio.upsert_semaforo_tecnico(
         db, codigo_sap, categoria, body.estado, body.descripcion, current_user
     )
+
+
+# ─── Recomendaciones del Supervisor ──────────────────────────────────────────
+
+from app.modules.productividad.schemas import (
+    RecomendacionCreate,
+    RecomendacionUpdate,
+    RecomendacionResponse,
+)
+
+
+@router.get("/tecnicos/{codigo_sap}/recomendaciones", response_model=List[RecomendacionResponse])
+def listar_recomendaciones(
+    codigo_sap: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_acceso_productividad),
+):
+    """Lista todas las recomendaciones/comentarios de un técnico, ordenadas por más reciente."""
+    return servicio.listar_recomendaciones(db, codigo_sap)
+
+
+@router.post("/tecnicos/{codigo_sap}/recomendaciones", response_model=RecomendacionResponse, status_code=201)
+def crear_recomendacion(
+    codigo_sap: str,
+    body: RecomendacionCreate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Crea una nueva recomendación/comentario para un técnico (supervisor, torre_control, admin)."""
+    return servicio.crear_recomendacion(db, codigo_sap, body, current_user)
+
+
+@router.put("/tecnicos/recomendaciones/{recomendacion_id}", response_model=RecomendacionResponse)
+def actualizar_recomendacion(
+    recomendacion_id: int,
+    body: RecomendacionUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Edita el comentario, prioridad o estado de una recomendación existente."""
+    return servicio.actualizar_recomendacion(db, recomendacion_id, body, current_user)
+
+
+@router.delete("/tecnicos/recomendaciones/{recomendacion_id}")
+def eliminar_recomendacion(
+    recomendacion_id: int,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Elimina definitivamente una recomendación (solo el autor o admin/torre_control)."""
+    return servicio.eliminar_recomendacion(db, recomendacion_id, current_user)
+

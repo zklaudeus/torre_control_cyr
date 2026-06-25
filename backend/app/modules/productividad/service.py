@@ -641,3 +641,103 @@ class ProductividadService:
             "updated_at": s.updated_at,
             "usuario_actualiza_id": s.usuario_actualiza_id,
         }
+
+    # ─── Recomendaciones del Supervisor ──────────────────────────────────────
+
+    def _to_recomendacion_response(self, db: Session, r):
+        """Convierte una instancia del modelo a dict con nombre del autor."""
+        autor_nombre = None
+        if r.usuario_id:
+            u = db.query(ControlUsuarios).filter(ControlUsuarios.id == r.usuario_id).first()
+            if u:
+                autor_nombre = u.nombre or u.email
+        return {
+            "id": r.id,
+            "codigo_sap": r.codigo_sap,
+            "comentario": r.comentario,
+            "prioridad": r.prioridad,
+            "estado_accion": r.estado_accion,
+            "usuario_id": r.usuario_id,
+            "autor_nombre": autor_nombre,
+            "created_at": r.created_at,
+            "updated_at": r.updated_at,
+        }
+
+    def listar_recomendaciones(self, db: Session, codigo_sap: str) -> list:
+        from app.models.cyr_models import RendimientoTecnicoRecomendacion
+        from sqlalchemy import desc
+        rows = db.query(RendimientoTecnicoRecomendacion).filter(
+            RendimientoTecnicoRecomendacion.codigo_sap == codigo_sap
+        ).order_by(desc(RendimientoTecnicoRecomendacion.created_at)).all()
+        return [self._to_recomendacion_response(db, r) for r in rows]
+
+    def crear_recomendacion(self, db: Session, codigo_sap: str, body, current_user) -> dict:
+        from app.models.cyr_models import RendimientoTecnicoRecomendacion
+        from fastapi import HTTPException
+
+        prioridades_validas = ['ALTA', 'MEDIA', 'BAJA']
+        estados_validos = ['PENDIENTE', 'EN_CURSO', 'COMPLETADO', 'CANCELADO']
+
+        if body.prioridad.upper() not in prioridades_validas:
+            raise HTTPException(status_code=400, detail=f"Prioridad inválida. Debe ser: {', '.join(prioridades_validas)}")
+        if body.estado_accion.upper() not in estados_validos:
+            raise HTTPException(status_code=400, detail=f"Estado inválido. Debe ser: {', '.join(estados_validos)}")
+
+        nueva = RendimientoTecnicoRecomendacion(
+            codigo_sap=codigo_sap,
+            comentario=body.comentario,
+            prioridad=body.prioridad.upper(),
+            estado_accion=body.estado_accion.upper(),
+            usuario_id=current_user.id,
+        )
+        db.add(nueva)
+        db.commit()
+        db.refresh(nueva)
+        return self._to_recomendacion_response(db, nueva)
+
+    def actualizar_recomendacion(self, db: Session, recomendacion_id: int, body, current_user) -> dict:
+        from app.models.cyr_models import RendimientoTecnicoRecomendacion
+        from fastapi import HTTPException
+
+        rec = db.query(RendimientoTecnicoRecomendacion).filter(
+            RendimientoTecnicoRecomendacion.id == recomendacion_id
+        ).first()
+        if not rec:
+            raise HTTPException(status_code=404, detail="Recomendación no encontrada")
+
+        # Solo el autor, o admin/torre_control pueden editar
+        es_autor = rec.usuario_id == current_user.id
+        es_admin = current_user.rol in ('admin', 'superadmin', 'torre_control')
+        if not (es_autor or es_admin):
+            raise HTTPException(status_code=403, detail="No tienes permiso para editar esta recomendación")
+
+        if body.comentario is not None:
+            rec.comentario = body.comentario
+        if body.prioridad is not None:
+            rec.prioridad = body.prioridad.upper()
+        if body.estado_accion is not None:
+            rec.estado_accion = body.estado_accion.upper()
+
+        db.commit()
+        db.refresh(rec)
+        return self._to_recomendacion_response(db, rec)
+
+    def eliminar_recomendacion(self, db: Session, recomendacion_id: int, current_user) -> dict:
+        from app.models.cyr_models import RendimientoTecnicoRecomendacion
+        from fastapi import HTTPException
+
+        rec = db.query(RendimientoTecnicoRecomendacion).filter(
+            RendimientoTecnicoRecomendacion.id == recomendacion_id
+        ).first()
+        if not rec:
+            raise HTTPException(status_code=404, detail="Recomendación no encontrada")
+
+        es_autor = rec.usuario_id == current_user.id
+        es_admin = current_user.rol in ('admin', 'superadmin', 'torre_control')
+        if not (es_autor or es_admin):
+            raise HTTPException(status_code=403, detail="No tienes permiso para eliminar esta recomendación")
+
+        db.delete(rec)
+        db.commit()
+        return {"success": True, "mensaje": "Recomendación eliminada correctamente", "id": recomendacion_id}
+

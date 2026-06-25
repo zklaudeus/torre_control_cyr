@@ -262,3 +262,34 @@ class SemaforoManualResponse(BaseModel):
     descripcion: Optional[str] = None
     updated_at: Optional[datetime] = None
     usuario_actualiza_id: Optional[int] = None
+
+
+# ─── Recomendaciones del Supervisor ──────────────────────────────────────────
+
+class RecomendacionCreate(BaseModel):
+    comentario: str = Field(..., min_length=1, max_length=2000, description="Texto de la recomendación")
+    prioridad: str = Field(default="MEDIA", description="ALTA, MEDIA o BAJA")
+    estado_accion: str = Field(default="PENDIENTE", description="PENDIENTE, EN_CURSO, COMPLETADO, CANCELADO")
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class RecomendacionUpdate(BaseModel):
+    comentario: Optional[str] = Field(None, min_length=1, max_length=2000)
+    prioridad: Optional[str] = None
+    estado_accion: Optional[str] = None
+
+
+class RecomendacionResponse(BaseModel):
+    id: int
+    codigo_sap: str
+    comentario: str
+    prioridad: str
+    estado_accion: str
+    usuario_id: int
+    autor_nombre: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+

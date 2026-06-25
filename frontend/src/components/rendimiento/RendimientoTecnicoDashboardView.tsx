@@ -480,7 +480,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                       }}
                       eliminandoAdvertencia={eliminandoAdvertencia}
                     />
-                    <RendimientoTecnicoRecomendacion />
+                    <RendimientoTecnicoRecomendacion codigoSap={selectedTecnico?.codigoSap ?? null} />
                   </div>
                 </>
               )}
