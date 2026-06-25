@@ -149,11 +149,13 @@ export const SupervisorBitacoraView = ({
         const isAdmin = user?.rol === 'admin' || user?.rol === 'superadmin';
         const hasAll = user?.zonasAsignadas?.includes('TODAS');
 
-        // Si hay sapMap cargado, filtrar estrictamente por usuarios SAP del supervisor
-        if (selectedSupervisorId && sapMap.length > 0) {
-          const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
-          if (!matchingSAP) return false;
-        }
+        // Antes se filtraba estrictamente por usuarios SAP del supervisor, pero
+        // eso oculta brigadas reportadas en la zona que no están en su lista SAP.
+        // if (selectedSupervisorId && sapMap.length > 0) {
+        //   const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
+        //   if (!matchingSAP) return false;
+        // }
+
 
         // Filtrar por zona asignada al supervisor
         const zona = m.zona || obtenerZonaPorComuna(m.comuna, comunasMap);
