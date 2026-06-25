@@ -43,10 +43,12 @@ class ReporteGerencialCYRService:
             if p.zona not in prog_dict:
                 prog_dict[p.zona] = {
                     "reconexiones_programadas": 0.0,
-                    "corte_programado": 0.0
+                    "corte_programado": 0.0,
+                    "asignacion_carga": 0.0
                 }
             prog_dict[p.zona]["reconexiones_programadas"] += float(p.reconexiones_programadas or 0)
             prog_dict[p.zona]["corte_programado"] += float(p.corte_programado or 0)
+            prog_dict[p.zona]["asignacion_carga"] += float(getattr(p, 'asignacion_carga', 0) or 0)
 
         brig_dict: Dict[str, List[ControlBrigadasDiario]] = {}
         for b in brigadas:
@@ -62,6 +64,7 @@ class ReporteGerencialCYRService:
         total_reconexiones_programadas = 0.0
         total_reconexiones_ejecutadas = 0.0
         total_corte_programado = 0.0
+        total_asignacion_carga = 0.0
         total_cortes_ejecutados = 0.0
         total_corte_en_poste = 0.0
         total_corte_en_empalme = 0.0
@@ -69,9 +72,10 @@ class ReporteGerencialCYRService:
         total_visitas_fallidas = 0.0
 
         for nombre_zona in nombres_zonas:
-            prog = prog_dict.get(nombre_zona, {"reconexiones_programadas": 0.0, "corte_programado": 0.0})
+            prog = prog_dict.get(nombre_zona, {"reconexiones_programadas": 0.0, "corte_programado": 0.0, "asignacion_carga": 0.0})
             rec_prog = prog["reconexiones_programadas"]
             corte_prog = prog["corte_programado"]
+            asig_carga = prog["asignacion_carga"]
 
             brig_zona = brig_dict.get(nombre_zona, [])
             brigadas_operativas = len(brig_zona)
@@ -96,7 +100,7 @@ class ReporteGerencialCYRService:
             prom_actividad = ((rec_ejec + cortes_ejecutados) / brigadas_operativas) if brigadas_operativas > 0 else 0.0
 
             cumpl_meta_pct = (prom_actividad / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
-            cumpl_corte_pct = (cortes_ejecutados / corte_prog * 100) if corte_prog > 0 else 0.0
+            cumpl_corte_pct = (cortes_ejecutados / asig_carga * 100) if asig_carga > 0 else 0.0
 
             zonas_resumen.append(ZonaGerencialData(
                 zona=nombre_zona,
@@ -122,6 +126,7 @@ class ReporteGerencialCYRService:
             total_reconexiones_programadas += rec_prog
             total_reconexiones_ejecutadas += rec_ejec
             total_corte_programado += corte_prog
+            total_asignacion_carga += asig_carga
             total_cortes_ejecutados += cortes_ejecutados
             total_corte_en_poste += c_poste
             total_corte_en_empalme += c_empalme
@@ -133,7 +138,7 @@ class ReporteGerencialCYRService:
         tot_prom_actividad = ((total_reconexiones_ejecutadas + total_cortes_ejecutados) / total_brigadas_operativas) if total_brigadas_operativas > 0 else 0.0
 
         tot_cumpl_meta_pct = (tot_prom_actividad / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
-        tot_cumpl_corte_pct = (total_cortes_ejecutados / total_corte_programado * 100) if total_corte_programado > 0 else 0.0
+        tot_cumpl_corte_pct = (total_cortes_ejecutados / total_asignacion_carga * 100) if total_asignacion_carga > 0 else 0.0
 
         fila_total = ZonaGerencialData(
             zona="TOTAL",
