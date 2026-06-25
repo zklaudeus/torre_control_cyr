@@ -1,14 +1,28 @@
 import axios from 'axios';
 
 const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
-const devFallback = import.meta.env.DEV ? `http://${window.location.hostname}:8000` : '';
-let apiBaseUrl = configuredApiUrl || devFallback;
 
-if (!import.meta.env.DEV && window.location.protocol === 'https:' && apiBaseUrl.startsWith('http://')) {
-  apiBaseUrl = '';
+function resolveApiBaseUrl(): string {
+  if (configuredApiUrl) {
+    // Si la página se sirve en HTTPS pero la URL configurada es HTTP → elevar a HTTPS
+    if (window.location.protocol === 'https:' && configuredApiUrl.startsWith('http://')) {
+      return configuredApiUrl.replace('http://', 'https://').replace(/\/+$/, '');
+    }
+    return configuredApiUrl.replace(/\/+$/, '');
+  }
+
+  // En desarrollo: apuntar al hostname del navegador (para que funcione desde móvil)
+  if (import.meta.env.DEV) {
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:8000`;
+  }
+
+  // En producción sin VITE_API_URL: usar rutas relativas (nginx proxea /api/)
+  return '';
 }
 
-export const API_BASE_URL = apiBaseUrl.replace(/\/+$/, '');
+export const API_BASE_URL = resolveApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
