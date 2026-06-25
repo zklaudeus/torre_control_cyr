@@ -58,6 +58,9 @@ class ResumenZonaService:
 
         # Agrupar las zonas únicas de control_parametros_zona
         nombres_zonas = sorted(list(set(z.zona for z in zonas_activas)))
+        
+        # Variable para acumular el contrato global (sumando 1 sola vez por zona)
+        suma_ctto_global_consolidado = 0
 
         # 3. Calcular por zona y tipo_brigada
         for nombre_zona in nombres_zonas:
@@ -65,7 +68,14 @@ class ResumenZonaService:
             zona_b_rep_total = len(brig_dict.get((nombre_zona, "PXQ"), [])) + len(brig_dict.get((nombre_zona, "CF"), []))
             param_pxq = next((z for z in zonas_activas if z.zona == nombre_zona and z.tipo_brigada == "PXQ"), None)
             param_cf = next((z for z in zonas_activas if z.zona == nombre_zona and z.tipo_brigada == "CF"), None)
-            zona_ctto_total = (param_pxq.brigadas_contrato if param_pxq else 0) + (param_cf.brigadas_contrato if param_cf else 0)
+            # El contrato es de la zona completa, tomamos el valor mayor que hayan configurado
+            ctto_pxq = param_pxq.brigadas_contrato if param_pxq else 0
+            ctto_cf = param_cf.brigadas_contrato if param_cf else 0
+            zona_ctto_total = max(ctto_pxq, ctto_cf)
+            
+            # Acumular al global
+            suma_ctto_global_consolidado += zona_ctto_total
+            
             porc_brig_efectivas_zona = (zona_b_rep_total / zona_ctto_total) if zona_ctto_total > 0 else 0.0
 
             for tipo in ["PXQ", "CF"]:
@@ -137,7 +147,7 @@ class ResumenZonaService:
         # 4. Filas totales generales por tipo
         # Calcular % brigadas efectivas total general (sumando PXQ y CF globalmente)
         total_global_b_rep = totales["PXQ"]["b_rep"] + totales["CF"]["b_rep"]
-        total_global_b_ctto = totales["PXQ"]["b_ctto"] + totales["CF"]["b_ctto"]
+        total_global_b_ctto = suma_ctto_global_consolidado
         porc_brig_efectivas_global = (total_global_b_rep / total_global_b_ctto) if total_global_b_ctto > 0 else 0.0
 
         filas_totales = []
