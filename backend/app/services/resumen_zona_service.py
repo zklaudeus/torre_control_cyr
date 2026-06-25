@@ -120,8 +120,8 @@ class ResumenZonaService:
                 prom_actividades = (actividades / b_rep) if b_rep > 0 else 0.0
                 cumpl_prom_meta = (cortes / (b_rep * meta_diaria)) if (b_rep * meta_diaria) > 0 else 0.0
                 
-                # Omitir filas vacías donde no hay ni brigadas reportadas ni contrato
-                if b_rep == 0 and brig_contrato == 0 and not param_zona and not prog:
+                # Omitir filas vacías donde no hay ni brigadas reportadas, contrato, ni parámetros y tampoco programación con valores
+                if b_rep == 0 and brig_contrato == 0 and asig_carga == 0 and rec_prog == 0 and corte_prog == 0 and not param_zona:
                     continue
 
                 zonas_resumen.append(ResumenZonaFila(
@@ -148,11 +148,11 @@ class ResumenZonaService:
         t_rep = totales["PXQ"]["b_rep"] + totales["CF"]["b_rep"]
         t_ctto = suma_ctto_global_consolidado
         t_rec_prog = totales["PXQ"]["rec_prog"] + totales["CF"]["rec_prog"]
+        t_asig_carga = totales["PXQ"]["asig_carga"] + totales["CF"]["asig_carga"]
         
         filas_totales = []
-        if not (t_rep == 0 and t_ctto == 0 and t_rec_prog == 0):
+        if not (t_rep == 0 and t_ctto == 0 and t_rec_prog == 0 and t_asig_carga == 0):
             t_rec_ejec = totales["PXQ"]["rec_ejec"] + totales["CF"]["rec_ejec"]
-            t_asig_carga = totales["PXQ"]["asig_carga"] + totales["CF"]["asig_carga"]
             t_corte_prog = totales["PXQ"]["corte_prog"] + totales["CF"]["corte_prog"]
             t_cortes = totales["PXQ"]["cortes"] + totales["CF"]["cortes"]
             t_actividades = totales["PXQ"]["actividades"] + totales["CF"]["actividades"]

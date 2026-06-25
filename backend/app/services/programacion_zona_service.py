@@ -14,37 +14,38 @@ class ProgramacionZonaService:
     def get_programacion_por_fecha(self, db: Session, fecha: date) -> List[ProgramacionZona]:
         # Traer zonas activas
         zonas_activas = self.param_repo.get_zonas_activas(db)
+        nombres_zonas = sorted(list(set(z.zona for z in zonas_activas)))
         
         # Traer la programación existente
         programacion_existente = self.prog_repo.get_by_fecha(db, fecha)
         prog_dict = {(p.zona, p.tipo_brigada): p for p in programacion_existente}
         
         resultado = []
-        for param_zona in zonas_activas:
-            # param_zona ahora tiene .zona y .tipo_brigada
-            clave = (param_zona.zona, param_zona.tipo_brigada)
-            if clave in prog_dict:
-                existente = prog_dict[clave]
-                resultado.append(ProgramacionZona(
-                    id=existente.id,
-                    fecha_operacional=existente.fecha_operacional,
-                    zona=existente.zona,
-                    tipo_brigada=existente.tipo_brigada,
-                    reconexiones_programadas=existente.reconexiones_programadas,
-                    asignacion_carga=existente.asignacion_carga,
-                    corte_programado=existente.corte_programado
-                ))
-            else:
-                # Retornar ceros
-                resultado.append(ProgramacionZona(
-                    id=None,
-                    fecha_operacional=fecha,
-                    zona=param_zona.zona,
-                    tipo_brigada=param_zona.tipo_brigada,
-                    reconexiones_programadas=0,
-                    asignacion_carga=0,
-                    corte_programado=0
-                ))
+        for nombre_zona in nombres_zonas:
+            for tipo in ["PXQ", "CF"]:
+                clave = (nombre_zona, tipo)
+                if clave in prog_dict:
+                    existente = prog_dict[clave]
+                    resultado.append(ProgramacionZona(
+                        id=existente.id,
+                        fecha_operacional=existente.fecha_operacional,
+                        zona=existente.zona,
+                        tipo_brigada=existente.tipo_brigada,
+                        reconexiones_programadas=existente.reconexiones_programadas,
+                        asignacion_carga=existente.asignacion_carga,
+                        corte_programado=existente.corte_programado
+                    ))
+                else:
+                    # Retornar ceros
+                    resultado.append(ProgramacionZona(
+                        id=None,
+                        fecha_operacional=fecha,
+                        zona=nombre_zona,
+                        tipo_brigada=tipo,
+                        reconexiones_programadas=0,
+                        asignacion_carga=0,
+                        corte_programado=0
+                    ))
         return resultado
 
     def bulk_create_or_update(self, db: Session, bulk_data: ProgramacionZonaBulkCreate) -> List[ProgramacionZona]:
