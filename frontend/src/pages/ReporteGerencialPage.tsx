@@ -353,9 +353,9 @@ export const ReporteGerencialPage = () => {
                 <div style={{...kpiSubValueStyle, color: THEME.primary}}>Cumpl. % Meta / % Brigadas Efectivas</div>
               </div>
               <div style={cardStyle}>
-                <div style={kpiTitleStyle}>Real función Carga</div>
+                <div style={kpiTitleStyle}>Real en función del Cump. % según Carga</div>
                 <div style={kpiValueStyle}>{realFuncionCumplimientoCargaPct.toFixed(2)}%</div>
-                <div style={kpiSubValueStyle}>Corte carga / brigadas efectivas</div>
+                <div style={kpiSubValueStyle}>Cumpl. % Corte / % Brigadas Efectivas</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Visitas Fallidas</div>
