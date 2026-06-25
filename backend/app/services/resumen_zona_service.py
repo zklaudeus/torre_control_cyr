@@ -144,44 +144,46 @@ class ResumenZonaService:
                     observacion=""
                 ))
 
-        # 4. Filas totales generales por tipo
-        # Calcular % brigadas efectivas total general (sumando PXQ y CF globalmente)
-        total_global_b_rep = totales["PXQ"]["b_rep"] + totales["CF"]["b_rep"]
-        total_global_b_ctto = suma_ctto_global_consolidado
-        porc_brig_efectivas_global = (total_global_b_rep / total_global_b_ctto) if total_global_b_ctto > 0 else 0.0
-
+        # 4. Fila total general unificada
+        t_rep = totales["PXQ"]["b_rep"] + totales["CF"]["b_rep"]
+        t_ctto = suma_ctto_global_consolidado
+        t_rec_prog = totales["PXQ"]["rec_prog"] + totales["CF"]["rec_prog"]
+        
         filas_totales = []
-        for tipo in ["PXQ", "CF"]:
-            t = totales[tipo]
-            if t["b_rep"] == 0 and t["b_ctto"] == 0 and t["rec_prog"] == 0:
-                continue
-                
-            porc_brig_efectivas_tot = porc_brig_efectivas_global
-            prom_rec_tot = (t["rec_ejec"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
-            cumpl_corte_porc_tot = (t["cortes"] / t["corte_prog"]) if t["corte_prog"] > 0 else 0.0
-            prom_cortes_tot = (t["cortes"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
-            prom_actividades_tot = (t["actividades"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
-            cumpl_prom_meta_tot = (t["cortes"] / (t["b_rep"] * meta_diaria)) if (t["b_rep"] * meta_diaria) > 0 else 0.0
+        if not (t_rep == 0 and t_ctto == 0 and t_rec_prog == 0):
+            t_rec_ejec = totales["PXQ"]["rec_ejec"] + totales["CF"]["rec_ejec"]
+            t_asig_carga = totales["PXQ"]["asig_carga"] + totales["CF"]["asig_carga"]
+            t_corte_prog = totales["PXQ"]["corte_prog"] + totales["CF"]["corte_prog"]
+            t_cortes = totales["PXQ"]["cortes"] + totales["CF"]["cortes"]
+            t_actividades = totales["PXQ"]["actividades"] + totales["CF"]["actividades"]
+
+            porc_brig_efectivas_global = (t_rep / t_ctto) if t_ctto > 0 else 0.0
+            prom_rec_tot = (t_rec_ejec / t_rep) if t_rep > 0 else 0.0
+            cumpl_corte_porc_tot = (t_cortes / t_corte_prog) if t_corte_prog > 0 else 0.0
+            prom_cortes_tot = (t_cortes / t_rep) if t_rep > 0 else 0.0
+            prom_actividades_tot = (t_actividades / t_rep) if t_rep > 0 else 0.0
+            cumpl_prom_meta_tot = (t_cortes / (t_rep * meta_diaria)) if (t_rep * meta_diaria) > 0 else 0.0
 
             filas_totales.append(ResumenZonaFila(
                 zona="TOTAL GENERAL",
-                tipo_brigada=tipo,
-                brigadas_reportadas=t["b_rep"],
-                brigadas_contrato=t["b_ctto"],
-                porcentaje_brigadas_efectivas=porc_brig_efectivas_tot,
-                reconexiones_programadas=t["rec_prog"],
-                total_reconexiones_ejecutadas=t["rec_ejec"],
+                tipo_brigada="PXQ + CF",
+                brigadas_reportadas=t_rep,
+                brigadas_contrato=t_ctto,
+                porcentaje_brigadas_efectivas=porc_brig_efectivas_global,
+                reconexiones_programadas=t_rec_prog,
+                total_reconexiones_ejecutadas=t_rec_ejec,
                 promedio_reconexiones=prom_rec_tot,
-                asignacion_carga=t["asig_carga"],
-                corte_programado=t["corte_prog"],
-                total_cortes=t["cortes"],
+                asignacion_carga=t_asig_carga,
+                corte_programado=t_corte_prog,
+                total_cortes=t_cortes,
                 cumplimiento_corte_porcentaje=cumpl_corte_porc_tot,
                 promedio_cortes=prom_cortes_tot,
-                total_actividades=t["actividades"],
+                total_actividades=t_actividades,
                 promedio_actividades=prom_actividades_tot,
                 cumplimiento_promedio_meta=cumpl_prom_meta_tot,
                 observacion=""
             ))
+
 
         return ResumenZonaResponse(
             fecha_operacional=str(fecha),
