@@ -2,7 +2,7 @@ import axios from 'axios';
 
 export const API_BASE_URL = import.meta.env.DEV
   ? (import.meta.env.VITE_API_URL?.trim() || `http://${window.location.hostname}:8000`).replace(/\/+$/, '')
-  : '';
+  : window.location.origin.replace(/\/+$/, '');
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
