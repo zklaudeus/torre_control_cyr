@@ -677,34 +677,36 @@ class ProductividadRepository:
 
         estado_anterior = actual.estado_productivo_actual if actual else None
 
-        # ── Calcular rachas consecutivas ────────────────────────────────────
-        # Obtener todos los días evaluables ordenados desc para contar rachas
-        todos_evaluables = db.query(RendimientoTecnicoDiario).filter(
+        # ── Calcular días acumulados del mes ──────────────────────────────
+        # Obtener todos los días evaluables del mes en curso
+        from datetime import date as date_type
+        hoy = ultimo.fecha_operacional
+        primer_dia_mes = hoy.replace(day=1)
+
+        dias_del_mes = db.query(RendimientoTecnicoDiario).filter(
             and_(
                 RendimientoTecnicoDiario.codigo_sap == codigo_sap,
                 RendimientoTecnicoDiario.es_evaluable == True,
+                RendimientoTecnicoDiario.fecha_operacional >= primer_dia_mes,
+                RendimientoTecnicoDiario.fecha_operacional <= hoy,
                 condicion_rendimiento_con_brigada_contabilizable(
                     RendimientoTecnicoDiario,
                     ControlBrigadasDiario,
                 ),
             )
-        ).order_by(desc(RendimientoTecnicoDiario.fecha_operacional)).all()
+        ).all()
 
-        # Días consecutivos bajo 50%: contar desde el más reciente hacia atrás
-        racha_bajo_50 = 0
-        for d in todos_evaluables:
-            if d.cumplimiento_pct is not None and d.cumplimiento_pct < 50:
-                racha_bajo_50 += 1
-            else:
-                break  # racha rota
+        # Total días del mes con cumplimiento < 50%
+        racha_bajo_50 = sum(
+            1 for d in dias_del_mes
+            if d.cumplimiento_pct is not None and d.cumplimiento_pct < 50
+        )
 
-        # Días consecutivos alto desempeño: contar desde el más reciente
-        racha_alto = 0
-        for d in todos_evaluables:
-            if d.cortes_productivos is not None and d.cortes_productivos >= umbral_estable:
-                racha_alto += 1
-            else:
-                break  # racha rota
+        # Total días del mes con cortes >= umbral de alto desempeño
+        racha_alto = sum(
+            1 for d in dias_del_mes
+            if d.cortes_productivos is not None and d.cortes_productivos >= umbral_estable
+        )
 
         if not actual:
             actual = RendimientoTecnicoActual(
