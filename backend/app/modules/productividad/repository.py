@@ -677,15 +677,48 @@ class ProductividadRepository:
 
         estado_anterior = actual.estado_productivo_actual if actual else None
 
+        # ── Calcular rachas consecutivas ────────────────────────────────────
+        # Obtener todos los días evaluables ordenados desc para contar rachas
+        todos_evaluables = db.query(RendimientoTecnicoDiario).filter(
+            and_(
+                RendimientoTecnicoDiario.codigo_sap == codigo_sap,
+                RendimientoTecnicoDiario.es_evaluable == True,
+                condicion_rendimiento_con_brigada_contabilizable(
+                    RendimientoTecnicoDiario,
+                    ControlBrigadasDiario,
+                ),
+            )
+        ).order_by(desc(RendimientoTecnicoDiario.fecha_operacional)).all()
+
+        # Días consecutivos bajo 50%: contar desde el más reciente hacia atrás
+        racha_bajo_50 = 0
+        for d in todos_evaluables:
+            if d.cumplimiento_pct is not None and d.cumplimiento_pct < 50:
+                racha_bajo_50 += 1
+            else:
+                break  # racha rota
+
+        # Días consecutivos alto desempeño: contar desde el más reciente
+        racha_alto = 0
+        for d in todos_evaluables:
+            if d.cortes_productivos is not None and d.cortes_productivos >= umbral_estable:
+                racha_alto += 1
+            else:
+                break  # racha rota
+
         if not actual:
             actual = RendimientoTecnicoActual(
                 codigo_sap=codigo_sap,
                 fase_actual=1,
                 estado_productivo_actual=estado,
+                dias_consecutivos_bajo_50=racha_bajo_50,
+                dias_consecutivos_alto_desempeno=racha_alto,
             )
             db.add(actual)
         else:
             actual.estado_productivo_actual = estado
+            actual.dias_consecutivos_bajo_50 = racha_bajo_50
+            actual.dias_consecutivos_alto_desempeno = racha_alto
 
         db.flush()
         db.commit()
@@ -697,7 +730,10 @@ class ProductividadRepository:
             "cortes_productivos": cortes,
             "estado_anterior": estado_anterior if estado_anterior and estado_anterior != estado else None,
             "estado_nuevo": estado,
+            "dias_consecutivos_bajo_50": racha_bajo_50,
+            "dias_consecutivos_alto_desempeno": racha_alto,
         }
+
 
     def cambiar_fase_manual(
         self, db: Session, codigo_sap: str, fase_nueva: int, motivo: str, usuario_id: int
