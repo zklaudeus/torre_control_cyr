@@ -4,7 +4,14 @@ from unittest.mock import MagicMock
 
 from app.modules.productividad.schemas import ProductividadFilterParams
 from app.modules.productividad.service import ProductividadService
-from app.modules.productividad.sync import calcular_metricas_brigada
+from app.models.cyr_models import (
+    RendimientoTecnicoCausaFallida,
+    RendimientoTecnicoDiario,
+)
+from app.modules.productividad.sync import (
+    calcular_metricas_brigada,
+    sincronizar_rendimiento_desde_brigada,
+)
 
 
 def test_metricas_pxq_replican_cortes_y_fallidas_de_resumen_general():
@@ -79,3 +86,22 @@ def test_consulta_fecha_historica_usa_brigada_si_falta_snapshot():
     assert resultado[0].cortes_productivos == 8
     assert resultado[0].visita_fallida == 2
     assert resultado[0].motivo_no_evaluable == "FUENTE_RESUMEN_GENERAL"
+
+
+def test_sincronizacion_elimina_snapshot_y_causas_si_brigada_esta_inactiva():
+    db = MagicMock()
+    fecha = date(2026, 6, 24)
+    brigada = SimpleNamespace(
+        fecha_operacional=fecha,
+        codigo_sap="SAP001",
+        estado_brigada="Inactiva",
+    )
+
+    resultado = sincronizar_rendimiento_desde_brigada(db, brigada)
+
+    assert resultado is None
+    modelos_consultados = [call.args[0] for call in db.query.call_args_list]
+    assert RendimientoTecnicoCausaFallida in modelos_consultados
+    assert RendimientoTecnicoDiario in modelos_consultados
+    assert db.query.return_value.filter.return_value.delete.call_count == 2
+    db.flush.assert_called_once()

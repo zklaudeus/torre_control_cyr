@@ -80,8 +80,9 @@ export const mainContentStyle: CSSProperties = {
 
 export const headerStyle: CSSProperties = {
   display: 'flex',
+  flexWrap: 'wrap',
   justifyContent: 'space-between',
-  alignItems: 'flex-start',
+  alignItems: 'center',
   gap: '1.5rem',
   marginBottom: '2rem',
   borderBottom: `1px solid ${tokens.border}`,

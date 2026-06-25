@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { formatFecha } from '../../utils/formatFecha';
+import { API_BASE_URL } from '../../api/client';
 
 interface ProcesamientoResultado {
   ok: boolean;
@@ -64,9 +65,8 @@ export const ProcesadorOperacional: React.FC<ProcesadorOperacionalProps> = ({
     formData.append('fecha_operacional', fechaOperacional);
 
     try {
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
       const token = localStorage.getItem('torreControlToken');
-      const response = await fetch(`${apiUrl}/api/procesamiento/actualizar-resultados-brigadas`, {
+      const response = await fetch(`${API_BASE_URL}/api/procesamiento/actualizar-resultados-brigadas`, {
         method: 'POST',
         headers: token ? {
           'Authorization': `Bearer ${token}`

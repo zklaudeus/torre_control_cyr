@@ -100,7 +100,8 @@ class TestService:
     def test_listar_tecnicos_vacio(self, service, mock_db):
         service.repo.listar_tecnicos = MagicMock(return_value=[])
         service._mapear_supervisores = MagicMock(return_value={})
-        result = service.listar_tecnicos(mock_db)
+        current_user = MagicMock(rol="admin", supervisor_id=None)
+        result = service.listar_tecnicos(mock_db, current_user)
         assert result == []
 
     def test_obtener_rendimiento_diario_vacio(self, service, mock_db):

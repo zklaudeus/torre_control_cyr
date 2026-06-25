@@ -1,18 +1,20 @@
-FROM python:3.11-slim
+FROM python:3.11-slim-bookworm
+
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
 
 WORKDIR /app
-
-# Instalar dependencias del sistema requeridas para PostgreSQL y compilación
-RUN apt-get update && apt-get install -y \
-    libpq-dev gcc \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copiar e instalar los requerimientos
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar el código fuente
-COPY . .
+RUN groupadd --system app && useradd --system --gid app --home /app app
+COPY --chown=app:app . .
+
+USER app
 
 # Exponer el puerto
 EXPOSE 8000

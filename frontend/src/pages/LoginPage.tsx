@@ -26,10 +26,12 @@ export const LoginPage = () => {
 
       const mappedUser = {
         id: String(user.id),
-        nombre: user.usuario,
+        nombre: user.nombre || user.usuario,
         usuario: user.usuario,
         rol: user.rol,
         supervisorId: user.supervisor_id,
+        zonasAsignadas: user.zonas_asignadas ?? undefined,
+        tiposBrigadaPermitidos: user.tipos_brigada_permitidos ?? undefined,
       };
 
       login(mappedUser as any);

@@ -30,8 +30,8 @@ export const CrearDesdeDiaAnteriorPanel = ({
           Crear brigadas desde día anterior
         </h3>
       </div>
-      <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
-        <div style={{ flex: 1, maxWidth: '240px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'flex-end' }}>
+        <div style={{ flex: '1 1 200px' }}>
           <label style={{
             display: 'block', marginBottom: '6px',
             color: '#64748B', fontSize: '12px', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em'

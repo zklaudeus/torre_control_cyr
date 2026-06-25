@@ -446,3 +446,29 @@ class RendimientoTecnicoCausaFallida(Base):
         Index('idx_fallida_rendimiento_id', 'rendimiento_diario_id'),
         CheckConstraint('cantidad > 0', name='chk_fallida_cantidad_pos'),
     )
+
+class RendimientoTecnicoSemaforoManual(Base):
+    __tablename__ = "rendimiento_tecnico_semaforos_manuales"
+
+    id = Column(BigInteger, primary_key=True)
+    codigo_sap = Column(String(50), nullable=False)
+    categoria = Column(String(50), nullable=False)
+    estado = Column(String(50), nullable=False, default='SIN_EVALUACION', server_default=text("'SIN_EVALUACION'"))
+    descripcion = Column(Text, nullable=True)
+    usuario_actualiza_id = Column(Integer, ForeignKey("control_usuarios.id", ondelete="RESTRICT"), nullable=True)
+
+    created_at = Column(DateTime(timezone=True), nullable=False, server_default=text('now()'))
+    updated_at = Column(DateTime(timezone=True), nullable=False, server_default=text('now()'), onupdate=text('now()'))
+
+    __table_args__ = (
+        UniqueConstraint('codigo_sap', 'categoria', name='uq_semaforo_manual_sap_categoria'),
+        Index('idx_semaforo_manual_sap', 'codigo_sap'),
+        CheckConstraint(
+            "categoria IN ('SEGURIDAD', 'CALIDAD_CORTE', 'CUMPLIMIENTO_PROTOCOLOS', 'COMUNICACION_CLIENTE', 'DISCIPLINA_OPERACIONAL', 'ATENCION_CLIENTE')",
+            name='chk_semaforo_manual_categoria'
+        ),
+        CheckConstraint(
+            "estado IN ('SIN_EVALUACION', 'CRITICO', 'ESTABLE', 'ALTO_DESEMPENO')",
+            name='chk_semaforo_manual_estado'
+        ),
+    )

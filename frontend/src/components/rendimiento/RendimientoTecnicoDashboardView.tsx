@@ -11,9 +11,9 @@ import { RendimientoTecnicoSelector } from './RendimientoTecnicoSelector';
 import { RendimientoTecnicoPanelZonas } from './RendimientoTecnicoPanelZonas';
 import { useProductividad } from '../../hooks/useProductividad';
 import { useAuth } from '../../auth/AuthContext';
-import { getZonasResumen } from '../../api/productividad.api';
+import { getZonasResumen, getSemaforosTecnico } from '../../api/productividad.api';
 import type { ZonaResumenPanelBackend } from '../../api/productividad.api';
-import type { EstadoTecnico } from '../../types/rendimientoTecnico.types';
+import type { EstadoTecnico, SemaforoTecnico } from '../../types/rendimientoTecnico.types';
 
 interface RendimientoTecnicoDashboardViewProps {
   fechaOperacional: string;
@@ -59,6 +59,12 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
   const [zonasData, setZonasData] = useState<ZonaResumenPanelBackend[]>([]);
   const [loadingZonas, setLoadingZonas] = useState(true);
 
+  // ─── Semáforos ─────────────────────────────────────────────
+  const [semaforos, setSemaforos] = useState<SemaforoTecnico[]>([]);
+  const [loadingSemaforos, setLoadingSemaforos] = useState(false);
+
+  const canEditSemaforos = user?.rol === 'torre_control' || user?.rol === 'admin' || user?.rol === 'superadmin';
+
   useEffect(() => {
     let cancelled = false;
     setLoadingZonas(true);
@@ -72,6 +78,31 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
     });
     return () => { cancelled = true; };
   }, []);
+
+  // Cargar semáforos cuando se selecciona un técnico
+  useEffect(() => {
+    if (!selectedTecnico?.codigoSap) {
+      setSemaforos([]);
+      return;
+    }
+    let cancelled = false;
+    setLoadingSemaforos(true);
+    getSemaforosTecnico(selectedTecnico.codigoSap).then(data => {
+      if (!cancelled) {
+        setSemaforos(data.map(s => ({
+          categoria: s.categoria,
+          estado: s.estado as SemaforoTecnico['estado'],
+          descripcion: s.descripcion,
+          updated_at: s.updated_at,
+          usuario_actualiza_id: s.usuario_actualiza_id,
+        })));
+        setLoadingSemaforos(false);
+      }
+    }).catch(() => {
+      if (!cancelled) setLoadingSemaforos(false);
+    });
+    return () => { cancelled = true; };
+  }, [selectedTecnico?.codigoSap]);
 
   const handleSelectZona = useCallback((zona: string) => {
     setSelectedZona(zona);
@@ -124,6 +155,25 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           .rt-main-layout {
             grid-template-columns: 1fr;
           }
+          .rt-sidebar {
+            position: static !important;
+            max-height: none !important;
+            overflow-y: visible !important;
+          }
+        }
+        .rt-sidebar {
+          position: sticky;
+          top: 20px;
+          max-height: calc(100vh - 40px);
+          overflow-y: auto;
+          padding-right: 10px;
+        }
+        .rt-sidebar::-webkit-scrollbar {
+          width: 6px;
+        }
+        .rt-sidebar::-webkit-scrollbar-thumb {
+          background: var(--border);
+          border-radius: 4px;
         }
         .rt-ficha {
           display: flex;
@@ -147,7 +197,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
       <div className="rt-main-layout">
         
         {/* Listado Lateral Izquierdo: Zonas o Técnicos */}
-        <div style={{ position: 'sticky', top: '20px' }}>
+        <div className="rt-sidebar">
           {selectedZona ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button
@@ -397,7 +447,15 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
 
                   <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
 
-                  <RendimientoTecnicoSemaforos />
+                  <RendimientoTecnicoSemaforos
+                    semaforos={semaforos}
+                    codigoSap={selectedTecnico?.codigoSap ?? ''}
+                    canEdit={canEditSemaforos}
+                    loading={loadingSemaforos}
+                    onUpdated={updated => {
+                      setSemaforos(prev => prev.map(s => s.categoria === updated.categoria ? updated : s));
+                    }}
+                  />
 
                   <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
 

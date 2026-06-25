@@ -16,6 +16,7 @@ from app.models.cyr_models import (
     RendimientoTecnicoCausaFallida,
     ControlSupervisores,
     ControlParametrosGenerales,
+    RendimientoTecnicoSemaforoManual,
 )
 from app.models.domain_models import DimSap, DimZona
 from sqlalchemy import and_
@@ -89,22 +90,25 @@ class ProductividadRepository:
                 .all()
             )
             zona_map = {r.codigo_sap: r.zona for r in zona_rows}
-        return [
-            {
+        result = []
+        for r in rows:
+            zona = zona_map.get(r.codigo_sap)
+            if zonas and zona not in zonas:
+                continue
+            result.append({
                 "codigo_sap": r.codigo_sap,
                 "cuenta": r.cuenta,
                 "tipo_brigada": r.tipo_brigada,
                 "activo": r.activo,
                 "validado": r.validado,
-                "zona": zona_map.get(r.codigo_sap),
+                "zona": zona,
                 "fase_actual": r.fase_actual or 1,
                 "estado_productivo_actual": r.estado_productivo_actual or "SIN_EVALUACION",
                 "dias_consecutivos_bajo_50": r.dias_consecutivos_bajo_50 or 0,
                 "dias_consecutivos_alto_desempeno": r.dias_consecutivos_alto_desempeno or 0,
                 "advertencias_fase2": r.advertencias_fase2 or 0,
-            }
-            for r in rows
-        ]
+            })
+        return result
 
     def resumen_panel_zonas(
         self, db: Session, zonas_permitidas: Optional[list[str]] = None
@@ -218,6 +222,8 @@ class ProductividadRepository:
             zona = zona_map.get(r.codigo_sap)
             if not zona:
                 continue
+            if zonas_permitidas and zona not in zonas_permitidas:
+                continue
             z = zonas[zona]
             z["total_tecnicos"] += 1
             if r.codigo_sap in evaluables_hoy:
@@ -261,6 +267,48 @@ class ProductividadRepository:
         if data["fase_2"] > 0 or data["recuperacion"] >= 3:
             return "MEDIA"
         return "NORMAL"
+
+    def obtener_semaforos_por_tecnico(
+        self, db: Session, codigo_sap: str
+    ) -> List[RendimientoTecnicoSemaforoManual]:
+        """Obtiene los semáforos manuales registrados para un técnico."""
+        return (
+            db.query(RendimientoTecnicoSemaforoManual)
+            .filter(RendimientoTecnicoSemaforoManual.codigo_sap == codigo_sap)
+            .all()
+        )
+
+    def upsert_semaforo_tecnico(
+        self, db: Session, codigo_sap: str, categoria: str, estado: str, descripcion: Optional[str], usuario_id: int
+    ) -> RendimientoTecnicoSemaforoManual:
+        """Actualiza o crea el registro de semáforo manual."""
+        semaforo = (
+            db.query(RendimientoTecnicoSemaforoManual)
+            .filter(
+                RendimientoTecnicoSemaforoManual.codigo_sap == codigo_sap,
+                RendimientoTecnicoSemaforoManual.categoria == categoria
+            )
+            .first()
+        )
+
+        if not semaforo:
+            semaforo = RendimientoTecnicoSemaforoManual(
+                codigo_sap=codigo_sap,
+                categoria=categoria,
+                estado=estado,
+                descripcion=descripcion,
+                usuario_actualiza_id=usuario_id,
+            )
+            db.add(semaforo)
+        else:
+            semaforo.estado = estado
+            semaforo.descripcion = descripcion
+            semaforo.usuario_actualiza_id = usuario_id
+
+        db.commit()
+        db.refresh(semaforo)
+        return semaforo
+
 
     def obtener_rendimiento_diario(
         self,

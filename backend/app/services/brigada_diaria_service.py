@@ -101,6 +101,5 @@ class BrigadaDiariaService:
             raise HTTPException(status_code=400, detail="tipo_brigada debe ser PXQ o CF")
         if item.estado_brigada not in ["Operativa", "Inactiva"]:
             raise HTTPException(status_code=400, detail="estado_brigada debe ser Operativa o Inactiva")
-        if item.estado_brigada == "Inactiva" and not item.observacion_brigada:
-            # Según la regla, "pedir observación o advertir". Forzaremos si es Inactiva, requiere observación.
-            raise HTTPException(status_code=400, detail="Las brigadas inactivas deben tener una observación")
+        if item.estado_brigada == "Inactiva":
+            return

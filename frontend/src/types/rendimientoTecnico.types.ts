@@ -31,14 +31,14 @@ export type RendimientoTecnicoKpiData = {
 };
 
 // -- Semáforos Operacionales
-export type EstadoSemaforo = 'Crítico' | 'En recuperación' | 'Estable' | 'Alto desempeño';
+export type EstadoSemaforo = 'SIN_EVALUACION' | 'CRITICO' | 'ESTABLE' | 'ALTO_DESEMPENO';
 
 export type SemaforoTecnico = {
-  id: string;
-  titulo: string;
+  categoria: string;
   estado: EstadoSemaforo;
-  descripcion: string;
-  ultimaEvaluacion?: string;
+  descripcion: string | null;
+  updated_at: string | null;
+  usuario_actualiza_id: number | null;
 };
 
 // -- Fase de Seguimiento

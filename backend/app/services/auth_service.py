@@ -1,8 +1,70 @@
 from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 from app.core.security import verify_password, create_access_token
+from app.models.cyr_models import (
+    ControlSupervisores,
+    ControlSupervisorComunasZonas,
+    ControlSupervisorUsuariosSAP,
+)
 from app.repositories.usuario_repository import get_user_by_username
 from app.schemas.auth import LoginRequest, TokenResponse
+
+
+def _normalizar_tipo_brigada(tipo: str | None) -> str | None:
+    tipo_normalizado = (tipo or "").strip().upper()
+    if tipo_normalizado in {"PXQ", "CF"}:
+        return tipo_normalizado
+    return None
+
+
+def _ordenar_tipos_brigada(tipos: set[str]) -> list[str]:
+    orden = ("PXQ", "CF")
+    return [tipo for tipo in orden if tipo in tipos]
+
+
+def _build_user_payload(db: Session, user) -> dict:
+    payload = {
+        "id": user.id,
+        "usuario": user.usuario,
+        "nombre": user.usuario,
+        "rol": user.rol,
+        "supervisor_id": user.supervisor_id,
+    }
+
+    if user.rol in {"admin", "superadmin", "torre_control", "gerencia"}:
+        payload["zonas_asignadas"] = ["TODAS"]
+        payload["tipos_brigada_permitidos"] = ["PXQ", "CF"]
+        return payload
+
+    if user.rol == "supervisor" and user.supervisor_id:
+        supervisor = db.query(ControlSupervisores).filter(
+            ControlSupervisores.id == user.supervisor_id
+        ).first()
+
+        zonas = db.query(ControlSupervisorComunasZonas.zona_principal).filter(
+            ControlSupervisorComunasZonas.supervisor_id == user.supervisor_id,
+            ControlSupervisorComunasZonas.activo == True,
+        ).distinct().all()
+
+        tipos_rows = db.query(ControlSupervisorUsuariosSAP.tipo_brigada).filter(
+            ControlSupervisorUsuariosSAP.supervisor_id == user.supervisor_id,
+            ControlSupervisorUsuariosSAP.activo == True,
+        ).distinct().all()
+
+        tipos = {
+            tipo
+            for row in tipos_rows
+            for tipo in [_normalizar_tipo_brigada(row[0])]
+            if tipo
+        }
+        tipos.add("PXQ")
+
+        payload["nombre"] = supervisor.nombre if supervisor else user.usuario
+        payload["zonas_asignadas"] = sorted({z[0] for z in zonas if z[0]})
+        payload["tipos_brigada_permitidos"] = _ordenar_tipos_brigada(tipos)
+
+    return payload
+
 
 def authenticate_user(db: Session, login_data: LoginRequest) -> TokenResponse:
     user = get_user_by_username(db, login_data.usuario)
@@ -38,10 +100,5 @@ def authenticate_user(db: Session, login_data: LoginRequest) -> TokenResponse:
     return TokenResponse(
         access_token=access_token,
         token_type="bearer",
-        user={
-            "id": user.id,
-            "usuario": user.usuario,
-            "rol": user.rol,
-            "supervisor_id": user.supervisor_id
-        }
+        user=_build_user_payload(db, user)
     )

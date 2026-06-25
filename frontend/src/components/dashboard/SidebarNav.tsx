@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../auth/AuthContext';
 
@@ -82,6 +83,20 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
   const location = useLocation();
   const navigate = useNavigate();
 
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const previousBodyOverflow = document.body.style.overflow;
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+
+    return () => {
+      document.body.style.overflow = previousBodyOverflow;
+      document.documentElement.style.overflow = previousHtmlOverflow;
+    };
+  }, [isOpen]);
+
   const handleClick = (route: string, external?: boolean) => {
     if (external) {
       window.open(`${window.location.origin}${window.location.pathname}#/reporte-gerencial`, '_blank');
@@ -135,28 +150,43 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
           width: 240px;
           min-width: 240px;
           height: 100vh;
+          height: 100dvh;
           background: var(--bg-panel-sec);
           display: flex;
           flex-direction: column;
           border-right: 1px solid var(--border);
           position: sticky;
           top: 0;
-          overflow-y: auto;
+          overflow: hidden;
           transition: transform 0.3s ease;
-          z-index: 1001;
+          z-index: 800;
         }
         .sidebar-overlay {
           display: none;
           position: fixed;
           inset: 0;
-          background: rgba(0, 0, 0, 0.5);
-          z-index: 1000;
+          background: rgba(15, 23, 42, 0.55);
+          z-index: 790;
+          overscroll-behavior: contain;
+          touch-action: none;
+        }
+        .sidebar-nav-list {
+          min-height: 0;
+          overflow-y: auto;
+          overscroll-behavior: contain;
+        }
+        .sidebar-footer {
+          background: var(--bg-panel-sec);
+          box-shadow: 0 -12px 24px rgba(15, 23, 42, 0.06);
         }
         @media (max-width: 768px) {
           .sidebar-container {
             position: fixed;
             left: 0;
+            width: min(86vw, 300px);
+            min-width: 0;
             transform: translateX(-100%);
+            box-shadow: 18px 0 40px rgba(15, 23, 42, 0.28);
           }
           .sidebar-container.open {
             transform: translateX(0);
@@ -207,7 +237,7 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
       </div>
 
       {/* ── Nav ── */}
-      <nav style={{ flex: 1, padding: '0.75rem 0.625rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
+      <nav className="sidebar-nav-list" style={{ flex: 1, padding: '0.75rem 0.625rem', display: 'flex', flexDirection: 'column', gap: '0' }}>
 
         {/* CyR group header */}
         <button
@@ -309,9 +339,9 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
       )}
 
       {/* ── Footer / User ── */}
-      <div style={{
+      <div className="sidebar-footer" style={{
         marginTop: 'auto',
-        padding: '1rem',
+        padding: '1rem 1rem calc(1rem + env(safe-area-inset-bottom))',
         borderTop: `1px solid var(--border)`,
         flexShrink: 0,
       }}>

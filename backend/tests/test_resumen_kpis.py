@@ -5,7 +5,7 @@ from unittest.mock import MagicMock
 from app.modules.productividad.service import ProductividadService
 
 
-def brigada(fecha, poste, empalme=0, fuera_rango=0, fallidas=0):
+def brigada(fecha, poste, empalme=0, fuera_rango=0, fallidas=0, estado="Operativa"):
     return SimpleNamespace(
         id=int(fecha.strftime("%d")),
         fecha_operacional=fecha,
@@ -13,7 +13,7 @@ def brigada(fecha, poste, empalme=0, fuera_rango=0, fallidas=0):
         usuario="Técnico",
         zona="Concepción",
         tipo_brigada="PXQ",
-        estado_brigada="Operativa",
+        estado_brigada=estado,
         corte_en_poste=poste,
         corte_en_empalme=empalme,
         corte_fuera_de_rango=fuera_rango,
@@ -70,3 +70,31 @@ def test_resumen_kpis_sin_datos_no_inventa_valores():
     assert resumen.dias_con_datos == 0
     assert resumen.total_cortes_acumulados == 0
     assert resumen.dias == []
+
+
+def test_resumen_kpis_ignora_completamente_una_brigada_inactiva():
+    dia_operativo = brigada(date(2026, 6, 3), 20, 5, fallidas=1)
+    dia_inactivo = brigada(
+        date(2026, 6, 4),
+        99,
+        99,
+        fuera_rango=99,
+        fallidas=99,
+        estado=" InAcTiVa ",
+    )
+    service = ProductividadService()
+    service.repo.obtener_brigadas_periodo = MagicMock(
+        return_value=[dia_operativo, dia_inactivo]
+    )
+
+    resumen = service.obtener_resumen_kpis(
+        MagicMock(), "SAP001", date(2026, 6, 4)
+    )
+
+    assert resumen.productividad_diaria is None
+    assert resumen.cumplimiento_diario_pct is None
+    assert resumen.dias_con_datos == 1
+    assert resumen.total_cortes_acumulados == 25
+    assert resumen.total_meta_acumulada == 25
+    assert resumen.fallidas_acumuladas == 1
+    assert [dia.fecha_operacional for dia in resumen.dias] == [date(2026, 6, 3)]

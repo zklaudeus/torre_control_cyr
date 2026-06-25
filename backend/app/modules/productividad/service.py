@@ -578,3 +578,66 @@ class ProductividadService:
             fase_nueva=result["fase_nueva"],
             advertencias_activas_count=result["advertencias_activas_count"],
         )
+
+    def obtener_semaforos_tecnico(self, db: Session, codigo_sap: str) -> List[dict]:
+        """Obtiene los 6 semáforos del técnico, inyectando los faltantes como SIN_EVALUACION."""
+        categorias_fijas = [
+            'SEGURIDAD', 'CALIDAD_CORTE', 'CUMPLIMIENTO_PROTOCOLOS',
+            'COMUNICACION_CLIENTE', 'DISCIPLINA_OPERACIONAL', 'ATENCION_CLIENTE'
+        ]
+        db_semaforos = self.repo.obtener_semaforos_por_tecnico(db, codigo_sap)
+        db_map = {s.categoria: s for s in db_semaforos}
+
+        result = []
+        for cat in categorias_fijas:
+            if cat in db_map:
+                s = db_map[cat]
+                result.append({
+                    "categoria": s.categoria,
+                    "estado": s.estado,
+                    "descripcion": s.descripcion,
+                    "updated_at": s.updated_at,
+                    "usuario_actualiza_id": s.usuario_actualiza_id,
+                })
+            else:
+                result.append({
+                    "categoria": cat,
+                    "estado": "SIN_EVALUACION",
+                    "descripcion": None,
+                    "updated_at": None,
+                    "usuario_actualiza_id": None,
+                })
+        return result
+
+    def upsert_semaforo_tecnico(
+        self, db: Session, codigo_sap: str, categoria: str, estado: str, descripcion: Optional[str], current_user
+    ) -> dict:
+        """Valida roles y actualiza el semáforo."""
+        # Validar permisos
+        if current_user.rol not in ["admin", "superadmin", "torre_control"]:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=403, detail="No tiene permisos para editar semáforos operacionales.")
+
+        categorias_fijas = [
+            'SEGURIDAD', 'CALIDAD_CORTE', 'CUMPLIMIENTO_PROTOCOLOS',
+            'COMUNICACION_CLIENTE', 'DISCIPLINA_OPERACIONAL', 'ATENCION_CLIENTE'
+        ]
+        cat_upper = categoria.upper()
+        if cat_upper not in categorias_fijas:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=f"Categoría inválida. Debe ser una de: {', '.join(categorias_fijas)}")
+
+        estados_validos = ['SIN_EVALUACION', 'CRITICO', 'ESTABLE', 'ALTO_DESEMPENO']
+        est_upper = estado.upper()
+        if est_upper not in estados_validos:
+            from fastapi import HTTPException
+            raise HTTPException(status_code=400, detail=f"Estado inválido. Debe ser uno de: {', '.join(estados_validos)}")
+
+        s = self.repo.upsert_semaforo_tecnico(db, codigo_sap, cat_upper, est_upper, descripcion, current_user.id)
+        return {
+            "categoria": s.categoria,
+            "estado": s.estado,
+            "descripcion": s.descripcion,
+            "updated_at": s.updated_at,
+            "usuario_actualiza_id": s.usuario_actualiza_id,
+        }

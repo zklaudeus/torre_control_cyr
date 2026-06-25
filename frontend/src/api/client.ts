@@ -1,9 +1,17 @@
 import axios from 'axios';
 
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const configuredApiUrl = import.meta.env.VITE_API_URL?.trim();
+const devFallback = import.meta.env.DEV ? `http://${window.location.hostname}:8000` : '';
+let apiBaseUrl = configuredApiUrl || devFallback;
+
+if (!import.meta.env.DEV && window.location.protocol === 'https:' && apiBaseUrl.startsWith('http://')) {
+  apiBaseUrl = '';
+}
+
+export const API_BASE_URL = apiBaseUrl.replace(/\/+$/, '');
 
 export const apiClient = axios.create({
-  baseURL: apiUrl,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

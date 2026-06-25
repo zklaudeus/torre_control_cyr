@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 from app.core.database import get_db, engine
 from app.core.config import settings
 
@@ -19,7 +20,9 @@ def health_check_db(db: Session = Depends(get_db)):
             "status": "warning",
             "message": "DATABASE_URL is not configured"
         }
-    if db is None:
+    try:
+        db.execute(text("SELECT 1"))
+    except Exception:
         return {
             "status": "error",
             "message": "Could not connect to the database"

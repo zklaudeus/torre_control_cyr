@@ -371,3 +371,37 @@ export const eliminarAdvertencia = async (
   );
   return res.data;
 };
+
+// ─── Semáforos Operacionales ─────────────────────────────────────
+
+export interface SemaforoManualBackend {
+  categoria: string;
+  estado: string;
+  descripcion: string | null;
+  updated_at: string | null;
+  usuario_actualiza_id: number | null;
+}
+
+export interface SemaforoManualUpdateBackend {
+  estado: string;
+  descripcion: string | null;
+}
+
+export const getSemaforosTecnico = async (codigoSap: string): Promise<SemaforoManualBackend[]> => {
+  const res = await apiClient.get<SemaforoManualBackend[]>(
+    `/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/semaforos`
+  );
+  return res.data;
+};
+
+export const updateSemaforoTecnico = async (
+  codigoSap: string,
+  categoria: string,
+  data: SemaforoManualUpdateBackend
+): Promise<SemaforoManualBackend> => {
+  const res = await apiClient.put<SemaforoManualBackend>(
+    `/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/semaforos/${encodeURIComponent(categoria)}`,
+    data
+  );
+  return res.data;
+};

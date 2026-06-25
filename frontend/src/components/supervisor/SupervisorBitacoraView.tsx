@@ -65,6 +65,11 @@ export const SupervisorBitacoraView = ({
   const [editId, setEditId] = useState<string | null>(null);
   const [backendResumen, setBackendResumen] = useState<BitacoraResumenPreviewRes | null>(null);
 
+  // Filtros de tabla
+  const [filterZona, setFilterZona] = useState<string>('');
+  const [filterTipo, setFilterTipo] = useState<string>('');
+  const [filterSearch, setFilterSearch] = useState<string>('');
+
   const [supervisores, setSupervisores] = useState<Supervisor[]>([]);
   const [selectedSupervisorId, setSelectedSupervisorId] = useState<number | ''>('');
   const [comunasMap, setComunasMap] = useState<SupervisorComunaZona[]>([]);
@@ -577,6 +582,7 @@ export const SupervisorBitacoraView = ({
       
     const hasAll = user?.zonasAsignadas?.includes('TODAS');
     const sapFiltrado = sapMap.filter(s => {
+      if (user?.rol === 'supervisor') return true;
       // Filtrar estrictamente por zonas permitidas del usuario actual
       if (hasAll || !user?.zonasAsignadas) return true;
       
@@ -607,6 +613,7 @@ export const SupervisorBitacoraView = ({
     
     const hasAll = user?.zonasAsignadas?.includes('TODAS');
     const sapZonificados = sapMap.filter(s => {
+      if (user?.rol === 'supervisor') return true;
       if (hasAll || !user?.zonasAsignadas) return true;
       const zona = s.zona_principal || obtenerZonaPorComuna(s.comuna_habitual || '', comunasMap);
       if (!zona) return false;
@@ -716,6 +723,38 @@ export const SupervisorBitacoraView = ({
       return updated;
     }));
   };
+  const filteredRows = useMemo(() => {
+    const term = filterSearch.trim().toLowerCase();
+    return rows.filter(r => {
+      if (filterZona && (r.zona || obtenerZonaPorComuna(r.comuna, comunasMap)) !== filterZona) return false;
+      if (filterTipo && r.tipoBrigada !== filterTipo) return false;
+      if (term) {
+        const zona = r.zona || obtenerZonaPorComuna(r.comuna, comunasMap);
+        const searchStr = [
+          r.patente,
+          r.cuenta,
+          r.usuarioSap,
+          r.brigada,
+          r.pareja,
+          zona,
+          r.tipoBrigada,
+          r.estado,
+          r.observacion,
+        ].join(' ').toLowerCase();
+        if (!searchStr.includes(term)) return false;
+      }
+      return true;
+    });
+  }, [rows, filterZona, filterTipo, filterSearch, comunasMap]);
+
+  const zonasFiltro = useMemo(() => {
+    const zonas = rows
+      .map(r => r.zona || obtenerZonaPorComuna(r.comuna, comunasMap))
+      .filter(Boolean);
+    return Array.from(new Set(zonas)).sort();
+  }, [rows, comunasMap]);
+
+  const hayFiltrosBrigadas = Boolean(filterZona || filterTipo || filterSearch.trim());
 
   return (
     <div style={{ padding: '2rem', height: '100%', overflowY: 'auto', background: K.bgMain }}>
@@ -925,7 +964,9 @@ export const SupervisorBitacoraView = ({
       {/* 4. Lista de brigadas ingresadas */}
       <div style={{ background: K.tertiaryMid, borderRadius: '12px', border: `1px solid ${K.border}`, overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
       <div style={{ padding: '1.25rem 1.5rem', borderBottom: `1px solid ${K.border}`, background: K.tertiaryMid, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h4 style={{ margin: 0, color: K.neutral, fontSize: '1.1rem' }}>Lista de Brigadas Ingresadas ({rows.length})</h4>
+        <h4 style={{ margin: 0, color: K.neutral, fontSize: '1.1rem' }}>
+          Lista de Brigadas Ingresadas ({hayFiltrosBrigadas ? `${filteredRows.length} de ${rows.length}` : rows.length})
+        </h4>
         <div style={{ fontSize: '0.85rem', color: K.mutedText, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           Revise o edite las brigadas antes de subir la bitácora
           <span title="La columna 'Comuna' muestra la zona derivada (ej: Concepción). 
@@ -933,11 +974,46 @@ export const SupervisorBitacoraView = ({
                 style={{ cursor: 'help', color: K.secondary, fontWeight: 600 }}>ℹ️</span>
         </div>
       </div>
+        <div style={{ padding: '1rem 1.5rem', borderBottom: `1px solid ${K.border}`, background: K.tertiaryMid, display: 'grid', gridTemplateColumns: 'minmax(220px, 1fr) minmax(160px, 220px) minmax(120px, 160px) auto', gap: '0.75rem', alignItems: 'center' }}>
+          <input
+            value={filterSearch}
+            onChange={e => setFilterSearch(e.target.value)}
+            placeholder="Buscar por usuario, SAP, patente, brigada..."
+            style={inputStyle(false)}
+          />
+          <select value={filterZona} onChange={e => setFilterZona(e.target.value)} style={inputStyle(false)}>
+            <option value="">Todas las zonas</option>
+            {zonasFiltro.map(zona => (
+              <option key={zona} value={zona}>{zona}</option>
+            ))}
+          </select>
+          <select value={filterTipo} onChange={e => setFilterTipo(e.target.value)} style={inputStyle(false)}>
+            <option value="">Todos los tipos</option>
+            <option value="PXQ">PXQ</option>
+            <option value="CF">CF</option>
+          </select>
+          <button
+            type="button"
+            onClick={() => {
+              setFilterSearch('');
+              setFilterZona('');
+              setFilterTipo('');
+            }}
+            disabled={!hayFiltrosBrigadas}
+            style={{ padding: '0.55rem 1rem', borderRadius: '8px', border: `1px solid ${K.border}`, background: hayFiltrosBrigadas ? K.tertiary : 'transparent', color: hayFiltrosBrigadas ? K.neutral : K.mutedText, cursor: hayFiltrosBrigadas ? 'pointer' : 'not-allowed', whiteSpace: 'nowrap' }}
+          >
+            Limpiar filtros
+          </button>
+        </div>
         <div className="table-responsive">
           {rows.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: K.mutedText }}>
               <div style={{ fontSize: '2rem', opacity: 0.5, marginBottom: '1rem' }}>📋</div>
               Aún no hay brigadas agregadas.
+            </div>
+          ) : filteredRows.length === 0 ? (
+            <div style={{ padding: '3rem', textAlign: 'center', color: K.mutedText }}>
+              No hay brigadas que coincidan con los filtros.
             </div>
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
@@ -949,7 +1025,7 @@ export const SupervisorBitacoraView = ({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row, i) => (
+                {filteredRows.map((row, i) => (
                   <tr key={row.id} style={{ background: row.id === editId ? `${K.secondary}22` : (i % 2 === 0 ? 'transparent' : K.tertiary), transition: 'background 0.2s' }}>
                     <td style={{ padding: '0.85rem 1rem', borderBottom: `1px solid ${K.border}`, fontSize: '0.85rem', color: K.neutral }}>
                       <input 

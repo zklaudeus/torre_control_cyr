@@ -249,3 +249,16 @@ class AnularAdvertenciaResponse(BaseModel):
     fase_anterior: Optional[int] = None
     fase_nueva: Optional[int] = None
     advertencias_activas_restantes: int
+
+
+class SemaforoManualUpdate(BaseModel):
+    estado: str = Field(..., description="SIN_EVALUACION, CRITICO, ESTABLE, ALTO_DESEMPENO")
+    descripcion: Optional[str] = None
+
+
+class SemaforoManualResponse(BaseModel):
+    categoria: str
+    estado: str
+    descripcion: Optional[str] = None
+    updated_at: Optional[datetime] = None
+    usuario_actualiza_id: Optional[int] = None

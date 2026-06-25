@@ -10,6 +10,7 @@ import { ResumenGeneralPanel } from './components/resumen-general/ResumenGeneral
 import { ResumenZonaDashboardView } from './components/resumen-zona/ResumenZonaDashboardView';
 import { SupervisorBitacoraView } from './components/supervisor/SupervisorBitacoraView';
 import { RendimientoTecnicoDashboardView } from './components/rendimiento/RendimientoTecnicoDashboardView';
+import { ConfiguracionDashboardView } from './components/configuracion/ConfiguracionDashboardView';
 import './App.css';
 
 const AppContent = () => {
@@ -48,6 +49,7 @@ const AppContent = () => {
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin']} />}>
             <Route path="/torre-control/inicio-dia" element={<InicioDiaDashboardView fechaOperacional={fechaOperacional} onChangeFecha={setFechaOperacional} activeSection="inicio-dia" onChangeSection={() => {}} />} />
+            <Route path="/torre-control/configuracion" element={<ConfiguracionDashboardView activeSection="configuracion" onChangeSection={() => {}} />} />
           </Route>
 
           <Route element={<ProtectedRoute allowedRoles={['admin', 'superadmin', 'supervisor']} />}>

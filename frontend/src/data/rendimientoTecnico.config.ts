@@ -16,30 +16,34 @@ export const COLOR_ESTADO_TECNICO: Record<EstadoTecnico, string> = {
   'Alto desempeño': '#22c55e',
 };
 
-export const CONFIG_SEMAFOROS: Record<EstadoSemaforo, { color: string; bg: string; border: string; glow: string }> = {
-  'Crítico': {
+export const CONFIG_SEMAFOROS: Record<EstadoSemaforo, { color: string; bg: string; border: string; glow: string; label: string }> = {
+  'SIN_EVALUACION': {
+    color: '#64748B',
+    bg: 'rgba(100, 116, 139, 0.06)',
+    border: 'rgba(100, 116, 139, 0.2)',
+    glow: 'none',
+    label: 'Sin evaluación',
+  },
+  'CRITICO': {
     color: '#ef4444',
     bg: 'rgba(239, 68, 68, 0.08)',
     border: 'rgba(239, 68, 68, 0.25)',
     glow: '0 0 12px rgba(239, 68, 68, 0.4)',
+    label: 'Crítico',
   },
-  'En recuperación': {
-    color: '#f97316',
-    bg: 'rgba(249, 115, 22, 0.08)',
-    border: 'rgba(249, 115, 22, 0.25)',
-    glow: '0 0 12px rgba(249, 115, 22, 0.4)',
+  'ESTABLE': {
+    color: '#eab308',
+    bg: 'rgba(234, 179, 8, 0.08)',
+    border: 'rgba(234, 179, 8, 0.28)',
+    glow: '0 0 12px rgba(234, 179, 8, 0.35)',
+    label: 'Estable',
   },
-  'Estable': {
-    color: '#60a5fa',
-    bg: 'rgba(96, 165, 250, 0.08)',
-    border: 'rgba(96, 165, 250, 0.25)',
-    glow: '0 0 12px rgba(96, 165, 250, 0.35)',
-  },
-  'Alto desempeño': {
+  'ALTO_DESEMPENO': {
     color: '#22c55e',
     bg: 'rgba(34, 197, 94, 0.08)',
     border: 'rgba(34, 197, 94, 0.25)',
     glow: '0 0 12px rgba(34, 197, 94, 0.4)',
+    label: 'Alto desempeño',
   },
 };
 

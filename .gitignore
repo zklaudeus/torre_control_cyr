@@ -20,3 +20,8 @@ frontend/dist/
 
 # Local generated credentials and secrets (never version)
 .secrets/
+
+# Archivos locales de despliegue
+deploy/*.local
+deploy/**/*.local
+.deploy-bundle/

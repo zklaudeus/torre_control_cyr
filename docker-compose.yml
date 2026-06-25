@@ -1,56 +1,78 @@
-version: '3.8'
-
 services:
   db:
-    image: postgres:15-alpine
-    container_name: torre_control_db
-    restart: always
+    image: postgres:16-alpine
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en el archivo .env}
       POSTGRES_DB: ${POSTGRES_DB:-torre_control_cyr}
+      TZ: ${TZ:-America/Santiago}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD-SHELL", "pg_isready -U \"$${POSTGRES_USER}\" -d \"$${POSTGRES_DB}\""]
       interval: 5s
       timeout: 5s
-      retries: 5
+      retries: 12
+      start_period: 10s
     networks:
       - torre_network
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   backend:
     build: ./backend
-    container_name: torre_control_backend
-    restart: always
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
     environment:
-      # Configuramos el acceso a base de datos usando el nombre del contenedor "db"
-      - DATABASE_URL=postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-root}@db:5432/${POSTGRES_DB:-torre_control_cyr}
-      - APP_NAME=torre_control_cyr
-      - APP_ENV=production
-      - FRONTEND_URL=${FRONTEND_URL:-http://localhost}
-      - SECRET_KEY=${SECRET_KEY:-"cambiar_por_una_clave_segura_en_produccion"}
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?Define POSTGRES_PASSWORD en el archivo .env}@db:5432/${POSTGRES_DB:-torre_control_cyr}
+      APP_NAME: torre_control_cyr
+      APP_ENV: production
+      FRONTEND_URL: ${FRONTEND_URL:?Define FRONTEND_URL en el archivo .env}
+      SECRET_KEY: ${SECRET_KEY:?Define SECRET_KEY en el archivo .env}
+      TZ: ${TZ:-America/Santiago}
+    expose:
+      - "8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--workers", "${WEB_CONCURRENCY:-2}"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import json,urllib.request; data=json.load(urllib.request.urlopen('http://localhost:8000/api/health/db', timeout=5)); assert data['status']=='ok'"]
+      interval: 10s
+      timeout: 6s
+      retries: 12
+      start_period: 20s
     networks:
       - torre_network
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
   frontend:
     build:
       context: ./frontend
       args:
-        # En producción el nginx dirigirá /api hacia el backend internamente
-        - VITE_API_URL=/api
-    container_name: torre_control_frontend
-    restart: always
+        VITE_API_URL: ""
+    restart: unless-stopped
     ports:
-      # Mapeamos el puerto 80 del VPS al puerto 80 del Nginx en el contenedor
-      - "80:80"
+      - "127.0.0.1:${FRONTEND_PORT:-8080}:80"
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://127.0.0.1/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
     networks:
       - torre_network
+    logging:
+      options:
+        max-size: "10m"
+        max-file: "3"
 
 volumes:
   postgres_data:

@@ -47,6 +47,8 @@ from app.modules.productividad.schemas import (
     AnularAdvertenciaResponse,
     ZonaResumenPanel,
     ResumenKpiTecnico,
+    SemaforoManualResponse,
+    SemaforoManualUpdate,
 )
 from app.modules.productividad.policies import (
     require_acceso_productividad,
@@ -250,5 +252,29 @@ def eliminar_advertencia(
     db: Session = Depends(get_db),
     current_user = Depends(require_gestion_alertas),
 ):
-    """Eliminar permanentemente una advertencia (solo anuladas). Solo torre_control y admin."""
+    """Elimina definitivamente una advertencia activa (útil para errores de ingreso). Solo torre_control y admin."""
     return servicio.eliminar_advertencia(db, advertencia_id)
+
+
+@router.get("/tecnicos/{codigo_sap}/semaforos", response_model=List[SemaforoManualResponse])
+def obtener_semaforos_tecnico(
+    codigo_sap: str,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_acceso_productividad),
+):
+    """Obtiene los 6 semáforos operacionales de un técnico."""
+    return servicio.obtener_semaforos_tecnico(db, codigo_sap)
+
+
+@router.put("/tecnicos/{codigo_sap}/semaforos/{categoria}", response_model=SemaforoManualResponse)
+def actualizar_semaforo_tecnico(
+    codigo_sap: str,
+    categoria: str,
+    body: SemaforoManualUpdate,
+    db: Session = Depends(get_db),
+    current_user = Depends(require_gestion_alertas),
+):
+    """Actualiza o crea un semáforo operacional manual (requiere permisos torre_control/admin)."""
+    return servicio.upsert_semaforo_tecnico(
+        db, codigo_sap, categoria, body.estado, body.descripcion, current_user
+    )

@@ -16,7 +16,7 @@ export const DashboardPage = () => {
           position: 'fixed',
           top: '1rem',
           left: '1rem',
-          zIndex: 1000,
+          zIndex: 760,
           background: 'var(--bg-panel-sec)',
           border: '1px solid var(--border)',
           color: 'var(--text-main)',
@@ -34,7 +34,7 @@ export const DashboardPage = () => {
 
       <SidebarNav isOpen={isMobileMenuOpen} onClose={() => setIsMobileMenuOpen(false)} />
       
-      <div style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
+      <div className="dashboard-content-area" style={{ flex: 1, padding: '2rem', minWidth: 0 }}>
         <Outlet />
       </div>
 
@@ -42,6 +42,9 @@ export const DashboardPage = () => {
         @media (max-width: 768px) {
           .mobile-menu-btn {
             display: block !important;
+          }
+          .dashboard-content-area {
+            padding: 4rem 1rem 1rem 1rem !important;
           }
         }
       `}</style>

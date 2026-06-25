@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 from datetime import datetime
@@ -19,8 +20,31 @@ if str(BACKEND_ROOT) not in sys.path:
 from app.core.config import settings
 
 
-POSTGRES_BIN = Path(r"C:\Program Files\PostgreSQL\16\bin")
 DEFAULT_BACKUP_DIR = BACKEND_ROOT.parent / ".backups"
+
+
+def resolve_postgres_tool(name: str) -> str:
+    """Encuentra las herramientas PostgreSQL tanto en Windows como en Linux."""
+    configured_bin = os.environ.get("POSTGRES_BIN")
+    candidates = []
+    if configured_bin:
+        candidates.append(Path(configured_bin) / name)
+        candidates.append(Path(configured_bin) / f"{name}.exe")
+
+    candidates.extend([
+        Path(r"C:\Program Files\PostgreSQL\16\bin") / f"{name}.exe",
+        Path(r"C:\Program Files\PostgreSQL\15\bin") / f"{name}.exe",
+    ])
+
+    path_tool = shutil.which(name) or shutil.which(f"{name}.exe")
+    if path_tool:
+        return path_tool
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    raise RuntimeError(
+        f"No se encontró {name}. Instala el cliente PostgreSQL o define POSTGRES_BIN."
+    )
 
 
 def sha256_file(path: Path) -> str:
@@ -35,10 +59,8 @@ def backup_database() -> dict[str, object]:
     if not settings.DATABASE_URL:
         raise RuntimeError("DATABASE_URL no está configurada")
 
-    pg_dump = POSTGRES_BIN / "pg_dump.exe"
-    pg_restore = POSTGRES_BIN / "pg_restore.exe"
-    if not pg_dump.exists() or not pg_restore.exists():
-        raise RuntimeError("No se encontraron pg_dump/pg_restore de PostgreSQL 16")
+    pg_dump = resolve_postgres_tool("pg_dump")
+    pg_restore = resolve_postgres_tool("pg_restore")
 
     url = make_url(settings.DATABASE_URL)
     database = url.database
@@ -54,7 +76,7 @@ def backup_database() -> dict[str, object]:
         environment["PGPASSWORD"] = url.password
 
     command = [
-        str(pg_dump),
+        pg_dump,
         "--format=custom",
         "--no-owner",
         "--no-privileges",
@@ -84,7 +106,7 @@ def backup_database() -> dict[str, object]:
         raise RuntimeError("pg_dump produjo un archivo vacío")
 
     verification = subprocess.run(
-        [str(pg_restore), "--list", str(destination)],
+        [pg_restore, "--list", str(destination)],
         capture_output=True,
         text=True,
         check=False,
