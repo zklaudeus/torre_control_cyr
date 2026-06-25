@@ -139,7 +139,12 @@ class ReporteGerencialCYRService:
         tot_prom_actividad = ((total_reconexiones_ejecutadas + total_cortes_ejecutados) / total_brigadas_operativas) if total_brigadas_operativas > 0 else 0.0
 
         tot_cumpl_meta_pct = (tot_prom_cortes / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
-        tot_cumpl_corte_pct = (total_cortes_ejecutados / total_corte_programado * 100) if total_corte_programado > 0 else 0.0
+        
+        # El total general de cumplimiento % corte es el promedio de las zonas individuales
+        if len(zonas_resumen) > 0:
+            tot_cumpl_corte_pct = sum(z.cumplimiento_corte_pct for z in zonas_resumen) / len(zonas_resumen)
+        else:
+            tot_cumpl_corte_pct = 0.0
 
         fila_total = ZonaGerencialData(
             zona="TOTAL",

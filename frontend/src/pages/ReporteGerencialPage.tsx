@@ -63,12 +63,12 @@ export const ReporteGerencialPage = () => {
     ? (totalFiltrado.brigadas_operativas / totalFiltrado.total_brigadas) * 100
     : 0;
 
-  const realFuncionCumplimientoMetaPct = totalFiltrado && totalFiltrado.cumplimiento_meta_pct > 0
-    ? (porcentajeBrigadasEfectivas / totalFiltrado.cumplimiento_meta_pct) * 100
+  const realFuncionCumplimientoMetaPct = porcentajeBrigadasEfectivas > 0
+    ? (totalFiltrado.cumplimiento_meta_pct / porcentajeBrigadasEfectivas) * 100
     : 0;
 
-  const realFuncionCumplimientoCargaPct = totalFiltrado && totalFiltrado.cumplimiento_corte_pct > 0
-    ? (porcentajeBrigadasEfectivas / totalFiltrado.cumplimiento_corte_pct) * 100
+  const realFuncionCumplimientoCargaPct = porcentajeBrigadasEfectivas > 0
+    ? (totalFiltrado.cumplimiento_corte_pct / porcentajeBrigadasEfectivas) * 100
     : 0;
 
   useEffect(() => {

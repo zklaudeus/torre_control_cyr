@@ -161,7 +161,13 @@ class ResumenZonaService:
 
             porc_brig_efectivas_global = (t_rep / t_ctto) if t_ctto > 0 else 0.0
             prom_rec_tot = (t_rec_ejec / t_rep) if t_rep > 0 else 0.0
-            cumpl_corte_porc_tot = (t_cortes / t_corte_prog) if t_corte_prog > 0 else 0.0
+            
+            # El total general de cumplimiento % corte es el promedio de las zonas individuales
+            if len(zonas_resumen) > 0:
+                cumpl_corte_porc_tot = sum(z.cumplimiento_corte_porcentaje for z in zonas_resumen) / len(zonas_resumen)
+            else:
+                cumpl_corte_porc_tot = 0.0
+                
             prom_cortes_tot = (t_cortes / t_rep) if t_rep > 0 else 0.0
             prom_actividades_tot = (t_actividades / t_rep) if t_rep > 0 else 0.0
             cumpl_prom_meta_tot = (t_cortes / (t_rep * meta_diaria)) if (t_rep * meta_diaria) > 0 else 0.0
