@@ -46,8 +46,8 @@ class ReporteGerencialCYRService:
                     "corte_programado": 0.0,
                     "asignacion_carga": 0.0
                 }
-            prog_dict[p.zona]["reconexiones_programadas"] += float(p.reconexiones_programadas or 0)
-            prog_dict[p.zona]["corte_programado"] += float(p.corte_programado or 0)
+            # En Reporte Gerencial, solo tomamos la asignacion de carga desde programacion
+            # cortes y reconexiones programadas se sumarán desde las brigadas
             prog_dict[p.zona]["asignacion_carga"] += float(getattr(p, 'asignacion_carga', 0) or 0)
 
         brig_dict: Dict[str, List[ControlBrigadasDiario]] = {}
@@ -72,10 +72,8 @@ class ReporteGerencialCYRService:
         total_visitas_fallidas = 0.0
 
         for nombre_zona in nombres_zonas:
-            prog = prog_dict.get(nombre_zona, {"reconexiones_programadas": 0.0, "corte_programado": 0.0, "asignacion_carga": 0.0})
-            rec_prog = prog["reconexiones_programadas"]
-            corte_prog = prog["corte_programado"]
-            asig_carga = prog["asignacion_carga"]
+            prog = prog_dict.get(nombre_zona, {"asignacion_carga": 0.0})
+            asig_carga = prog.get("asignacion_carga", 0.0)
 
             brig_zona = brig_dict.get(nombre_zona, [])
             brigadas_operativas = len(brig_zona)
@@ -92,6 +90,9 @@ class ReporteGerencialCYRService:
             c_empalme = sum(float(b.corte_en_empalme or 0) for b in brig_zona)
             c_fdr = sum(float(getattr(b, "corte_fuera_de_rango", 0) or 0) for b in brig_zona)
             visitas_fallidas = sum(float(b.visita_fallida or 0) for b in brig_zona)
+            
+            rec_prog = sum(float(b.reconexiones_programadas or 0) for b in brig_zona)
+            corte_prog = sum(float(b.corte_programado or 0) for b in brig_zona)
 
             cortes_ejecutados = c_poste + c_empalme + c_fdr
 

@@ -83,11 +83,9 @@ class ResumenZonaService:
                 param_zona = next((z for z in zonas_activas if z.zona == nombre_zona and z.tipo_brigada == tipo), None)
                 brig_contrato = param_zona.brigadas_contrato if param_zona else 0
                 
-                # Buscar programación
+                # Buscar programación para asignacion de carga (que no está en las brigadas)
                 prog = prog_dict.get((nombre_zona, tipo))
-                rec_prog = prog.reconexiones_programadas if prog else 0
                 asig_carga = prog.asignacion_carga if prog else 0
-                corte_prog = prog.corte_programado if prog else 0
                 
                 # Buscar brigadas
                 brig_zona_tipo = brig_dict.get((nombre_zona, tipo), [])
@@ -95,10 +93,14 @@ class ResumenZonaService:
                 
                 rec_ejec = 0
                 cortes = 0
+                rec_prog = 0
+                corte_prog = 0
                 
                 for b in brig_zona_tipo:
                     rec_ejec += b.reconexiones_ejecutadas or 0
                     cortes += (b.corte_en_poste or 0) + (b.corte_en_empalme or 0) + (b.corte_fuera_de_rango or 0)
+                    rec_prog += b.reconexiones_programadas or 0
+                    corte_prog += b.corte_programado or 0
                 
                 actividades = rec_ejec + cortes
                 
