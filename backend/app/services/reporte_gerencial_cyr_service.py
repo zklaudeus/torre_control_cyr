@@ -100,7 +100,7 @@ class ReporteGerencialCYRService:
             prom_cortes = (cortes_ejecutados / brigadas_operativas) if brigadas_operativas > 0 else 0.0
             prom_actividad = ((rec_ejec + cortes_ejecutados) / brigadas_operativas) if brigadas_operativas > 0 else 0.0
 
-            cumpl_meta_pct = (prom_actividad / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
+            cumpl_meta_pct = (prom_cortes / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
             cumpl_corte_pct = (cortes_ejecutados / corte_prog * 100) if corte_prog > 0 else 0.0
 
             zonas_resumen.append(ZonaGerencialData(
@@ -138,7 +138,7 @@ class ReporteGerencialCYRService:
         tot_prom_cortes = (total_cortes_ejecutados / total_brigadas_operativas) if total_brigadas_operativas > 0 else 0.0
         tot_prom_actividad = ((total_reconexiones_ejecutadas + total_cortes_ejecutados) / total_brigadas_operativas) if total_brigadas_operativas > 0 else 0.0
 
-        tot_cumpl_meta_pct = (tot_prom_actividad / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
+        tot_cumpl_meta_pct = (tot_prom_cortes / meta_diaria_cortes_brigada * 100) if meta_diaria_cortes_brigada > 0 else 0.0
         tot_cumpl_corte_pct = (total_cortes_ejecutados / total_corte_programado * 100) if total_corte_programado > 0 else 0.0
 
         fila_total = ZonaGerencialData(
