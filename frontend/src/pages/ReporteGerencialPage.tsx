@@ -348,9 +348,9 @@ export const ReporteGerencialPage = () => {
                 <div style={kpiSubValueStyle}>de {totalFiltrado.corte_programado} programados</div>
               </div>
               <div style={{...cardStyle, border: `1px solid ${THEME.primary}`}}>
-                <div style={kpiTitleStyle}>Real función Meta</div>
+                <div style={kpiTitleStyle}>Real en función del Cump. % Prom.</div>
                 <div style={kpiValueStyle}>{realFuncionCumplimientoMetaPct.toFixed(2)}%</div>
-                <div style={{...kpiSubValueStyle, color: THEME.primary}}>Cumpl. prom. / brigadas efectivas</div>
+                <div style={{...kpiSubValueStyle, color: THEME.primary}}>Cumpl. % Meta / % Brigadas Efectivas</div>
               </div>
               <div style={cardStyle}>
                 <div style={kpiTitleStyle}>Real función Carga</div>
