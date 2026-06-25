@@ -61,6 +61,13 @@ class ResumenZonaService:
 
         # 3. Calcular por zona y tipo_brigada
         for nombre_zona in nombres_zonas:
+            # Calcular totales de la zona para Porcentaje de Brigadas Efectivas consolidado
+            zona_b_rep_total = len(brig_dict.get((nombre_zona, "PXQ"), [])) + len(brig_dict.get((nombre_zona, "CF"), []))
+            param_pxq = next((z for z in zonas_activas if z.zona == nombre_zona and z.tipo_brigada == "PXQ"), None)
+            param_cf = next((z for z in zonas_activas if z.zona == nombre_zona and z.tipo_brigada == "CF"), None)
+            zona_ctto_total = (param_pxq.brigadas_contrato if param_pxq else 0) + (param_cf.brigadas_contrato if param_cf else 0)
+            porc_brig_efectivas_zona = (zona_b_rep_total / zona_ctto_total) if zona_ctto_total > 0 else 0.0
+
             for tipo in ["PXQ", "CF"]:
                 # Buscar parámetros específicos para esta zona y tipo
                 param_zona = next((z for z in zonas_activas if z.zona == nombre_zona and z.tipo_brigada == tipo), None)
@@ -96,7 +103,7 @@ class ResumenZonaService:
                 totales[tipo]["actividades"] += actividades
                 
                 # Fórmulas
-                porc_brig_efectivas = (b_rep / brig_contrato) if brig_contrato > 0 else 0.0
+                porc_brig_efectivas = porc_brig_efectivas_zona
                 prom_rec = (rec_ejec / b_rep) if b_rep > 0 else 0.0
                 cumpl_corte_porc = (cortes / corte_prog) if corte_prog > 0 else 0.0
                 prom_cortes = (cortes / b_rep) if b_rep > 0 else 0.0
@@ -128,13 +135,18 @@ class ResumenZonaService:
                 ))
 
         # 4. Filas totales generales por tipo
+        # Calcular % brigadas efectivas total general (sumando PXQ y CF globalmente)
+        total_global_b_rep = totales["PXQ"]["b_rep"] + totales["CF"]["b_rep"]
+        total_global_b_ctto = totales["PXQ"]["b_ctto"] + totales["CF"]["b_ctto"]
+        porc_brig_efectivas_global = (total_global_b_rep / total_global_b_ctto) if total_global_b_ctto > 0 else 0.0
+
         filas_totales = []
         for tipo in ["PXQ", "CF"]:
             t = totales[tipo]
             if t["b_rep"] == 0 and t["b_ctto"] == 0 and t["rec_prog"] == 0:
                 continue
                 
-            porc_brig_efectivas_tot = (t["b_rep"] / t["b_ctto"]) if t["b_ctto"] > 0 else 0.0
+            porc_brig_efectivas_tot = porc_brig_efectivas_global
             prom_rec_tot = (t["rec_ejec"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
             cumpl_corte_porc_tot = (t["cortes"] / t["corte_prog"]) if t["corte_prog"] > 0 else 0.0
             prom_cortes_tot = (t["cortes"] / t["b_rep"]) if t["b_rep"] > 0 else 0.0
