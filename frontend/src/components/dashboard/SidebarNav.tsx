@@ -63,7 +63,7 @@ const NAV_ITEMS = [
   { route: '/torre-control/dashboard-cyr',   label: 'Resumen General',   Icon: IconCalendar },
   { route: '/torre-control/resumen-zona',    label: 'Resumen por Zona',  Icon: IconMap      },
   { route: '#/reporte-gerencial',            label: 'Reporte Gerencial', Icon: IconBarChart, external: true },
-  { route: '/torre-control/rendimiento-tecnico', label: 'Rendimiento Técnico', Icon: IconBarChart },
+  { route: '/torre-control/rendimiento-tecnico', label: 'Rendimiento Brigada', Icon: IconBarChart },
   { route: '/supervisor/bitacora',           label: 'Bitácora Supervisor', Icon: IconGitMerge },
   { route: '/torre-control/configuracion',   label: 'Configuración',     Icon: IconSettings },
 ];

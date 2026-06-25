@@ -251,7 +251,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
                 <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Rendimiento Técnico
+                  Rendimiento Brigada
                 </h2>
                 <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   Seguimiento individual de productividad y desempeño
