@@ -201,7 +201,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           display: grid;
           grid-template-columns: auto 1fr;
           gap: 16px;
-          align-items: start;
+          align-items: stretch;
         }
         @media (max-width: 1100px) {
           .rt-top-row {
@@ -241,28 +241,17 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
               />
             </div>
           ) : (
-            <div style={{
-              background: 'var(--bg-panel)',
-              border: '1px solid var(--border)',
-              borderRadius: '12px', padding: '24px',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '14px',
-              lineHeight: 1.6,
-            }}>
-              <div style={{ fontSize: '28px', marginBottom: '8px' }}>🗺️</div>
-              <strong style={{ color: 'var(--text-main)' }}>Panel por Zonas</strong>
-              <br />
-              Selecciona una zona del panel
-              <br />
-              para ver sus técnicos.
-            </div>
+            <RendimientoTecnicoPanelZonas
+              zonas={zonasData}
+              loading={loadingZonas}
+              onSelectZona={handleSelectZona}
+            />
           )}
         </div>
 
-        {/* Header + Filtros */}
-        <div className="rt-ficha-header">
-          {selectedZona ? (
+        {/* Header + Filtros (solo cuando hay zona seleccionada) */}
+        {selectedZona && (
+          <div className="rt-ficha-header">
             <>
               {/* Header */}
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
@@ -391,30 +380,15 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                     fontSize: '12px', color: '#94A3B8', alignSelf: 'center',
                     marginLeft: 'auto', padding: '0 4px',
                   }}>
-                    {filteredTecnicos.length} técnicos
+                    {filteredTecnicos.length} brigadas
                   </span>
                 </div>
               </div>
             </>
-          ) : (
-            <div style={{
-              background: 'var(--bg-panel)',
-              border: '1px solid var(--border)',
-              borderRadius: '12px', padding: '24px',
-              textAlign: 'center',
-              color: 'var(--text-muted)',
-              fontSize: '14px',
-              lineHeight: 1.6,
-            }}>
-              <div style={{ fontSize: '28px', marginBottom: '8px' }}>🗺️</div>
-              <strong style={{ color: 'var(--text-main)' }}>Selecciona una zona</strong>
-              <br />
-              para ver el encabezado de brigada.
-            </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* Contenido: Panel de Zonas o Ficha del Técnico Evaluado */}
+        {/* Contenido: Ficha del Técnico Evaluado */}
         <div className="rt-ficha-content">
           {selectedZona ? (
             !selectedTecnico ? (
@@ -426,12 +400,12 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                 borderRadius: '8px',
                 color: 'var(--text-muted)'
               }}>
-                Selecciona un técnico del listado para ver su ficha de rendimiento.
+                Selecciona una brigada del listado para ver su ficha de rendimiento.
               </div>
             ) : (
               <>
                 <div className="rt-top-row">
-                  <div>
+                  <div style={{ display: 'flex', flexDirection: 'column' }}>
                     <div style={{
                       marginBottom: '10px',
                       display: 'flex', alignItems: 'center', gap: '8px',
@@ -444,7 +418,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                         fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
                         textTransform: 'uppercase', letterSpacing: '1px',
                       }}>
-                        Técnico evaluado
+                        Brigada evaluada
                       </span>
                     </div>
                     <TarjetaUsuarioRendimiento
@@ -528,24 +502,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                 </div>
               </>
             )
-          ) : (
-            <>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', marginBottom: '8px' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Panel por Zonas
-                </h2>
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Resumen de Brigadas activos agrupados por zona operacional
-                </span>
-              </div>
-
-              <RendimientoTecnicoPanelZonas
-                zonas={zonasData}
-                loading={loadingZonas}
-                onSelectZona={handleSelectZona}
-              />
-            </>
-          )}
+          ) : null}
         </div>
       </div>
     </DashboardLayout>

@@ -20,6 +20,8 @@ const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'va
       gap: '6px',
       boxShadow: '0 1px 3px rgba(0,0,0,0.15)',
       minWidth: 0,
+      height: '100%',
+      boxSizing: 'border-box',
       transition: 'transform 0.15s, box-shadow 0.15s',
       cursor: onClick ? 'pointer' : 'default',
     }}
@@ -509,7 +511,7 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
           textTransform: 'uppercase',
           letterSpacing: '1px',
         }}>
-          KPIs del técnico
+          KPIs de la brigada
         </span>
       </div>
 

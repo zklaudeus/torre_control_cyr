@@ -58,6 +58,9 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
         fontFamily: 'var(--sans)',
         boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
         width: '100%',
+        height: '100%',
+        flex: 1,
+        boxSizing: 'border-box',
         maxWidth: '460px',
       }}
     >
