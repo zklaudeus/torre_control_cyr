@@ -28,3 +28,15 @@ apiClient.interceptors.request.use((config) => {
 }, (error) => {
   return Promise.reject(error);
 });
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      localStorage.removeItem('torreControlToken');
+      localStorage.removeItem('torreControlUser');
+      window.location.hash = '#/login';
+    }
+    return Promise.reject(error);
+  }
+);

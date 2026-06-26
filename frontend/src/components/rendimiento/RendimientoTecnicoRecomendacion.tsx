@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../auth/AuthContext';
-
-const API_BASE = import.meta.env.VITE_API_URL || '';
+import { apiClient } from '../../api/client';
 
 interface Recomendacion {
   id: number;
@@ -38,22 +37,18 @@ function formatFecha(iso: string): string {
   } catch { return iso; }
 }
 
-async function apiFetch(path: string, opts?: RequestInit) {
-  const token = localStorage.getItem('access_token');
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...opts,
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-      ...(opts?.headers || {}),
-    },
+async function apiRequest<T>(path: string, opts?: { method?: string; body?: unknown }): Promise<T> {
+  const res = await apiClient.request<T>({
+    url: path,
+    method: opts?.method ?? 'GET',
+    data: opts?.body,
   });
-  if (!res.ok) {
-    const err = await res.json().catch(() => ({}));
-    throw new Error(err.detail || `Error ${res.status}`);
-  }
-  if (res.status === 204) return null;
-  return res.json();
+  return res.data;
+}
+
+function getErrorMessage(error: unknown): string {
+  const err = error as any;
+  return err?.response?.data?.detail || err?.message || 'Error inesperado';
 }
 
 export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomendacionProps> = ({ codigoSap }) => {
@@ -78,10 +73,10 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
     setLoading(true);
     setError(null);
     try {
-      const data = await apiFetch(`/api/productividad/tecnicos/${codigoSap}/recomendaciones`);
+      const data = await apiRequest<Recomendacion[]>(`/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/recomendaciones`);
       setRecomendaciones(data || []);
     } catch (e: any) {
-      setError(e.message);
+      setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
@@ -112,20 +107,20 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
     setSaving(true);
     try {
       if (editando) {
-        await apiFetch(`/api/productividad/tecnicos/recomendaciones/${editando.id}`, {
+        await apiRequest(`/api/productividad/tecnicos/recomendaciones/${editando.id}`, {
           method: 'PUT',
-          body: JSON.stringify({ comentario, prioridad, estado_accion: estadoAccion }),
+          body: { comentario, prioridad, estado_accion: estadoAccion },
         });
       } else {
-        await apiFetch(`/api/productividad/tecnicos/${codigoSap}/recomendaciones`, {
+        await apiRequest(`/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/recomendaciones`, {
           method: 'POST',
-          body: JSON.stringify({ comentario, prioridad, estado_accion: estadoAccion }),
+          body: { comentario, prioridad, estado_accion: estadoAccion },
         });
       }
       cerrarForm();
       await cargar();
     } catch (e: any) {
-      setError(e.message);
+      setError(getErrorMessage(e));
     } finally {
       setSaving(false);
     }
@@ -135,10 +130,10 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
     if (!window.confirm('¿Eliminar esta recomendación?')) return;
     setDeletingId(id);
     try {
-      await apiFetch(`/api/productividad/tecnicos/recomendaciones/${id}`, { method: 'DELETE' });
+      await apiRequest(`/api/productividad/tecnicos/recomendaciones/${id}`, { method: 'DELETE' });
       await cargar();
     } catch (e: any) {
-      setError(e.message);
+      setError(getErrorMessage(e));
     } finally {
       setDeletingId(null);
     }
@@ -247,7 +242,7 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
       {!loading && recomendaciones.map(r => {
         const pCfg = PRIORIDAD_CONFIG[r.prioridad] || PRIORIDAD_CONFIG.MEDIA;
         const eCfg = ESTADO_CONFIG[r.estado_accion] || ESTADO_CONFIG.PENDIENTE;
-        const esAutor = r.usuario_id === (user as any)?.id;
+        const esAutor = String(r.usuario_id) === String((user as any)?.id);
         const puedeEditar = canEdit && (esAutor || user?.rol === 'admin' || user?.rol === 'superadmin' || user?.rol === 'torre_control');
 
         return (

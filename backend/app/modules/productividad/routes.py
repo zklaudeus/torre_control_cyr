@@ -53,6 +53,7 @@ from app.modules.productividad.schemas import (
 from app.modules.productividad.policies import (
     require_acceso_productividad,
     require_gestion_alertas,
+    require_gestion_recomendaciones,
 )
 
 router = APIRouter()
@@ -304,7 +305,7 @@ def crear_recomendacion(
     codigo_sap: str,
     body: RecomendacionCreate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_gestion_alertas),
+    current_user = Depends(require_gestion_recomendaciones),
 ):
     """Crea una nueva recomendación/comentario para un técnico (supervisor, torre_control, admin)."""
     return servicio.crear_recomendacion(db, codigo_sap, body, current_user)
@@ -315,7 +316,7 @@ def actualizar_recomendacion(
     recomendacion_id: int,
     body: RecomendacionUpdate,
     db: Session = Depends(get_db),
-    current_user = Depends(require_gestion_alertas),
+    current_user = Depends(require_gestion_recomendaciones),
 ):
     """Edita el comentario, prioridad o estado de una recomendación existente."""
     return servicio.actualizar_recomendacion(db, recomendacion_id, body, current_user)
@@ -325,8 +326,7 @@ def actualizar_recomendacion(
 def eliminar_recomendacion(
     recomendacion_id: int,
     db: Session = Depends(get_db),
-    current_user = Depends(require_gestion_alertas),
+    current_user = Depends(require_gestion_recomendaciones),
 ):
     """Elimina definitivamente una recomendación (solo el autor o admin/torre_control)."""
     return servicio.eliminar_recomendacion(db, recomendacion_id, current_user)
-

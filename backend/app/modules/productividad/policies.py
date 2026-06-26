@@ -9,6 +9,7 @@ from app.models.cyr_models import ControlUsuarios
 
 ROLES_PRODUCTIVIDAD_LECTURA = ["admin", "superadmin", "torre_control", "gerencia", "supervisor"]
 ROLES_PRODUCTIVIDAD_ALERTAS = ["admin", "superadmin", "torre_control"]
+ROLES_PRODUCTIVIDAD_RECOMENDACIONES = ["admin", "superadmin", "torre_control", "supervisor"]
 
 
 def require_acceso_productividad(
@@ -29,5 +30,16 @@ def require_gestion_alertas(
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Acceso denegado: solo torre_control y admin pueden gestionar alertas",
+        )
+    return current_user
+
+
+def require_gestion_recomendaciones(
+    current_user: ControlUsuarios = Depends(get_current_user),
+):
+    if current_user.rol not in ROLES_PRODUCTIVIDAD_RECOMENDACIONES:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acceso denegado: solo supervisores, torre_control y admin pueden gestionar recomendaciones",
         )
     return current_user
