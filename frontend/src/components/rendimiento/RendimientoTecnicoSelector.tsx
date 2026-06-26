@@ -33,12 +33,12 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
       {/* Listado */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', flexGrow: 1 }}>
         <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase' }}>
-          Técnicos ({tecnicos.length})
+          Brigadas ({tecnicos.length})
         </div>
         
         {loading ? (
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
-            Cargando técnicos…
+            Cargando brigadas…
           </div>
         ) : tecnicos.length === 0 ? (
           <div style={{ fontSize: '13px', color: 'var(--text-muted)', textAlign: 'center', padding: '20px' }}>
@@ -65,12 +65,12 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
                   transition: 'all 0.15s',
                 }}
               >
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div>
-                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '8px' }}>
+                  <div style={{ minWidth: 0, flex: 1 }}>
+                    <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--text-main)', lineHeight: 1.2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                       {t.nombre}
                     </div>
-                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '6px' }}>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                       <span>{t.codigoSap}</span>
                       <span>•</span>
                       <span>{t.zona}</span>
@@ -79,7 +79,8 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
                     </div>
                   </div>
                   <div style={{
-                    fontSize: '10px', fontWeight: 700, padding: '2px 6px', borderRadius: '12px',
+                    flexShrink: 0,
+                    fontSize: '10px', fontWeight: 700, padding: '2px 8px', borderRadius: '12px',
                     color: eColor, border: `1px solid ${eColor}40`, background: `${eColor}10`,
                     whiteSpace: 'nowrap',
                   }}>
