@@ -11,13 +11,15 @@ COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copiar el código fuente
+COPY entrypoint.sh .
 RUN groupadd --system app && useradd --system --gid app --home /app app
 COPY --chown=app:app . .
+RUN chmod +x entrypoint.sh
 
 USER app
 
 # Exponer el puerto
 EXPOSE 8000
 
-# Comando de inicio usando uvicorn
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Comando de inicio: migraciones + uvicorn
+CMD ["./entrypoint.sh"]
