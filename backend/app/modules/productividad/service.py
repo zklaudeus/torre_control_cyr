@@ -678,7 +678,7 @@ class ProductividadService:
         if r.usuario_id:
             u = db.query(ControlUsuarios).filter(ControlUsuarios.id == r.usuario_id).first()
             if u:
-                autor_nombre = u.nombre or u.email
+                autor_nombre = u.usuario
         return {
             "id": r.id,
             "codigo_sap": r.codigo_sap,
