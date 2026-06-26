@@ -159,6 +159,10 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
             position: static !important;
             max-height: none !important;
             overflow-y: visible !important;
+            order: 2;
+          }
+          .rt-ficha {
+            order: 1;
           }
         }
         .rt-sidebar {
