@@ -154,6 +154,12 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           font-family: var(--sans);
           align-items: start;
         }
+        .rt-zonas-full {
+          padding: 16px 20px;
+          background: var(--bg-main);
+          min-height: 100%;
+          font-family: var(--sans);
+        }
         .rt-sidebar {
           grid-area: sidebar;
           position: sticky;
@@ -196,14 +202,6 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
             overflow-y: visible;
           }
         }
-        /* Modo pantalla completa cuando no hay zona seleccionada */
-        .rt-sidebar--full {
-          grid-column: 1 / -1 !important;
-          grid-area: unset !important;
-          position: static !important;
-          max-height: none !important;
-          overflow-y: visible !important;
-        }
         .rt-top-row {
           display: grid;
           grid-template-columns: 1fr 1fr;
@@ -217,183 +215,126 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
         }
       `}</style>
 
+      {/* ── Modo A: Sin zona seleccionada → Panel de zonas full page ── */}
+      {!selectedZona ? (
+        <div className="rt-zonas-full">
+          <RendimientoTecnicoPanelZonas
+            zonas={zonasData}
+            loading={loadingZonas}
+            onSelectZona={handleSelectZona}
+          />
+        </div>
+      ) : (
+
+      /* ── Modo B: Zona seleccionada → Grid sidebar + contenido ── */
       <div className="rt-main-layout">
-        
-        {/* Listado Lateral Izquierdo: Zonas o Técnicos */}
-        <div className={selectedZona ? 'rt-sidebar' : 'rt-sidebar rt-sidebar--full'}>
-          {selectedZona ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <button
-                onClick={handleBackToZonas}
-                style={{
-                  background: 'none', border: 'none', cursor: 'pointer',
-                  color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600,
-                  padding: '8px 0', textAlign: 'left',
-                  display: 'flex', alignItems: 'center', gap: '6px',
-                }}
-              >
-                ← Volver a zonas
-              </button>
-              <div style={{
-                fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)',
-                textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px',
-              }}>
-                {selectedZona}
-              </div>
-              <RendimientoTecnicoSelector
-                tecnicos={filteredTecnicos}
-                loading={loadingTecnicos}
-                selectedId={selectedTecnico?.id || null}
-                onSelect={selectTecnico}
-              />
+
+        {/* Sidebar: botón volver + lista brigadas */}
+        <div className="rt-sidebar">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            <button
+              onClick={handleBackToZonas}
+              style={{
+                background: 'none', border: 'none', cursor: 'pointer',
+                color: 'var(--primary)', fontSize: '0.85rem', fontWeight: 600,
+                padding: '8px 0', textAlign: 'left',
+                display: 'flex', alignItems: 'center', gap: '6px',
+              }}
+            >
+              ← Volver a zonas
+            </button>
+            <div style={{
+              fontSize: '13px', fontWeight: 700, color: 'var(--text-muted)',
+              textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px',
+            }}>
+              {selectedZona}
             </div>
-          ) : (
-            <RendimientoTecnicoPanelZonas
-              zonas={zonasData}
-              loading={loadingZonas}
-              onSelectZona={handleSelectZona}
+            <RendimientoTecnicoSelector
+              tecnicos={filteredTecnicos}
+              loading={loadingTecnicos}
+              selectedId={selectedTecnico?.id || null}
+              onSelect={selectTecnico}
             />
-          )}
+          </div>
         </div>
 
-        {/* Header + Filtros (solo cuando hay zona seleccionada) */}
-        {selectedZona && (
-          <div className="rt-ficha-header">
-            <>
-              {/* Header */}
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
-                <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-main)' }}>
-                  Rendimiento Brigada
-                </h2>
-                <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                  Seguimiento individual de productividad y desempeño
-                </span>
-                <label style={{
-                  marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px',
-                  fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
-                  textTransform: 'uppercase', letterSpacing: '0.6px',
-                }}>
-                  Fecha operacional
-                  <input
-                    type="date"
-                    value={fechaOperacional}
-                    onChange={e => onChangeFecha(e.target.value)}
-                    style={{
-                      padding: '6px 9px', border: '1px solid var(--border)', borderRadius: '6px',
-                      background: 'var(--bg-panel)', color: 'var(--text-main)', fontSize: '12px',
-                    }}
-                  />
-                </label>
-              </div>
-
-              {/* Buscador y Filtros */}
-              <div style={{
-                display: 'flex', flexDirection: 'column', gap: '10px',
-                backgroundColor: '#ffffff', border: '1px solid #E2E8F0',
-                borderRadius: '8px', padding: '12px 16px',
-                boxShadow: '0 1px 2px rgba(0, 0, 0, 0.05)',
-                fontFamily: 'var(--sans)',
+        {/* Header + Filtros */}
+        <div className="rt-ficha-header">
+          <>
+            {/* Header */}
+            <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap' }}>
+              <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: 'var(--text-main)' }}>
+                Rendimiento Brigada
+              </h2>
+              <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
+                Seguimiento individual de productividad y desempeño
+              </span>
+              <label style={{
+                marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px',
+                fontSize: '11px', fontWeight: 700, color: 'var(--text-muted)',
+                textTransform: 'uppercase', letterSpacing: '0.6px',
               }}>
-                {/* Fila superior: input + selects */}
-                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <input
-                    type="text"
-                    placeholder="Buscar por nombre, SAP, zona o supervisor..."
-                    value={searchTerm}
-                    onChange={e => setSearchTerm(e.target.value)}
-                    style={{
-                      flex: '1 1 200px', minWidth: 0,
-                      padding: '8px 12px', borderRadius: '6px', border: '1px solid #E2E8F0',
-                      background: '#FFFFFF', color: '#1E293B', fontSize: '0.85rem', outline: 'none',
-                      boxSizing: 'border-box',
-                    }}
-                  />
-                  <select
-                    value={filterZona}
-                    onChange={e => setFilterZona(e.target.value)}
-                    style={{
-                      padding: '8px 10px', borderRadius: '6px', border: '1px solid #E2E8F0',
-                      background: '#FFFFFF', color: '#1E293B', fontSize: '0.8rem', outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    {zonas.map(z => <option key={z} value={z}>{z}</option>)}
-                  </select>
-                  <select
-                    value={filterEstado}
-                    onChange={e => setFilterEstado(e.target.value as EstadoTecnico | 'Todos')}
-                    style={{
-                      padding: '8px 10px', borderRadius: '6px', border: '1px solid #E2E8F0',
-                      background: '#FFFFFF', color: '#1E293B', fontSize: '0.8rem', outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="Todos">Todos los estados</option>
-                    <option value="Crítico">Crítico</option>
-                    <option value="En recuperación">En recuperación</option>
-                    <option value="Estable">Estable</option>
-                    <option value="Alto desempeño">Alto desempeño</option>
-                  </select>
-                  <select
-                    value={filterFase}
-                    onChange={e => setFilterFase(e.target.value)}
-                    style={{
-                      padding: '8px 10px', borderRadius: '6px', border: '1px solid #E2E8F0',
-                      background: '#FFFFFF', color: '#1E293B', fontSize: '0.8rem', outline: 'none',
-                      cursor: 'pointer',
-                    }}
-                  >
-                    <option value="Todas">Todos los niveles</option>
-                    <option value="1">Nivel 1</option>
-                    <option value="2">Nivel 2</option>
-                    <option value="3">Nivel 3</option>
-                  </select>
-                </div>
+                Fecha operacional
+                <input
+                  type="date"
+                  value={fechaOperacional}
+                  onChange={e => onChangeFecha(e.target.value)}
+                  style={{
+                    padding: '6px 9px', border: '1px solid var(--border)', borderRadius: '6px',
+                    background: 'var(--bg-panel)', color: 'var(--text-main)', fontSize: '12px',
+                  }}
+                />
+              </label>
+            </div>
 
-                {/* Fila inferior: filtros rápidos */}
-                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                  {[
-                    { label: 'Todos', estado: 'Todos' as const, fase: 'Todas' },
-                    { label: 'Crítico', estado: 'Crítico' as EstadoTecnico, fase: 'Todas' },
-                    { label: 'Recuperación', estado: 'En recuperación' as EstadoTecnico, fase: 'Todas' },
-                    { label: 'Estable', estado: 'Estable' as EstadoTecnico, fase: 'Todas' },
-                    { label: 'Alto desempeño', estado: 'Alto desempeño' as EstadoTecnico, fase: 'Todas' },
-                    { label: 'Nivel 2', estado: 'Todos' as const, fase: '2' },
-                    { label: 'Nivel 3', estado: 'Todos' as const, fase: '3' },
-                    { label: 'Sin evaluación', estado: 'Sin evaluación' as EstadoTecnico, fase: 'Todas' },
-                  ].map(f => {
-                    const isActive = filterEstado === f.estado && filterFase === f.fase;
-                    return (
-                      <button
-                        key={f.label}
-                        onClick={() => {
-                          setFilterEstado(f.estado);
-                          setFilterFase(f.fase);
-                        }}
-                        style={{
-                          padding: '4px 12px', borderRadius: '999px', border: 'none',
-                          fontSize: '12px', fontWeight: 600, cursor: 'pointer',
-                          background: isActive ? '#1D4ED8' : '#F1F5F9',
-                          color: isActive ? '#FFFFFF' : '#475569',
-                          transition: 'all 0.15s',
-                        }}
-                      >
-                        {f.label}
-                      </button>
-                    );
-                  })}
-                  {/* Contador de resultados */}
-                  <span style={{
-                    fontSize: '12px', color: '#94A3B8', alignSelf: 'center',
-                    marginLeft: 'auto', padding: '0 4px',
-                  }}>
-                    {filteredTecnicos.length} brigadas
-                  </span>
-                </div>
+            {/* Filtros búsqueda */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  placeholder="Buscar brigada..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  style={{
+                    flex: '1 1 200px', padding: '7px 12px',
+                    border: '1px solid var(--border)', borderRadius: '8px',
+                    background: 'var(--bg-panel)', color: 'var(--text-main)', fontSize: '13px',
+                  }}
+                />
               </div>
-            </>
-          </div>
-        )}
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                {[
+                  { value: 'Todos',            label: 'Todos',          activeColor: '#3B82F6', activeBg: '#EFF6FF' },
+                  { value: 'Crítico',          label: 'Crítico',        activeColor: '#DC2626', activeBg: '#FEE2E2' },
+                  { value: 'En recuperación',  label: 'Recuperación',   activeColor: '#D97706', activeBg: '#FEF3C7' },
+                  { value: 'Estable',          label: 'Estable',        activeColor: '#059669', activeBg: '#D1FAE5' },
+                  { value: 'Alto desempeño',   label: 'Alto desempeño', activeColor: '#7C3AED', activeBg: '#EDE9FE' },
+                  { value: 'Sin evaluación',   label: 'Sin eval.',      activeColor: '#64748B', activeBg: '#F1F5F9' },
+                ].map(f => (
+                  <button
+                    key={f.value}
+                    onClick={() => setFilterEstado(f.value as EstadoTecnico | 'Todos')}
+                    style={{
+                      padding: '4px 12px', borderRadius: '999px', fontSize: '12px', fontWeight: 600,
+                      border: `1px solid ${filterEstado === f.value ? f.activeColor : 'var(--border)'}`,
+                      background: filterEstado === f.value ? f.activeBg : 'var(--bg-panel)',
+                      color: filterEstado === f.value ? f.activeColor : 'var(--text-muted)',
+                      cursor: 'pointer', transition: 'all 0.15s',
+                    }}
+                  >
+                    {f.label}
+                  </button>
+                ))}
+                <span style={{
+                  fontSize: '12px', color: '#94A3B8', alignSelf: 'center',
+                  marginLeft: 'auto', padding: '0 4px',
+                }}>
+                  {filteredTecnicos.length} brigadas
+                </span>
+              </div>
+            </div>
+          </>
+        </div>
 
         {/* Contenido: Ficha del Técnico Evaluado */}
         <div className="rt-ficha-content">
@@ -512,7 +453,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           ) : null}
         </div>
       </div>
+      )}
     </DashboardLayout>
   );
 };
-
