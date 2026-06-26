@@ -10,6 +10,8 @@ export const prepararBrigadasDesdeDiaAnterior = (
     codigo_sap: brigadaOrigen.codigo_sap,
     patente: brigadaOrigen.patente,
     usuario: brigadaOrigen.usuario,
+    brigada: brigadaOrigen.brigada || null,
+    pareja: brigadaOrigen.pareja || null,
     tipo_brigada: brigadaOrigen.tipo_brigada,
     estado_brigada: brigadaOrigen.estado_brigada,
     // Limpiar campos

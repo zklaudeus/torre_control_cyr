@@ -5,6 +5,8 @@ export interface BrigadaDiaria {
   codigo_sap: string;
   patente: string;
   usuario: string;
+  brigada: string | null;
+  pareja: string | null;
   tipo_brigada: string;
   estado_brigada: string;
   hora_primer_movimiento: string | null;
@@ -33,6 +35,8 @@ export interface BrigadaDiariaCreate {
   codigo_sap: string;
   patente: string;
   usuario: string;
+  brigada: string | null;
+  pareja: string | null;
   tipo_brigada: string;
   estado_brigada: string;
   hora_primer_movimiento: string | null;

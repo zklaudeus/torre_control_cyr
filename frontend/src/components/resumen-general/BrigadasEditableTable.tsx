@@ -124,6 +124,8 @@ export const BrigadasEditableTable = ({
       'codigo_sap',
       'patente',
       'usuario',
+      'brigada',
+      'pareja',
       'tipo_brigada',
       'estado_brigada',
       'observacion_brigada'
@@ -202,6 +204,8 @@ export const BrigadasEditableTable = ({
               <SortableHeaderCell column="zona" label="ZONA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyZonaHeaderStyle} />
               <SortableHeaderCell column="codigo_sap" label="SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickySapHeaderStyle} />
               <SortableHeaderCell column="usuario" label="CUENTA SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} style={stickyCuentaHeaderStyle} />
+              <SortableHeaderCell column="brigada" label="BRIGADA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeaderCell column="pareja" label="PAREJA" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="patente" label="PATENTE" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="tipo_brigada" label="TIPO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="estado_brigada" label="ESTADO" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
@@ -249,6 +253,18 @@ export const BrigadasEditableTable = ({
                     ) : (
                       <input type="text" value={row.usuario || ''} onChange={(e) => handleRowChange(row.id, 'usuario', e.target.value)} style={{ ...inputStyle, width: '100%', minWidth: '130px', fontWeight: 600, color: '#64748B' }} title={row.usuario || ''} />
                     )}
+                  </td>
+                  <td style={tdStyle}>
+                    {readOnly
+                      ? <span style={{ fontSize: '0.75rem', color: row.brigada ? '#1E293B' : '#94A3B8' }}>{row.brigada || '-'}</span>
+                      : <input type="text" value={row.brigada || ''} onChange={(e) => handleRowChange(row.id, 'brigada', e.target.value)} style={{ ...inputStyle, width: '120px' }} />
+                    }
+                  </td>
+                  <td style={tdStyle}>
+                    {readOnly
+                      ? <span style={{ fontSize: '0.75rem', color: row.pareja ? '#1E293B' : '#94A3B8' }}>{row.pareja || '-'}</span>
+                      : <input type="text" value={row.pareja || ''} onChange={(e) => handleRowChange(row.id, 'pareja', e.target.value)} style={{ ...inputStyle, width: '120px' }} />
+                    }
                   </td>
                   <td style={tdStyle}>
                     {readOnly
@@ -337,7 +353,7 @@ export const BrigadasEditableTable = ({
             })}
             {processedData.length === 0 && (
               <tr>
-                <td colSpan={22} style={{ ...tdStyle, color: '#64748B', padding: '2rem' }}>
+                <td colSpan={24} style={{ ...tdStyle, color: '#64748B', padding: '2rem' }}>
                   No hay brigadas registradas. Haz clic en "+ Agregar brigada".
                 </td>
               </tr>

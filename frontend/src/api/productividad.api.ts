@@ -25,8 +25,12 @@ export interface RendimientoDiarioBackend {
   fecha_operacional: string;
   codigo_sap: string;
   usuario: string;
+  brigada: string | null;
+  pareja: string | null;
+  patente: string | null;
   zona: string | null;
   tipo_brigada: string | null;
+  carga_dia_evaluable: number | null;
   corte_en_poste: number;
   corte_en_empalme: number;
   corte_fuera_de_rango: number;

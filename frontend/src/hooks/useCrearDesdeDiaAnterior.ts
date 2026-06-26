@@ -189,6 +189,8 @@ export const useCrearDesdeDiaAnterior = (fechaActual: string) => {
           codigo_sap: '',
           patente: '',
           usuario: '',
+          brigada: '',
+          pareja: '',
           tipo_brigada: 'PXQ',
           estado_brigada: 'Operativa',
           fecha: fechaActual,

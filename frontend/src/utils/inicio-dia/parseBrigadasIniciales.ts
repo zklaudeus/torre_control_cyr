@@ -2,6 +2,8 @@ export interface BrigadaParseada {
   zona: string;
   codigo_sap: string;
   usuario: string;
+  brigada: string;
+  pareja: string;
   patente: string;
   tipo_brigada: string;
 }
@@ -19,6 +21,8 @@ export const parseBrigadasIniciales = (text: string): BrigadaParseada[] => {
   const idxZona = getIndex(['zona', 'zonal']);
   const idxSap = getIndex(['sap', 'código', 'codigo']);
   const idxUsuario = getIndex(['usuario', 'nombre', 'técnico', 'tecnico', 'brigada']);
+  const idxBrigada = getIndex(['brigada']);
+  const idxPareja = getIndex(['pareja', 'acompañante', 'acompanante']);
   const idxPatente = getIndex(['patente', 'ppu']);
   const idxTipo = getIndex(['tipo']);
 
@@ -31,6 +35,8 @@ export const parseBrigadasIniciales = (text: string): BrigadaParseada[] => {
     const zona = idxZona >= 0 ? cols[idxZona] : '';
     const codigo_sap = idxSap >= 0 ? cols[idxSap] : '';
     const usuario = idxUsuario >= 0 ? cols[idxUsuario] : '';
+    const brigada = idxBrigada >= 0 ? cols[idxBrigada] : usuario;
+    const pareja = idxPareja >= 0 ? cols[idxPareja] : '';
     const patente = idxPatente >= 0 ? cols[idxPatente] : '';
     let tipo_brigada = idxTipo >= 0 ? cols[idxTipo] : 'PXQ';
     if (!['PXQ', 'CF'].includes(tipo_brigada)) {
@@ -38,7 +44,7 @@ export const parseBrigadasIniciales = (text: string): BrigadaParseada[] => {
     }
 
     if (codigo_sap || usuario || patente) {
-      results.push({ zona, codigo_sap, usuario, patente, tipo_brigada });
+      results.push({ zona, codigo_sap, usuario, brigada, pareja, patente, tipo_brigada });
     }
   }
 

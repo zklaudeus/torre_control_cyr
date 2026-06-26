@@ -19,6 +19,8 @@ class ControlBrigadasDiario(Base):
     codigo_sap = Column(String(50))
     patente = Column(String(50))
     usuario = Column(String(100))
+    brigada = Column(String(100), nullable=True)
+    pareja = Column(String(100), nullable=True)
     tipo_brigada = Column(String(50))
     estado_brigada = Column(String(50))
     hora_primer_movimiento = Column(Time)
@@ -523,4 +525,3 @@ class RendimientoTecnicoRecomendacion(Base):
             name='chk_recomendacion_estado_accion'
         ),
     )
-

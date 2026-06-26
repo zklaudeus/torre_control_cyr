@@ -54,6 +54,8 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
       'brigadaOrigen.codigo_sap',
       'brigadaOrigen.patente',
       'brigadaOrigen.usuario',
+      'brigadaOrigen.brigada',
+      'brigadaOrigen.pareja',
       'brigadaOrigen.tipo_brigada',
       'brigadaOrigen.estado_brigada'
     ]
@@ -79,6 +81,8 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
               <SortableHeaderCell column="brigadaOrigen.codigo_sap" label="SAP" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="brigadaOrigen.patente" label="Patente" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="brigadaOrigen.usuario" label="Usuario" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeaderCell column="brigadaOrigen.brigada" label="Brigada" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
+              <SortableHeaderCell column="brigadaOrigen.pareja" label="Pareja" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="brigadaOrigen.tipo_brigada" label="Tipo" sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <SortableHeaderCell column="brigadaOrigen.estado_brigada" label="Estado Brig." sortColumn={sortColumn} sortDirection={sortDirection} onSort={handleSort} />
               <th style={thStyle}>Acción</th>
@@ -145,6 +149,12 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
                     <input type="text" value={b.usuario} onChange={(e) => onEditRow(idx, 'usuario', e.target.value)} style={{...inputStyleLocal, width: '120px'}} />
                   </td>
                   <td style={tdStyle}>
+                    <input type="text" value={b.brigada || ''} onChange={(e) => onEditRow(idx, 'brigada', e.target.value)} style={{...inputStyleLocal, width: '120px'}} />
+                  </td>
+                  <td style={tdStyle}>
+                    <input type="text" value={b.pareja || ''} onChange={(e) => onEditRow(idx, 'pareja', e.target.value)} style={{...inputStyleLocal, width: '120px'}} />
+                  </td>
+                  <td style={tdStyle}>
                     <select value={b.tipo_brigada} onChange={(e) => onEditRow(idx, 'tipo_brigada', e.target.value)} style={{...selectStyleLocal, width: '100px'}}>
                       <option value="PXQ">PXQ</option>
                       <option value="CF">CF</option>
@@ -166,7 +176,7 @@ export const PreviewCrearDesdeDiaAnteriorTable = ({
             })}
             {processedData.length === 0 && (
               <tr>
-                <td colSpan={8} style={{ ...tdStyle, textAlign: 'center', color: '#64748B' }}>
+                <td colSpan={10} style={{ ...tdStyle, textAlign: 'center', color: '#64748B' }}>
                   No hay brigadas para mostrar.
                 </td>
               </tr>

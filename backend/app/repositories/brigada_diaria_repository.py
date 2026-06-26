@@ -22,6 +22,8 @@ class BrigadaDiariaRepository:
             codigo_sap=item.codigo_sap,
             patente=item.patente,
             usuario=item.usuario,
+            brigada=item.brigada,
+            pareja=item.pareja,
             tipo_brigada=item.tipo_brigada,
             estado_brigada=item.estado_brigada,
             hora_primer_movimiento=item.hora_primer_movimiento,
@@ -50,8 +52,9 @@ class BrigadaDiariaRepository:
         return db_item
 
     def update(self, db: Session, db_item: ControlBrigadasDiario, item: BrigadaDiariaUpdate) -> ControlBrigadasDiario:
-        # Only update fields that are explicitly provided (not None)
-        for field, value in item.model_dump(exclude_none=True).items():
+        # Update only fields present in the request. This allows clearing
+        # nullable daily fields such as pareja.
+        for field, value in item.model_dump(exclude_unset=True).items():
             setattr(db_item, field, value)
         db.flush()
         db.refresh(db_item)

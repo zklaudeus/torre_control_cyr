@@ -363,6 +363,32 @@ class ProductividadRepository:
             condicion_brigada_contabilizable(ControlBrigadasDiario),
         ).order_by(desc(ControlBrigadasDiario.id)).first()
 
+    def obtener_brigadas_por_pares(
+        self, db: Session, pares: set[tuple[date, str]]
+    ) -> dict[tuple[date, str], ControlBrigadasDiario]:
+        """Obtiene la brigada diaria fuente por par (fecha, SAP)."""
+        if not pares:
+            return {}
+
+        fechas = {fecha for fecha, _ in pares}
+        codigos = {codigo for _, codigo in pares}
+        brigadas = db.query(ControlBrigadasDiario).filter(
+            ControlBrigadasDiario.fecha_operacional.in_(fechas),
+            ControlBrigadasDiario.codigo_sap.in_(codigos),
+            condicion_brigada_contabilizable(ControlBrigadasDiario),
+        ).order_by(
+            ControlBrigadasDiario.fecha_operacional,
+            ControlBrigadasDiario.codigo_sap,
+            ControlBrigadasDiario.id,
+        ).all()
+
+        por_par = {}
+        for brigada in brigadas:
+            key = (brigada.fecha_operacional, brigada.codigo_sap)
+            if key in pares:
+                por_par[key] = brigada
+        return por_par
+
     def obtener_brigadas_periodo(
         self, db: Session, codigo_sap: str, fecha_desde: date, fecha_hasta: date
     ) -> List[ControlBrigadasDiario]:

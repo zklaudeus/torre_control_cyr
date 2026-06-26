@@ -8,6 +8,8 @@ class BrigadaDiariaBase(BaseModel):
     codigo_sap: Optional[str] = None
     patente: Optional[str] = None
     usuario: Optional[str] = None
+    brigada: Optional[str] = None
+    pareja: Optional[str] = None
     tipo_brigada: Optional[str] = None
     estado_brigada: Optional[str] = None
     hora_primer_movimiento: Optional[time] = None
@@ -40,6 +42,8 @@ class BrigadaDiariaUpdate(BaseModel):
     codigo_sap: Optional[str] = None
     patente: Optional[str] = None
     usuario: Optional[str] = None
+    brigada: Optional[str] = None
+    pareja: Optional[str] = None
     tipo_brigada: Optional[str] = None
     estado_brigada: Optional[str] = None
     hora_primer_movimiento: Optional[time] = None

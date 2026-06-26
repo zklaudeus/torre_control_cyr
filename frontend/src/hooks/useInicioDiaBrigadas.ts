@@ -68,6 +68,8 @@ export const useInicioDiaBrigadas = (fechaOperacional: string) => {
             codigo_sap: fila.datosRecibidos.codigo_sap,
             patente: fila.datosRecibidos.patente,
             usuario: fila.datosRecibidos.usuario,
+            brigada: fila.datosRecibidos.brigada || fila.datosRecibidos.usuario || null,
+            pareja: fila.datosRecibidos.pareja || null,
             tipo_brigada: fila.datosRecibidos.tipo_brigada,
             estado_brigada: 'Operativa',
             hora_primer_movimiento: null,
@@ -100,6 +102,8 @@ export const useInicioDiaBrigadas = (fechaOperacional: string) => {
             ...fila.brigadaOriginal,
             patente: fila.datosRecibidos.patente || fila.brigadaOriginal.patente,
             usuario: fila.datosRecibidos.usuario || fila.brigadaOriginal.usuario,
+            brigada: fila.datosRecibidos.brigada || fila.brigadaOriginal.brigada,
+            pareja: fila.datosRecibidos.pareja || fila.brigadaOriginal.pareja,
             zona: fila.datosRecibidos.zona || fila.brigadaOriginal.zona,
           };
           await updateBrigada(fila.brigadaOriginal.id, payload);

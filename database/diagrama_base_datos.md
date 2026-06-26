@@ -21,6 +21,8 @@ erDiagram
         string zona
         string tipo_brigada
         string usuario
+        string brigada
+        string pareja
         string codigo_sap
         string patente
         string estado_brigada
@@ -138,7 +140,7 @@ erDiagram
 **Propósito:** Almacena el detalle individual de cada brigada (vehículo y técnico) operando en el día.
 - **Clave Primaria:** `id`
 - **Claves Únicas:** Ninguna.
-- **Columnas Principales:** `fecha_operacional`, `zona`, `usuario`, `codigo_sap`, `patente`, `tipo_brigada` (PXQ o CF), `estado_brigada`, `hora_primer_movimiento`, `corte_programado` (es una columna real que viene de la programación del supervisor), `reconexiones_ejecutadas`, `primer_corte`, `ultimo_corte`, `corte_en_poste`, `corte_en_empalme`, `visita_fallida`, además de acumulados horarios (`acum_09` a `acum_14`).
+- **Columnas Principales:** `fecha_operacional`, `zona`, `usuario`, `codigo_sap`, `brigada`, `pareja`, `patente`, `tipo_brigada` (PXQ o CF), `estado_brigada`, `hora_primer_movimiento`, `corte_programado` (es una columna real que viene de la programación del supervisor), `reconexiones_ejecutadas`, `primer_corte`, `ultimo_corte`, `corte_en_poste`, `corte_en_empalme`, `visita_fallida`, además de acumulados horarios (`acum_09` a `acum_14`).
 - **Relaciones:** Lógica a `reportes_cyr` (fecha) y a `dim_tipo_brigada_usuario` (`usuario`).
 
 ### `control_programacion_zona`

@@ -125,8 +125,8 @@ export const SupervisorBitacoraView = ({
         patente: b.patente || '',
         usuarioSap: b.codigo_sap || '',
         cuenta: b.usuario || '',
-        brigada: '',
-        pareja: '',
+        brigada: b.brigada || '',
+        pareja: b.pareja || '',
         comuna: b.zona || '',
         zona: b.zona || '',
         carga: (!b.corte_programado || b.corte_programado === 0) ? '' : String(b.corte_programado),
@@ -139,9 +139,9 @@ export const SupervisorBitacoraView = ({
         const matchingSAP = sapMap.find(s => s.codigo_sap === m.usuarioSap);
         if (matchingSAP) {
           m.cuenta = matchingSAP.cuenta || m.cuenta;
-          m.brigada = matchingSAP.brigada || matchingSAP.cuenta;
-          m.pareja = matchingSAP.pareja || '';
-        } else {
+          m.brigada = m.brigada || matchingSAP.brigada || matchingSAP.cuenta;
+          m.pareja = m.pareja || matchingSAP.pareja || '';
+        } else if (!m.brigada) {
           m.brigada = m.cuenta;
         }
       });
@@ -213,7 +213,10 @@ export const SupervisorBitacoraView = ({
       }
       const updated = { ...prev, [field]: finalValue };
       if (field === 'cuenta') {
-        updated.usuarioSap = obtenerSapPorCuenta(value, sapMap);
+        const matchingSAP = sapMap.find(s => normalizarTexto(s.cuenta).toLowerCase() === normalizarTexto(value).toLowerCase());
+        updated.usuarioSap = matchingSAP?.codigo_sap || obtenerSapPorCuenta(value, sapMap);
+        updated.brigada = updated.brigada || matchingSAP?.brigada || value;
+        updated.pareja = updated.pareja || matchingSAP?.pareja || '';
       }
       if (field === 'comuna') {
         updated.zona = obtenerZonaPorComuna(value, comunasMap);
@@ -319,6 +322,8 @@ export const SupervisorBitacoraView = ({
           codigo_sap: tempRow.usuarioSap,
           patente: tempRow.patente,
           usuario: tempRow.cuenta,
+          brigada: tempRow.brigada || null,
+          pareja: tempRow.pareja || null,
           tipo_brigada: tempRow.tipoBrigada || 'PXQ',
           estado_brigada: tempRow.estado,
           observacion_brigada: tempRow.observacion,
@@ -487,6 +492,8 @@ export const SupervisorBitacoraView = ({
           codigo_sap: row.usuarioSap,
           patente: normalizarPatente(row.patente),
           usuario: row.cuenta,
+          brigada: normalizarTexto(row.brigada) || null,
+          pareja: normalizarTexto(row.pareja) || null,
           tipo_brigada: row.tipoBrigada || 'PXQ',
           estado_brigada: row.estado,
           observacion_brigada: normalizarTexto(row.observacion),
@@ -656,6 +663,8 @@ export const SupervisorBitacoraView = ({
           codigo_sap: s.codigo_sap,
           patente: normalizarPatente(s.patente_habitual || ''),
           usuario: s.cuenta,
+          brigada: normalizarTexto(s.brigada || s.cuenta || '') || null,
+          pareja: normalizarTexto(s.pareja || '') || null,
           tipo_brigada: s.tipo_brigada || 'PXQ',
           estado_brigada: 'Operativa',
           observacion_brigada: '',
@@ -711,7 +720,12 @@ export const SupervisorBitacoraView = ({
       if (r.id !== id) return r;
       const updated = { ...r, [field]: value, _errors: undefined } as any;
       
-      if (field === 'cuenta') updated.usuarioSap = obtenerSapPorCuenta(value, sapMap);
+      if (field === 'cuenta') {
+        const matchingSAP = sapMap.find(s => normalizarTexto(s.cuenta).toLowerCase() === normalizarTexto(value).toLowerCase());
+        updated.usuarioSap = matchingSAP?.codigo_sap || obtenerSapPorCuenta(value, sapMap);
+        updated.brigada = updated.brigada || matchingSAP?.brigada || value;
+        updated.pareja = updated.pareja || matchingSAP?.pareja || '';
+      }
       if (field === 'comuna') updated.zona = obtenerZonaPorComuna(value, comunasMap);
       if (field === 'patente') updated.patente = normalizarPatente(value);
       if (field === 'brigada') updated.brigada = normalizarTexto(value);

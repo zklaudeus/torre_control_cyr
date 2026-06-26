@@ -39,8 +39,12 @@ class RendimientoDiarioItem(BaseModel):
     fecha_operacional: date
     codigo_sap: str
     usuario: str
+    brigada: Optional[str] = None
+    pareja: Optional[str] = None
+    patente: Optional[str] = None
     zona: Optional[str] = None
     tipo_brigada: Optional[str] = None
+    carga_dia_evaluable: Optional[int] = None
     corte_en_poste: int = 0
     corte_en_empalme: int = 0
     corte_fuera_de_rango: int = 0
@@ -292,4 +296,3 @@ class RecomendacionResponse(BaseModel):
     updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
-

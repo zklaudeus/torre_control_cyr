@@ -130,10 +130,18 @@ class ProductividadService:
         def key(r: RendimientoTecnicoDiario) -> tuple:
             return (r.codigo_sap, r.fecha_operacional)
 
+        def brigada_key(r: RendimientoTecnicoDiario) -> tuple:
+            return (r.fecha_operacional, r.codigo_sap)
+
         causa_map: dict[tuple, list[dict]] = {}
+        brigada_map = {}
         if rows:
             fechas = list({r.fecha_operacional for r in rows})
             codigos = list({r.codigo_sap for r in rows})
+            brigada_map = self.repo.obtener_brigadas_por_pares(
+                db,
+                {(r.fecha_operacional, r.codigo_sap) for r in rows},
+            )
             causas = (
                 db.query(RendimientoTecnicoCausaFallida)
                 .filter(
@@ -152,16 +160,32 @@ class ProductividadService:
                     causa_map[k] = []
                 causa_map[k].append({"causa_fallida": c.causa_fallida, "cantidad": c.cantidad, "observacion": c.observacion})
 
-        return [self._to_rendimiento_item(r, causa_map.get(key(r), [])) for r in rows]
+        return [
+            self._to_rendimiento_item(
+                r,
+                causa_map.get(key(r), []),
+                brigada_map.get(brigada_key(r)),
+            )
+            for r in rows
+        ]
 
-    def _to_rendimiento_item(self, r: RendimientoTecnicoDiario, causas: list[dict] | None = None) -> RendimientoDiarioItem:
+    def _to_rendimiento_item(
+        self,
+        r: RendimientoTecnicoDiario,
+        causas: list[dict] | None = None,
+        brigada=None,
+    ) -> RendimientoDiarioItem:
         from app.modules.productividad.schemas import CausaFallidaItem
         return RendimientoDiarioItem(
             fecha_operacional=r.fecha_operacional,
             codigo_sap=r.codigo_sap,
             usuario=r.usuario,
+            brigada=getattr(brigada, "brigada", None),
+            pareja=getattr(brigada, "pareja", None),
+            patente=getattr(brigada, "patente", None),
             zona=r.zona,
             tipo_brigada=r.tipo_brigada,
+            carga_dia_evaluable=getattr(brigada, "corte_programado", None),
             corte_en_poste=r.corte_en_poste,
             corte_en_empalme=r.corte_en_empalme,
             corte_fuera_de_rango=r.corte_fuera_de_rango,
@@ -185,8 +209,12 @@ class ProductividadService:
             fecha_operacional=brigada.fecha_operacional,
             codigo_sap=brigada.codigo_sap,
             usuario=brigada.usuario or brigada.codigo_sap,
+            brigada=getattr(brigada, "brigada", None),
+            pareja=getattr(brigada, "pareja", None),
+            patente=getattr(brigada, "patente", None),
             zona=brigada.zona,
             tipo_brigada=brigada.tipo_brigada,
+            carga_dia_evaluable=getattr(brigada, "corte_programado", None),
             corte_en_poste=metricas["corte_en_poste"],
             corte_en_empalme=metricas["corte_en_empalme"],
             corte_fuera_de_rango=metricas["corte_fuera_de_rango"],
@@ -740,4 +768,3 @@ class ProductividadService:
         db.delete(rec)
         db.commit()
         return {"success": True, "mensaje": "Recomendación eliminada correctamente", "id": recomendacion_id}
-

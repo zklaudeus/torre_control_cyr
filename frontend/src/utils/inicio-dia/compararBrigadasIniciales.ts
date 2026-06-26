@@ -1,7 +1,7 @@
 import type { BrigadaDiaria } from '../../types/brigadaDia';
 import type { BrigadaParseada } from './parseBrigadasIniciales';
 
-export type EstadoComparacion = 'Sin cambios' | 'Patente cambiada' | 'Usuario cambiado' | 'Zona cambiada' | 'Nueva brigada' | 'Faltante' | 'Error' | 'Advertencia';
+export type EstadoComparacion = 'Sin cambios' | 'Patente cambiada' | 'Usuario cambiado' | 'Brigada cambiada' | 'Pareja cambiada' | 'Zona cambiada' | 'Nueva brigada' | 'Faltante' | 'Error' | 'Advertencia';
 
 export interface ComparacionFila {
   id_unico: string;
@@ -93,6 +93,26 @@ export const compararBrigadasIniciales = (actuales: BrigadaDiaria[], recibidas: 
         aplicar: true,
         observacion: `Cambia de ${actual.usuario} a ${r.usuario}`
       });
+    } else if ((actual.brigada || '') !== r.brigada && r.brigada !== '') {
+      resultado.push({
+        id_unico: idUnico,
+        estado: 'Brigada cambiada',
+        brigadaOriginal: actual,
+        datosRecibidos: r,
+        accionSugerida: 'Actualizar brigada',
+        aplicar: true,
+        observacion: `Cambia de ${actual.brigada || '-'} a ${r.brigada}`
+      });
+    } else if ((actual.pareja || '') !== r.pareja && r.pareja !== '') {
+      resultado.push({
+        id_unico: idUnico,
+        estado: 'Pareja cambiada',
+        brigadaOriginal: actual,
+        datosRecibidos: r,
+        accionSugerida: 'Actualizar pareja',
+        aplicar: true,
+        observacion: `Cambia de ${actual.pareja || '-'} a ${r.pareja}`
+      });
     } else {
       resultado.push({
         id_unico: idUnico,
@@ -128,8 +148,10 @@ export const compararBrigadasIniciales = (actuales: BrigadaDiaria[], recibidas: 
     'Nueva brigada': 4,
     'Zona cambiada': 5,
     'Usuario cambiado': 6,
-    'Patente cambiada': 7,
-    'Sin cambios': 8
+    'Brigada cambiada': 7,
+    'Pareja cambiada': 8,
+    'Patente cambiada': 9,
+    'Sin cambios': 10
   };
 
   resultado.sort((a, b) => ordenEstados[a.estado] - ordenEstados[b.estado]);

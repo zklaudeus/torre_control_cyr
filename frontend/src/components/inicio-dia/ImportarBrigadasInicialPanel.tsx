@@ -14,7 +14,7 @@ export const ImportarBrigadasInicialPanel = ({ onProcesar, loading }: ImportarBr
     <AccordionPanel title="IMPORTAR REPORTE DEL SUPERVISOR" defaultOpen={true}>
       <div style={{ padding: '1rem' }}>
         <p style={{ color: '#aaa', fontSize: '0.85rem', marginBottom: '0.5rem' }}>
-          Pega aquí las filas desde Excel. Asegúrate de incluir los encabezados (Zona, SAP, Patente, Usuario, Tipo).
+          Pega aquí las filas desde Excel. Asegúrate de incluir los encabezados (Zona, SAP, Patente, Usuario, Brigada, Pareja, Tipo).
         </p>
         <textarea
           value={texto}

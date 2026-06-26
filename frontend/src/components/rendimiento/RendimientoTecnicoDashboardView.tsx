@@ -411,9 +411,16 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                         </span>
                       </div>
                       <TarjetaUsuarioRendimiento
-                        usuarioSap={selectedTecnico.nombre}
+                        usuarioSap={rendimiento?.usuario ?? selectedTecnico.nombre}
                         codigoSap={selectedTecnico.codigoSap}
-                        zona={selectedTecnico.zona}
+                        brigada={rendimiento?.brigada}
+                        pareja={rendimiento?.pareja}
+                        zona={rendimiento?.zona ?? selectedTecnico.zona}
+                        patente={rendimiento?.patente}
+                        fechaOperacional={rendimiento?.fecha_operacional ?? fechaOperacional}
+                        tipoBrigada={rendimiento?.tipo_brigada ?? selectedTecnico.tipoBrigada}
+                        productividad={rendimiento ? `${rendimiento.cortes_productivos} cortes (${rendimiento.cumplimiento_pct}%)` : null}
+                        estadoRendimiento={rendimiento?.estado_diario ?? selectedTecnico.estado}
                         supervisorResponsable={selectedTecnico.supervisor}
                       />
                     </div>
