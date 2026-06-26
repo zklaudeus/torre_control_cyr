@@ -144,6 +144,9 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
         .rt-main-layout {
           display: grid;
           grid-template-columns: 340px 1fr;
+          grid-template-areas:
+            "sidebar ficha-header"
+            "sidebar ficha-content";
           gap: 20px;
           padding: 20px;
           background: var(--bg-main);
@@ -151,26 +154,27 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           font-family: var(--sans);
           align-items: start;
         }
-        @media (max-width: 1024px) {
-          .rt-main-layout {
-            grid-template-columns: 1fr;
-          }
-          .rt-sidebar {
-            position: static !important;
-            max-height: none !important;
-            overflow-y: visible !important;
-            order: 2;
-          }
-          .rt-ficha {
-            order: 1;
-          }
-        }
         .rt-sidebar {
+          grid-area: sidebar;
           position: sticky;
           top: 20px;
           max-height: calc(100vh - 40px);
           overflow-y: auto;
           padding-right: 10px;
+        }
+        .rt-ficha-header {
+          grid-area: ficha-header;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          min-width: 0;
+        }
+        .rt-ficha-content {
+          grid-area: ficha-content;
+          display: flex;
+          flex-direction: column;
+          gap: 20px;
+          min-width: 0;
         }
         .rt-sidebar::-webkit-scrollbar {
           width: 6px;
@@ -179,11 +183,19 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           background: var(--border);
           border-radius: 4px;
         }
-        .rt-ficha {
-          display: flex;
-          flex-direction: column;
-          gap: 20px;
-          min-width: 0;
+        @media (max-width: 1024px) {
+          .rt-main-layout {
+            grid-template-columns: 1fr;
+            grid-template-areas:
+              "ficha-header"
+              "sidebar"
+              "ficha-content";
+          }
+          .rt-sidebar {
+            position: static;
+            max-height: none;
+            overflow-y: visible;
+          }
         }
         .rt-top-row {
           display: grid;
@@ -248,8 +260,8 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
           )}
         </div>
 
-        {/* Panel de Zonas o Ficha del Técnico */}
-        <div className="rt-ficha">
+        {/* Header + Filtros */}
+        <div className="rt-ficha-header">
           {selectedZona ? (
             <>
               {/* Header */}
@@ -383,119 +395,139 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
                   </span>
                 </div>
               </div>
-
-              {!selectedTecnico ? (
-                <div style={{
-                  padding: '60px 20px',
-                  textAlign: 'center',
-                  background: 'var(--bg-panel)',
-                  border: '1px dashed var(--border)',
-                  borderRadius: '8px',
-                  color: 'var(--text-muted)'
-                }}>
-                  Selecciona un técnico del listado para ver su ficha de rendimiento.
-                </div>
-              ) : (
-                <>
-                  <div className="rt-top-row">
-                    <div>
-                      <div style={{
-                        marginBottom: '10px',
-                        display: 'flex', alignItems: 'center', gap: '8px',
-                      }}>
-                        <span style={{
-                          width: '3px', height: '18px', borderRadius: '2px',
-                          background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
-                        }} />
-                        <span style={{
-                          fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
-                          textTransform: 'uppercase', letterSpacing: '1px',
-                        }}>
-                          Técnico evaluado
-                        </span>
-                      </div>
-                      <TarjetaUsuarioRendimiento
-                        usuarioSap={rendimiento?.usuario ?? selectedTecnico.nombre}
-                        codigoSap={selectedTecnico.codigoSap}
-                        brigada={rendimiento?.brigada}
-                        pareja={rendimiento?.pareja}
-                        zona={rendimiento?.zona ?? selectedTecnico.zona}
-                        patente={rendimiento?.patente}
-                        fechaOperacional={rendimiento?.fecha_operacional ?? fechaOperacional}
-                        tipoBrigada={rendimiento?.tipo_brigada ?? selectedTecnico.tipoBrigada}
-                        productividad={rendimiento ? `${rendimiento.cortes_productivos} cortes (${rendimiento.cumplimiento_pct}%)` : null}
-                        estadoRendimiento={rendimiento?.estado_diario ?? selectedTecnico.estado}
-                        supervisorResponsable={selectedTecnico.supervisor}
-                      />
-                    </div>
-
-                    <RendimientoTecnicoFaseSeguimiento
-                      seguimiento={seguimiento}
-                      codigoSap={selectedTecnico.codigoSap}
-                      userRol={user?.rol || ''}
-                      onRegistrarAdvertencia={async (motivo) => {
-                        await registrarAdvertencia(selectedTecnico.codigoSap, fechaOperacional, motivo);
-                      }}
-                      registrandoAdvertencia={registrandoAdvertencia}
-                      onCambiarFase={async (faseNueva, motivo) => {
-                        await cambiarFase(selectedTecnico.codigoSap, faseNueva, motivo);
-                      }}
-                      cambiandoFase={cambiandoFase}
-                      onAnularAdvertencia={async (advertenciaId, motivo) => {
-                        await anularAdvertencia(advertenciaId, motivo);
-                      }}
-                      anulandoAdvertencia={anulandoAdvertencia}
-                    />
-                  </div>
-
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-
-                  <RendimientoTecnicoKpiCards
-                    kpiData={rendimiento ?? undefined}
-                    resumen={kpiResumen ?? undefined}
-                    loading={loadingRendimiento}
-                  />
-
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-
-                  <RendimientoTecnicoSemaforos
-                    semaforos={semaforos}
-                    codigoSap={selectedTecnico?.codigoSap ?? ''}
-                    canEdit={canEditSemaforos}
-                    loading={loadingSemaforos}
-                    onUpdated={updated => {
-                      setSemaforos(prev => prev.map(s => s.categoria === updated.categoria ? updated : s));
-                    }}
-                  />
-
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-
-                  <RendimientoTecnicoCursos />
-
-                  <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
-
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-                    gap: '20px',
-                  }}>
-                    <RendimientoTecnicoHallazgos
-                      alertas={alertas}
-                      puedeGestionar={user?.rol === 'torre_control' || user?.rol === 'admin' || user?.rol === 'superadmin'}
-                      onAnularAdvertencia={async (advertenciaId, motivo) => {
-                        await anularAdvertencia(advertenciaId, motivo);
-                      }}
-                      anulandoAdvertencia={anulandoAdvertencia}
-                      onEliminarAdvertencia={async (advertenciaId) => {
-                        await eliminarAdvertencia(advertenciaId);
-                      }}
-                      eliminandoAdvertencia={eliminandoAdvertencia}
-                    />
-                    <RendimientoTecnicoRecomendacion codigoSap={selectedTecnico?.codigoSap ?? null} />
-                  </div>
-                </>
-              )}
             </>
+          ) : (
+            <div style={{
+              background: 'var(--bg-panel)',
+              border: '1px solid var(--border)',
+              borderRadius: '12px', padding: '24px',
+              textAlign: 'center',
+              color: 'var(--text-muted)',
+              fontSize: '14px',
+              lineHeight: 1.6,
+            }}>
+              <div style={{ fontSize: '28px', marginBottom: '8px' }}>🗺️</div>
+              <strong style={{ color: 'var(--text-main)' }}>Selecciona una zona</strong>
+              <br />
+              para ver el encabezado de brigada.
+            </div>
+          )}
+        </div>
+
+        {/* Contenido: Panel de Zonas o Ficha del Técnico Evaluado */}
+        <div className="rt-ficha-content">
+          {selectedZona ? (
+            !selectedTecnico ? (
+              <div style={{
+                padding: '60px 20px',
+                textAlign: 'center',
+                background: 'var(--bg-panel)',
+                border: '1px dashed var(--border)',
+                borderRadius: '8px',
+                color: 'var(--text-muted)'
+              }}>
+                Selecciona un técnico del listado para ver su ficha de rendimiento.
+              </div>
+            ) : (
+              <>
+                <div className="rt-top-row">
+                  <div>
+                    <div style={{
+                      marginBottom: '10px',
+                      display: 'flex', alignItems: 'center', gap: '8px',
+                    }}>
+                      <span style={{
+                        width: '3px', height: '18px', borderRadius: '2px',
+                        background: 'var(--primary)', display: 'inline-block', flexShrink: 0,
+                      }} />
+                      <span style={{
+                        fontSize: '12px', fontWeight: 700, color: 'var(--text-muted)',
+                        textTransform: 'uppercase', letterSpacing: '1px',
+                      }}>
+                        Técnico evaluado
+                      </span>
+                    </div>
+                    <TarjetaUsuarioRendimiento
+                      usuarioSap={rendimiento?.usuario ?? selectedTecnico.nombre}
+                      codigoSap={selectedTecnico.codigoSap}
+                      brigada={rendimiento?.brigada}
+                      pareja={rendimiento?.pareja}
+                      zona={rendimiento?.zona ?? selectedTecnico.zona}
+                      patente={rendimiento?.patente}
+                      fechaOperacional={rendimiento?.fecha_operacional ?? fechaOperacional}
+                      tipoBrigada={rendimiento?.tipo_brigada ?? selectedTecnico.tipoBrigada}
+                      productividad={rendimiento ? `${rendimiento.cortes_productivos} cortes (${rendimiento.cumplimiento_pct}%)` : null}
+                      estadoRendimiento={rendimiento?.estado_diario ?? selectedTecnico.estado}
+                      supervisorResponsable={selectedTecnico.supervisor}
+                    />
+                  </div>
+
+                  <RendimientoTecnicoFaseSeguimiento
+                    seguimiento={seguimiento}
+                    codigoSap={selectedTecnico.codigoSap}
+                    userRol={user?.rol || ''}
+                    onRegistrarAdvertencia={async (motivo) => {
+                      await registrarAdvertencia(selectedTecnico.codigoSap, fechaOperacional, motivo);
+                    }}
+                    registrandoAdvertencia={registrandoAdvertencia}
+                    onCambiarFase={async (faseNueva, motivo) => {
+                      await cambiarFase(selectedTecnico.codigoSap, faseNueva, motivo);
+                    }}
+                    cambiandoFase={cambiandoFase}
+                    onAnularAdvertencia={async (advertenciaId, motivo) => {
+                      await anularAdvertencia(advertenciaId, motivo);
+                    }}
+                    anulandoAdvertencia={anulandoAdvertencia}
+                  />
+                </div>
+
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+
+                <RendimientoTecnicoKpiCards
+                  kpiData={rendimiento ?? undefined}
+                  resumen={kpiResumen ?? undefined}
+                  loading={loadingRendimiento}
+                />
+
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+
+                <RendimientoTecnicoSemaforos
+                  semaforos={semaforos}
+                  codigoSap={selectedTecnico?.codigoSap ?? ''}
+                  canEdit={canEditSemaforos}
+                  loading={loadingSemaforos}
+                  onUpdated={updated => {
+                    setSemaforos(prev => prev.map(s => s.categoria === updated.categoria ? updated : s));
+                  }}
+                />
+
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+
+                <RendimientoTecnicoCursos />
+
+                <hr style={{ border: 'none', borderTop: '1px solid var(--border)', margin: 0 }} />
+
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                  gap: '20px',
+                }}>
+                  <RendimientoTecnicoHallazgos
+                    alertas={alertas}
+                    puedeGestionar={user?.rol === 'torre_control' || user?.rol === 'admin' || user?.rol === 'superadmin'}
+                    onAnularAdvertencia={async (advertenciaId, motivo) => {
+                      await anularAdvertencia(advertenciaId, motivo);
+                    }}
+                    anulandoAdvertencia={anulandoAdvertencia}
+                    onEliminarAdvertencia={async (advertenciaId) => {
+                      await eliminarAdvertencia(advertenciaId);
+                    }}
+                    eliminandoAdvertencia={eliminandoAdvertencia}
+                  />
+                  <RendimientoTecnicoRecomendacion codigoSap={selectedTecnico?.codigoSap ?? null} />
+                </div>
+              </>
+            )
           ) : (
             <>
               <div style={{ display: 'flex', alignItems: 'baseline', gap: '12px', flexWrap: 'wrap', marginBottom: '8px' }}>
@@ -519,3 +551,4 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
     </DashboardLayout>
   );
 };
+
