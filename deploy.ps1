@@ -71,7 +71,6 @@ tar -xzf $RemoteArchive -C $RemoteDir
 docker compose config >/tmp/torre-compose-config.txt
 docker compose build --pull
 docker compose up -d
-docker compose exec -T backend alembic upgrade head
 docker compose ps
 curl -fsS http://127.0.0.1:8080/health >/dev/null
 curl -fsS http://127.0.0.1:8080/api/health/db >/dev/null
