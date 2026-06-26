@@ -140,14 +140,11 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
                 style={{
                   writingMode: 'vertical-lr',
                   transform: 'rotate(180deg)',
-                  fontSize: '10px',
+                  fontSize: '9px',
                   fontWeight: 700,
                   color: 'rgba(255,255,255,0.9)',
                   textTransform: 'uppercase',
-                  letterSpacing: '1px',
-                  maxHeight: '80px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
+                  letterSpacing: '1.5px',
                   whiteSpace: 'nowrap',
                 }}
               >
