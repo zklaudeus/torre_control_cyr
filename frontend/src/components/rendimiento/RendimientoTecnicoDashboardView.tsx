@@ -143,12 +143,12 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
       <style>{`
         .rt-main-layout {
           display: grid;
-          grid-template-columns: 340px 1fr;
+          grid-template-columns: 300px 1fr;
           grid-template-areas:
             "sidebar ficha-header"
             "sidebar ficha-content";
-          gap: 20px;
-          padding: 20px;
+          gap: 16px;
+          padding: 12px;
           background: var(--bg-main);
           min-height: 100%;
           font-family: var(--sans);
@@ -157,23 +157,22 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
         .rt-sidebar {
           grid-area: sidebar;
           position: sticky;
-          top: 20px;
-          max-height: calc(100vh - 40px);
+          top: 12px;
+          max-height: calc(100vh - 24px);
           overflow-y: auto;
-          padding-right: 10px;
         }
         .rt-ficha-header {
           grid-area: ficha-header;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
           min-width: 0;
         }
         .rt-ficha-content {
           grid-area: ficha-content;
           display: flex;
           flex-direction: column;
-          gap: 20px;
+          gap: 16px;
           min-width: 0;
         }
         .rt-sidebar::-webkit-scrollbar {
@@ -197,9 +196,17 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
             overflow-y: visible;
           }
         }
+        /* Modo pantalla completa cuando no hay zona seleccionada */
+        .rt-sidebar--full {
+          grid-column: 1 / -1 !important;
+          grid-area: unset !important;
+          position: static !important;
+          max-height: none !important;
+          overflow-y: visible !important;
+        }
         .rt-top-row {
           display: grid;
-          grid-template-columns: auto 1fr;
+          grid-template-columns: 1fr 1fr;
           gap: 16px;
           align-items: stretch;
         }
@@ -213,7 +220,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
       <div className="rt-main-layout">
         
         {/* Listado Lateral Izquierdo: Zonas o Técnicos */}
-        <div className="rt-sidebar">
+        <div className={selectedZona ? 'rt-sidebar' : 'rt-sidebar rt-sidebar--full'}>
           {selectedZona ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
               <button
