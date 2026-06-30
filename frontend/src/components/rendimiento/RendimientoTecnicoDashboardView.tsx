@@ -52,7 +52,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
   const [searchTerm, setSearchTerm] = useState('');
   const [filterEstado, setFilterEstado] = useState<EstadoTecnico | 'Todos'>('Todos');
   const [filterZona, setFilterZona] = useState<string>('Todas');
-  const [filterFase, setFilterFase] = useState<string>('Todas');
+  const [filterFase] = useState<string>('Todas');
 
   // ─── Panel de Zonas ───────────────────────────────────────
   const [selectedZona, setSelectedZona] = useState<string | null>(null);
@@ -115,11 +115,6 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
     // Reset technician selection when going back to zones
     selectTecnico(null);
   }, [selectTecnico]);
-
-  const zonas = useMemo(
-    () => ['Todas', ...Array.from(new Set(tecnicos.map(t => t.zona)))],
-    [tecnicos]
-  );
 
   const filteredTecnicos = useMemo(() => {
     return tecnicos.filter(t => {
