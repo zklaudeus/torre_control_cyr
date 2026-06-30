@@ -6,21 +6,37 @@ from datetime import date
 from app.core.database import get_db
 from app.schemas.brigada_diaria import BrigadaDiaria, BrigadaDiariaCreate, BrigadaDiariaUpdate, ResumenBrigadasZona
 from app.services.brigada_diaria_service import BrigadaDiariaService
-from app.core.security import get_current_user, puede_operar_zona
+from app.core.security import get_current_user, get_zonas_permitidas_usuario, puede_operar_zona
 from app.schemas.auth import CurrentUser
 
 router = APIRouter()
 servicio = BrigadaDiariaService()
 
 @router.get("/", response_model=List[BrigadaDiaria])
-def get_brigadas(fecha: date, db: Session = Depends(get_db)):
+def get_brigadas(
+    fecha: date,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Obtiene las brigadas de una fecha"""
-    return servicio.get_by_fecha(db, fecha)
+    return servicio.get_by_fecha(
+        db,
+        fecha,
+        zonas=get_zonas_permitidas_usuario(current_user, db),
+    )
 
 @router.get("/resumen", response_model=List[ResumenBrigadasZona])
-def get_resumen(fecha: date, db: Session = Depends(get_db)):
+def get_resumen(
+    fecha: date,
+    db: Session = Depends(get_db),
+    current_user: CurrentUser = Depends(get_current_user),
+):
     """Obtiene un resumen básico de las brigadas por zona para una fecha"""
-    return servicio.get_resumen_by_fecha(db, fecha)
+    return servicio.get_resumen_by_fecha(
+        db,
+        fecha,
+        zonas=get_zonas_permitidas_usuario(current_user, db),
+    )
 
 @router.post("/", response_model=BrigadaDiaria)
 def create_brigada(item: BrigadaDiariaCreate, db: Session = Depends(get_db), current_user: CurrentUser = Depends(get_current_user)):

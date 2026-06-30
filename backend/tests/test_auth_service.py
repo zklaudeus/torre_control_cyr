@@ -4,6 +4,7 @@ from app.models.cyr_models import (
     ControlSupervisores,
     ControlSupervisorComunasZonas,
     ControlSupervisorUsuariosSAP,
+    UserZoneAccess,
 )
 from app.services.auth_service import _build_user_payload
 
@@ -30,6 +31,8 @@ class AuthDbStub:
     def query(self, entity):
         if entity is ControlSupervisores:
             return QueryStub(first_result=SimpleNamespace(nombre="Supervisor Talca"))
+        if getattr(entity, "key", None) == UserZoneAccess.zona.key:
+            return QueryStub(all_result=[])
         if getattr(entity, "key", None) == ControlSupervisorComunasZonas.zona_principal.key:
             return QueryStub(all_result=[("Talca",)])
         if getattr(entity, "key", None) == ControlSupervisorUsuariosSAP.tipo_brigada.key:

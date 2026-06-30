@@ -257,12 +257,28 @@ class ControlUsuarios(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     usuario = Column(String(100), unique=True, index=True, nullable=False)
+    nombre = Column(String(150), nullable=True)
+    email = Column(String(150), unique=True, nullable=True)
     password_hash = Column(String(255), nullable=False)
     rol = Column(String(50), nullable=False, default='supervisor')
     supervisor_id = Column(Integer, nullable=True)
     activo = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
     updated_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=text('CURRENT_TIMESTAMP'))
+
+class UserZoneAccess(Base):
+    __tablename__ = "user_zone_access"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("control_usuarios.id", ondelete="CASCADE"), nullable=False)
+    zona = Column(String(100), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'))
+
+    __table_args__ = (
+        UniqueConstraint('user_id', 'zona', name='uq_user_zone_access_user_zona'),
+        Index('idx_user_zone_access_user_id', 'user_id'),
+        Index('idx_user_zone_access_zona', 'zona'),
+    )
 
 
 

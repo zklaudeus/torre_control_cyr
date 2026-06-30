@@ -26,7 +26,7 @@ export const ParametrosAutomatizacionPanel = ({ data, onChange }: ParametrosAuto
 
   const labelStyle = {
     fontSize: '0.85rem',
-    color: '#e2e8f0',
+    color: '#000000ff',
     cursor: 'pointer'
   };
 
@@ -50,7 +50,7 @@ export const ParametrosAutomatizacionPanel = ({ data, onChange }: ParametrosAuto
               type="checkbox" 
               checked={data[f.key]} 
               onChange={(e) => onChange(f.key, e.target.checked)} 
-              style={{ width: '16px', height: '16px', cursor: 'pointer' }}
+              style={{ width: '16px', height: '16px', cursor: 'pointer'}}
             />
             <span style={labelStyle}>{f.label}</span>
           </label>

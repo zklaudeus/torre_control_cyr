@@ -317,6 +317,7 @@ class ProductividadRepository:
         fecha_hasta: Optional[date] = None,
         codigo_sap: Optional[str] = None,
         zona: Optional[str] = None,
+        zonas: Optional[List[str]] = None,
         supervisor_id: Optional[int] = None,
         estado_diario: Optional[str] = None,
         limit: int = 100,
@@ -336,6 +337,8 @@ class ProductividadRepository:
             q = q.filter(RendimientoTecnicoDiario.codigo_sap == codigo_sap)
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
+        elif zonas:
+            q = q.filter(RendimientoTecnicoDiario.zona.in_(zonas))
         if supervisor_id:
             q = q.filter(RendimientoTecnicoDiario.supervisor_id == supervisor_id)
         if estado_diario:
@@ -414,7 +417,12 @@ class ProductividadRepository:
         ).first()
 
     def resumen_por_zona(
-        self, db: Session, fecha: date, zona: Optional[str] = None, supervisor_id: Optional[int] = None
+        self,
+        db: Session,
+        fecha: date,
+        zona: Optional[str] = None,
+        zonas: Optional[List[str]] = None,
+        supervisor_id: Optional[int] = None,
     ) -> List[dict]:
         q = db.query(
             RendimientoTecnicoDiario.zona,
@@ -437,6 +445,8 @@ class ProductividadRepository:
         )
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
+        elif zonas:
+            q = q.filter(RendimientoTecnicoDiario.zona.in_(zonas))
         if supervisor_id:
             q = q.filter(RendimientoTecnicoDiario.supervisor_id == supervisor_id)
         q = q.group_by(RendimientoTecnicoDiario.zona)
@@ -444,7 +454,7 @@ class ProductividadRepository:
 
         result = []
         for r in rows:
-            estados = self._contar_estados(db, fecha, zona=r.zona, supervisor_id=supervisor_id)
+            estados = self._contar_estados(db, fecha, zona=r.zona, zonas=zonas, supervisor_id=supervisor_id)
             result.append({
                 "zona": r.zona,
                 "fecha_operacional": fecha,
@@ -462,7 +472,12 @@ class ProductividadRepository:
         return result
 
     def _contar_estados(
-        self, db: Session, fecha: date, zona: Optional[str] = None, supervisor_id: Optional[int] = None
+        self,
+        db: Session,
+        fecha: date,
+        zona: Optional[str] = None,
+        zonas: Optional[List[str]] = None,
+        supervisor_id: Optional[int] = None,
     ) -> dict:
         q = db.query(
             RendimientoTecnicoDiario.estado_diario,
@@ -477,6 +492,8 @@ class ProductividadRepository:
         )
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
+        elif zonas:
+            q = q.filter(RendimientoTecnicoDiario.zona.in_(zonas))
         if supervisor_id:
             q = q.filter(RendimientoTecnicoDiario.supervisor_id == supervisor_id)
         q = q.group_by(RendimientoTecnicoDiario.estado_diario)
@@ -499,6 +516,7 @@ class ProductividadRepository:
         db: Session,
         fecha_hasta: Optional[date] = None,
         zona: Optional[str] = None,
+        zonas: Optional[List[str]] = None,
         supervisor_id: Optional[int] = None,
         limit: int = 50,
     ) -> List[dict]:
@@ -520,6 +538,8 @@ class ProductividadRepository:
         )
         if zona:
             q = q.filter(RendimientoTecnicoDiario.zona == zona)
+        elif zonas:
+            q = q.filter(RendimientoTecnicoDiario.zona.in_(zonas))
         if supervisor_id:
             q = q.filter(RendimientoTecnicoDiario.supervisor_id == supervisor_id)
         q = q.group_by(RendimientoTecnicoDiario.codigo_sap).order_by(desc("promedio")).limit(limit)
@@ -620,6 +640,38 @@ class ProductividadRepository:
             return pg.meta_diaria_cortes_brigada or 30
         return 30
 
+    def _contar_dias_mes(
+        self, db: Session, codigo_sap: str, umbral_estable: int, fecha_operacional
+    ) -> tuple[int, int]:
+        """Cuenta días del mes en curso (hasta fecha_operacional) que cumplen condición.
+
+        Retorna (dias_bajo_50, dias_alto_desempeno).
+        """
+        primer_dia_mes = fecha_operacional.replace(day=1)
+
+        dias_del_mes = db.query(RendimientoTecnicoDiario).filter(
+            and_(
+                RendimientoTecnicoDiario.codigo_sap == codigo_sap,
+                RendimientoTecnicoDiario.fecha_operacional >= primer_dia_mes,
+                RendimientoTecnicoDiario.fecha_operacional <= fecha_operacional,
+                condicion_rendimiento_con_brigada_contabilizable(
+                    RendimientoTecnicoDiario,
+                    ControlBrigadasDiario,
+                ),
+            )
+        ).all()
+
+        dias_bajo_50 = sum(
+            1 for d in dias_del_mes
+            if d.cumplimiento_pct is not None and d.cumplimiento_pct < 50
+        )
+        dias_alto = sum(
+            1 for d in dias_del_mes
+            if d.cortes_productivos is not None and d.cortes_productivos >= umbral_estable
+        )
+
+        return dias_bajo_50, dias_alto
+
     def actualizar_estado_tecnico(
         self, db: Session, codigo_sap: str
     ) -> dict:
@@ -703,36 +755,8 @@ class ProductividadRepository:
 
         estado_anterior = actual.estado_productivo_actual if actual else None
 
-        # ── Calcular días acumulados del mes ──────────────────────────────
-        # Obtener todos los días evaluables del mes en curso
-        from datetime import date as date_type
-        hoy = ultimo.fecha_operacional
-        primer_dia_mes = hoy.replace(day=1)
-
-        dias_del_mes = db.query(RendimientoTecnicoDiario).filter(
-            and_(
-                RendimientoTecnicoDiario.codigo_sap == codigo_sap,
-                RendimientoTecnicoDiario.es_evaluable == True,
-                RendimientoTecnicoDiario.fecha_operacional >= primer_dia_mes,
-                RendimientoTecnicoDiario.fecha_operacional <= hoy,
-                condicion_rendimiento_con_brigada_contabilizable(
-                    RendimientoTecnicoDiario,
-                    ControlBrigadasDiario,
-                ),
-            )
-        ).all()
-
-        # Total días del mes con cumplimiento < 50%
-        racha_bajo_50 = sum(
-            1 for d in dias_del_mes
-            if d.cumplimiento_pct is not None and d.cumplimiento_pct < 50
-        )
-
-        # Total días del mes con cortes >= umbral de alto desempeño
-        racha_alto = sum(
-            1 for d in dias_del_mes
-            if d.cortes_productivos is not None and d.cortes_productivos >= umbral_estable
-        )
+        # ── Calcular días del mes ─────────────────────────────────────────
+        dias_bajo_50, dias_alto = self._contar_dias_mes(db, codigo_sap, umbral_estable, ultimo.fecha_operacional)
 
         if not actual:
             actual = RendimientoTecnicoActual(
@@ -847,6 +871,13 @@ class ProductividadRepository:
             RendimientoTecnicoHistorial.codigo_sap == codigo_sap
         ).order_by(desc(RendimientoTecnicoHistorial.fecha_cambio)).limit(20).all()
 
+        # Calcular días del mes en curso desde datos evaluables reales
+        from datetime import date as date_type
+        hoy = date_type.today()
+        tipo = sap.tipo_brigada
+        umbral_estable = 6 if tipo == "CF" else 25
+        dias_bajo_50, dias_alto = self._contar_dias_mes(db, codigo_sap, umbral_estable, hoy)
+
         return {
             "codigo_sap": codigo_sap,
             "usuario": sap.cuenta or codigo_sap,
@@ -854,8 +885,8 @@ class ProductividadRepository:
             "supervisor": sup_nombre,
             "fase_actual": actual.fase_actual if actual else 1,
             "estado_productivo_actual": actual.estado_productivo_actual if actual else "SIN_EVALUACION",
-            "dias_consecutivos_bajo_50": actual.dias_consecutivos_bajo_50 if actual else 0,
-            "dias_consecutivos_alto_desempeno": actual.dias_consecutivos_alto_desempeno if actual else 0,
+            "dias_consecutivos_bajo_50": dias_bajo_50,
+            "dias_consecutivos_alto_desempeno": dias_alto,
             "advertencias_fase2": actual.advertencias_fase2 if actual else 0,
             "fecha_ultima_evaluacion": actual.fecha_ultima_evaluacion if actual else None,
             "advertencias_activas": advertencias,

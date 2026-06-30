@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.api.routes import health, reportes, programacion_zona, parametros, brigadas_dia, resultados_reales_zona, resumen_zona
-from app.api.routes import parametros_cf, programacion_cf_zona, resultados_reales_cf_zona, configuracion, supervisores, procesamiento, auth
+from app.api.routes import parametros_cf, programacion_cf_zona, resultados_reales_cf_zona, configuracion, supervisores, procesamiento, auth, admin_users
 from app.modules.productividad import routes as productividad_routes
 app = FastAPI(
     title=settings.APP_NAME,
@@ -31,6 +31,7 @@ app.include_router(programacion_cf_zona.router, prefix="/api/programacion-cf-zon
 app.include_router(resultados_reales_cf_zona.router, prefix="/api/resultados-reales-cf-zona", tags=["resultados-reales-cf-zona"])
 app.include_router(procesamiento.router, prefix="/api/procesamiento", tags=["procesamiento"])
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(admin_users.router, prefix="/api/admin", tags=["admin"])
 app.include_router(productividad_routes.router, prefix="/api/productividad", tags=["productividad"])
 
 @app.get("/")

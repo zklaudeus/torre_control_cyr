@@ -5,10 +5,15 @@ from app.models.cyr_models import ControlBrigadasDiario
 from app.schemas.brigada_diaria import BrigadaDiariaCreate, BrigadaDiariaUpdate
 
 class BrigadaDiariaRepository:
-    def get_by_fecha(self, db: Session, fecha: date) -> List[ControlBrigadasDiario]:
-        return db.query(ControlBrigadasDiario).filter(
+    def get_by_fecha(
+        self, db: Session, fecha: date, zonas: Optional[set[str]] = None
+    ) -> List[ControlBrigadasDiario]:
+        q = db.query(ControlBrigadasDiario).filter(
             ControlBrigadasDiario.fecha_operacional == fecha
-        ).order_by(
+        )
+        if zonas is not None:
+            q = q.filter(ControlBrigadasDiario.zona.in_(zonas))
+        return q.order_by(
             ControlBrigadasDiario.zona, ControlBrigadasDiario.usuario
         ).all()
 

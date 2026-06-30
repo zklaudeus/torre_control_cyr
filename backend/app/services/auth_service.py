@@ -5,6 +5,7 @@ from app.models.cyr_models import (
     ControlSupervisores,
     ControlSupervisorComunasZonas,
     ControlSupervisorUsuariosSAP,
+    UserZoneAccess,
 )
 from app.repositories.usuario_repository import get_user_by_username
 from app.schemas.auth import LoginRequest, TokenResponse
@@ -26,7 +27,7 @@ def _build_user_payload(db: Session, user) -> dict:
     payload = {
         "id": user.id,
         "usuario": user.usuario,
-        "nombre": user.usuario,
+        "nombre": getattr(user, "nombre", None) or user.usuario,
         "rol": user.rol,
         "supervisor_id": user.supervisor_id,
     }
@@ -36,20 +37,34 @@ def _build_user_payload(db: Session, user) -> dict:
         payload["tipos_brigada_permitidos"] = ["PXQ", "CF"]
         return payload
 
-    if user.rol == "supervisor" and user.supervisor_id:
-        supervisor = db.query(ControlSupervisores).filter(
-            ControlSupervisores.id == user.supervisor_id
-        ).first()
+    zonas_usuario = db.query(UserZoneAccess.zona).filter(
+        UserZoneAccess.user_id == user.id
+    ).distinct().all()
 
-        zonas = db.query(ControlSupervisorComunasZonas.zona_principal).filter(
-            ControlSupervisorComunasZonas.supervisor_id == user.supervisor_id,
-            ControlSupervisorComunasZonas.activo == True,
-        ).distinct().all()
+    if user.rol == "supervisor":
+        supervisor = None
+        if user.supervisor_id:
+            supervisor = db.query(ControlSupervisores).filter(
+                ControlSupervisores.id == user.supervisor_id
+            ).first()
 
-        tipos_rows = db.query(ControlSupervisorUsuariosSAP.tipo_brigada).filter(
-            ControlSupervisorUsuariosSAP.supervisor_id == user.supervisor_id,
-            ControlSupervisorUsuariosSAP.activo == True,
-        ).distinct().all()
+        if zonas_usuario:
+            zonas = zonas_usuario
+        elif user.supervisor_id:
+            zonas = db.query(ControlSupervisorComunasZonas.zona_principal).filter(
+                ControlSupervisorComunasZonas.supervisor_id == user.supervisor_id,
+                ControlSupervisorComunasZonas.activo == True,
+            ).distinct().all()
+        else:
+            zonas = []
+
+        if user.supervisor_id:
+            tipos_rows = db.query(ControlSupervisorUsuariosSAP.tipo_brigada).filter(
+                ControlSupervisorUsuariosSAP.supervisor_id == user.supervisor_id,
+                ControlSupervisorUsuariosSAP.activo == True,
+            ).distinct().all()
+        else:
+            tipos_rows = []
 
         tipos = {
             tipo
@@ -59,9 +74,12 @@ def _build_user_payload(db: Session, user) -> dict:
         }
         tipos.add("PXQ")
 
-        payload["nombre"] = supervisor.nombre if supervisor else user.usuario
+        payload["nombre"] = supervisor.nombre if supervisor else payload["nombre"]
         payload["zonas_asignadas"] = sorted({z[0] for z in zonas if z[0]})
         payload["tipos_brigada_permitidos"] = _ordenar_tipos_brigada(tipos)
+
+    elif zonas_usuario:
+        payload["zonas_asignadas"] = sorted({z[0] for z in zonas_usuario if z[0]})
 
     return payload
 

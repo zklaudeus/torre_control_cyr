@@ -81,7 +81,7 @@ def obtener_rendimiento_diario(
     limit: int = Query(100, ge=1, le=1000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
-    _=Depends(require_acceso_productividad),
+    current_user = Depends(require_acceso_productividad),
 ):
     """Rendimiento diario de técnicos con filtros."""
     filtros = ProductividadFilterParams(
@@ -94,7 +94,7 @@ def obtener_rendimiento_diario(
         limit=limit,
         offset=offset,
     )
-    return servicio.obtener_rendimiento_diario(db, filtros)
+    return servicio.obtener_rendimiento_diario(db, filtros, current_user)
 
 
 @router.get("/tecnicos/{codigo_sap}/resumen", response_model=ResumenKpiTecnico)
@@ -102,10 +102,10 @@ def obtener_resumen_kpis_tecnico(
     codigo_sap: str,
     fecha_hasta: date = Query(..., description="Fecha operacional de corte"),
     db: Session = Depends(get_db),
-    _=Depends(require_acceso_productividad),
+    current_user = Depends(require_acceso_productividad),
 ):
     """KPIs diarios y acumulados mensuales del técnico."""
-    return servicio.obtener_resumen_kpis(db, codigo_sap, fecha_hasta)
+    return servicio.obtener_resumen_kpis(db, codigo_sap, fecha_hasta, current_user)
 
 
 @router.get("/resumen/zona", response_model=List[ResumenDiarioZona])
@@ -114,10 +114,10 @@ def resumen_por_zona(
     zona: Optional[str] = Query(None),
     supervisor_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    _=Depends(require_acceso_productividad),
+    current_user = Depends(require_acceso_productividad),
 ):
     """Resumen agregado por zona para una fecha."""
-    return servicio.resumen_por_zona(db, fecha, zona=zona, supervisor_id=supervisor_id)
+    return servicio.resumen_por_zona(db, fecha, current_user, zona=zona, supervisor_id=supervisor_id)
 
 
 @router.get("/zonas/resumen", response_model=List[ZonaResumenPanel])
@@ -134,10 +134,10 @@ def resumen_por_supervisor(
     fecha: date = Query(..., description="Fecha operacional"),
     supervisor_id: Optional[int] = Query(None),
     db: Session = Depends(get_db),
-    _=Depends(require_acceso_productividad),
+    current_user = Depends(require_acceso_productividad),
 ):
     """Resumen agregado por supervisor para una fecha."""
-    return servicio.resumen_por_supervisor(db, fecha, supervisor_id=supervisor_id)
+    return servicio.resumen_por_supervisor(db, fecha, current_user, supervisor_id=supervisor_id)
 
 
 @router.get("/ranking", response_model=List[RankingItem])
@@ -147,10 +147,10 @@ def ranking(
     supervisor_id: Optional[int] = Query(None),
     limit: int = Query(50, ge=1, le=200),
     db: Session = Depends(get_db),
-    _=Depends(require_acceso_productividad),
+    current_user = Depends(require_acceso_productividad),
 ):
     """Ranking de técnicos por cumplimiento promedio en ventana de 30 días."""
-    return servicio.ranking(db, fecha_hasta=fecha_hasta, zona=zona, supervisor_id=supervisor_id, limit=limit)
+    return servicio.ranking(db, current_user, fecha_hasta=fecha_hasta, zona=zona, supervisor_id=supervisor_id, limit=limit)
 
 
 @router.get("/historial", response_model=List[HistorialItem])

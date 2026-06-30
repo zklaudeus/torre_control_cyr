@@ -51,6 +51,14 @@ const IconGitMerge = () => (
     <circle cx="18" cy="18" r="3"/><circle cx="6" cy="6" r="3"/><path d="M6 21V9a9 9 0 0 0 9 9"/>
   </svg>
 );
+const IconUsers = () => (
+  <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/>
+    <circle cx="9" cy="7" r="4"/>
+    <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+    <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+  </svg>
+);
 const IconChevron = ({ open }: { open: boolean }) => (
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" strokeWidth="2.5" strokeLinecap="round">
     <polyline points={open ? "6 15 12 9 18 15" : "6 9 12 15 18 9"}/>
@@ -64,6 +72,7 @@ const NAV_ITEMS = [
   { route: '/torre-control/resumen-zona',    label: 'Resumen por Zona',  Icon: IconMap      },
   { route: '#/reporte-gerencial',            label: 'Reporte Gerencial', Icon: IconBarChart, external: true },
   { route: '/torre-control/rendimiento-tecnico', label: 'Rendimiento Brigada', Icon: IconBarChart },
+  { route: '/torre-control/gestion-cuentas', label: 'Gestion de cuentas', Icon: IconUsers },
   { route: '/supervisor/bitacora',           label: 'Bitácora Supervisor', Icon: IconGitMerge },
   { route: '/torre-control/configuracion',   label: 'Configuración',     Icon: IconSettings },
 ];
@@ -258,7 +267,7 @@ export const SidebarNav = ({ isOpen = false, onClose }: SidebarNavProps) => {
         {NAV_ITEMS
           .filter(item => {
             if (user?.rol === 'supervisor') return item.route === '/supervisor/bitacora' || item.route === '/torre-control/rendimiento-tecnico';
-            if (user?.rol === 'torre_control') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona' || item.route === '/torre-control/rendimiento-tecnico';
+            if (user?.rol === 'torre_control') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona' || item.route === '#/reporte-gerencial' || item.route === '/torre-control/rendimiento-tecnico';
             if (user?.rol === 'gerencia') return item.route === '/torre-control/dashboard-cyr' || item.route === '/torre-control/resumen-zona' || item.route === '#/reporte-gerencial' || item.route === '/torre-control/rendimiento-tecnico';
             return true;
           })

@@ -1,6 +1,6 @@
 from sqlalchemy.orm import Session
 from datetime import date
-from typing import List, Dict
+from typing import List, Dict, Optional
 
 from app.schemas.brigada_diaria import BrigadaDiaria, BrigadaDiariaCreate, BrigadaDiariaUpdate, ResumenBrigadasZona
 from app.repositories.brigada_diaria_repository import BrigadaDiariaRepository
@@ -14,8 +14,10 @@ class BrigadaDiariaService:
     def __init__(self):
         self.repo = BrigadaDiariaRepository()
 
-    def get_by_fecha(self, db: Session, fecha: date) -> List[BrigadaDiaria]:
-        return self.repo.get_by_fecha(db, fecha)
+    def get_by_fecha(self, db: Session, fecha: date, zonas: Optional[set[str]] = None) -> List[BrigadaDiaria]:
+        if zonas == set():
+            return []
+        return self.repo.get_by_fecha(db, fecha, zonas=zonas)
 
     def create(self, db: Session, item: BrigadaDiariaCreate) -> BrigadaDiaria:
         self._validate_brigada(item)
@@ -47,8 +49,12 @@ class BrigadaDiariaService:
         db.commit()
         return True
 
-    def get_resumen_by_fecha(self, db: Session, fecha: date) -> List[ResumenBrigadasZona]:
-        brigadas = self.repo.get_by_fecha(db, fecha)
+    def get_resumen_by_fecha(
+        self, db: Session, fecha: date, zonas: Optional[set[str]] = None
+    ) -> List[ResumenBrigadasZona]:
+        if zonas == set():
+            return []
+        brigadas = self.repo.get_by_fecha(db, fecha, zonas=zonas)
         
         # Agrupar por zona
         resumen_dict: Dict[str, ResumenBrigadasZona] = {}

@@ -4,10 +4,11 @@ Lógica de KPIs, transformación y orquestación.
 """
 from datetime import date, timedelta
 from typing import Optional, List
+from fastapi import HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func, and_
 
-from app.core.security import get_zonas_permitidas_supervisor
+from app.core.security import get_zonas_permitidas_usuario
 from app.models.cyr_models import (
     ControlUsuarios,
     ControlBrigadasDiario,
@@ -49,6 +50,8 @@ class ProductividadService:
     ) -> list:
         from app.modules.productividad.schemas import ZonaResumenPanel
         zonas = self._resolver_zonas_usuario(db, current_user)
+        if zonas == []:
+            return []
         rows = self.repo.resumen_panel_zonas(db, zonas_permitidas=zonas)
         return [ZonaResumenPanel(**r) for r in rows]
 
@@ -58,10 +61,27 @@ class ProductividadService:
         """Retorna lista de zonas permitidas, o None si no hay restricción."""
         if current_user.rol in ("admin", "superadmin", "torre_control", "gerencia"):
             return None
-        if current_user.rol == "supervisor" and current_user.supervisor_id:
-            zonas = get_zonas_permitidas_supervisor(db, current_user.supervisor_id)
-            return list(zonas) if zonas else None
+        if current_user.rol == "supervisor":
+            zonas = get_zonas_permitidas_usuario(current_user, db)
+            if zonas is None:
+                return None
+            return sorted(zonas)
         return None
+
+    def _resolver_filtro_zonas(
+        self,
+        db: Session,
+        current_user: ControlUsuarios,
+        zona: Optional[str] = None,
+    ) -> Optional[List[str]]:
+        zonas = self._resolver_zonas_usuario(db, current_user)
+        if zonas is None:
+            return [zona] if zona else None
+        if zona:
+            if zona not in zonas:
+                raise HTTPException(status_code=403, detail="No tiene permisos para consultar esta zona")
+            return [zona]
+        return zonas
 
     def listar_tecnicos(
         self,
@@ -70,6 +90,8 @@ class ProductividadService:
         activo: Optional[bool] = None,
     ) -> List[TecnicoResumen]:
         zonas = self._resolver_zonas_usuario(db, current_user)
+        if zonas == []:
+            return []
         rows = self.repo.listar_tecnicos(db, activo=activo, zonas=zonas)
 
         codigos = [r["codigo_sap"] for r in rows]
@@ -96,14 +118,21 @@ class ProductividadService:
     # ─── Rendimiento diario ────────────────────────────────────────
 
     def obtener_rendimiento_diario(
-        self, db: Session, filtros: ProductividadFilterParams
+        self,
+        db: Session,
+        filtros: ProductividadFilterParams,
+        current_user: Optional[ControlUsuarios] = None,
     ) -> List[RendimientoDiarioItem]:
+        zonas = self._resolver_filtro_zonas(db, current_user, filtros.zona) if current_user else None
+        if zonas == []:
+            return []
         rows = self.repo.obtener_rendimiento_diario(
             db,
             fecha_desde=filtros.fecha_desde,
             fecha_hasta=filtros.fecha_hasta,
             codigo_sap=filtros.codigo_sap,
             zona=filtros.zona,
+            zonas=zonas,
             supervisor_id=filtros.supervisor_id,
             estado_diario=filtros.estado_diario,
             limit=filtros.limit,
@@ -121,7 +150,7 @@ class ProductividadService:
             brigada = self.repo.obtener_brigada_fuente(
                 db, filtros.codigo_sap, filtros.fecha_desde
             )
-            if brigada:
+            if brigada and (zonas is None or brigada.zona in zonas):
                 causas = self.repo.obtener_causas_fallidas(
                     db, filtros.codigo_sap, filtros.fecha_desde
                 )
@@ -237,7 +266,11 @@ class ProductividadService:
         )
 
     def obtener_resumen_kpis(
-        self, db: Session, codigo_sap: str, fecha_hasta: date
+        self,
+        db: Session,
+        codigo_sap: str,
+        fecha_hasta: date,
+        current_user: Optional[ControlUsuarios] = None,
     ) -> ResumenKpiTecnico:
         """Calcula KPIs reales del mes operacional hasta la fecha seleccionada."""
         from decimal import Decimal, ROUND_HALF_UP
@@ -248,6 +281,12 @@ class ProductividadService:
         brigadas = self.repo.obtener_brigadas_periodo(
             db, codigo_sap, fecha_consulta_desde, fecha_hasta
         )
+        if current_user is not None:
+            zonas = self._resolver_zonas_usuario(db, current_user)
+            if zonas is not None:
+                zonas_brigada = {b.zona for b in brigadas if b.zona}
+                if zonas_brigada and zonas_brigada.isdisjoint(set(zonas)):
+                    raise HTTPException(status_code=403, detail="No tiene permisos para consultar esta zona")
 
         # La fila más reciente prevalece ante duplicados históricos SAP/fecha.
         por_fecha = {b.fecha_operacional: b for b in brigadas}
@@ -370,16 +409,23 @@ class ProductividadService:
         self,
         db: Session,
         fecha: date,
+        current_user: ControlUsuarios,
         zona: Optional[str] = None,
         supervisor_id: Optional[int] = None,
     ) -> List[ResumenDiarioZona]:
-        rows = self.repo.resumen_por_zona(db, fecha, zona=zona, supervisor_id=supervisor_id)
+        zonas = self._resolver_filtro_zonas(db, current_user, zona)
+        if zonas == []:
+            return []
+        rows = self.repo.resumen_por_zona(
+            db, fecha, zona=zona, zonas=zonas, supervisor_id=supervisor_id
+        )
         return [ResumenDiarioZona(**r) for r in rows]
 
     def resumen_por_supervisor(
         self,
         db: Session,
         fecha: date,
+        current_user: ControlUsuarios,
         supervisor_id: Optional[int] = None,
     ) -> List[ResumenDiarioSupervisor]:
         from sqlalchemy import func
@@ -400,6 +446,11 @@ class ProductividadService:
                 ),
             )
         )
+        zonas = self._resolver_filtro_zonas(db, current_user)
+        if zonas == []:
+            return []
+        if zonas:
+            q = q.filter(RendimientoTecnicoDiario.zona.in_(zonas))
         if supervisor_id:
             q = q.filter(RendimientoTecnicoDiario.supervisor_id == supervisor_id)
         q = q.group_by(RendimientoTecnicoDiario.supervisor_id)
@@ -416,7 +467,7 @@ class ProductividadService:
             if r.supervisor_id is None:
                 continue
             estados = self.repo._contar_estados(
-                db, fecha, supervisor_id=r.supervisor_id
+                db, fecha, zonas=zonas, supervisor_id=r.supervisor_id
             )
             result.append(ResumenDiarioSupervisor(
                 supervisor_id=r.supervisor_id,
@@ -433,14 +484,18 @@ class ProductividadService:
     def ranking(
         self,
         db: Session,
+        current_user: ControlUsuarios,
         fecha_hasta: Optional[date] = None,
         zona: Optional[str] = None,
         supervisor_id: Optional[int] = None,
         limit: int = 50,
     ) -> List[RankingItem]:
+        zonas = self._resolver_filtro_zonas(db, current_user, zona)
+        if zonas == []:
+            return []
         rows = self.repo.ranking(
             db, fecha_hasta=fecha_hasta, zona=zona,
-            supervisor_id=supervisor_id, limit=limit,
+            zonas=zonas, supervisor_id=supervisor_id, limit=limit,
         )
         return [RankingItem(**r) for r in rows]
 
