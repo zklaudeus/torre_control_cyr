@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { DashboardLayout } from '../dashboard/DashboardLayout';
 import { TarjetaUsuarioRendimiento } from './TarjetaUsuarioRendimiento';
 import { RendimientoTecnicoKpiCards } from './RendimientoTecnicoKpiCards';
@@ -13,7 +14,7 @@ import { useProductividad } from '../../hooks/useProductividad';
 import { useAuth } from '../../auth/AuthContext';
 import { getZonasResumen, getSemaforosTecnico } from '../../api/productividad.api';
 import type { ZonaResumenPanelBackend } from '../../api/productividad.api';
-import type { EstadoTecnico, SemaforoTecnico } from '../../types/rendimientoTecnico.types';
+import type { EstadoTecnico, SemaforoTecnico, TecnicoResumen } from '../../types/rendimientoTecnico.types';
 
 interface RendimientoTecnicoDashboardViewProps {
   fechaOperacional: string;
@@ -54,6 +55,11 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
   const [filterZona, setFilterZona] = useState<string>('Todas');
   const [filterFase] = useState<string>('Todas');
 
+  // ─── Query Params ──────────────────────────────────────
+  const [searchParams, setSearchParams] = useSearchParams();
+  const zonaFromUrl = searchParams.get('zona');
+  const codigoSapFromUrl = searchParams.get('codigo_sap');
+
   // ─── Panel de Zonas ───────────────────────────────────────
   const [selectedZona, setSelectedZona] = useState<string | null>(null);
   const [zonasData, setZonasData] = useState<ZonaResumenPanelBackend[]>([]);
@@ -64,6 +70,24 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
   const [loadingSemaforos, setLoadingSemaforos] = useState(false);
 
   const canEditSemaforos = user?.rol === 'torre_control' || user?.rol === 'admin' || user?.rol === 'superadmin';
+
+  // Restaurar estado desde URL al montar el componente
+  useEffect(() => {
+    if (zonasData.length === 0 && loadingZonas) return;
+
+    if (zonaFromUrl && selectedZona !== zonaFromUrl) {
+      setSelectedZona(zonaFromUrl);
+      setFilterZona(zonaFromUrl);
+    }
+
+    if (zonaFromUrl && codigoSapFromUrl && tecnicos.length > 0 && !selectedTecnico) {
+      const tecnico = tecnicos.find(t => t.codigoSap === codigoSapFromUrl);
+      if (tecnico && selectTecnico) {
+        selectTecnico(tecnico);
+      }
+    }
+
+  }, [zonaFromUrl, codigoSapFromUrl, selectedZona, loadingZonas, zonasData.length, tecnicos.length, selectedTecnico, selectTecnico]);
 
   useEffect(() => {
     let cancelled = false;
@@ -107,14 +131,32 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
   const handleSelectZona = useCallback((zona: string) => {
     setSelectedZona(zona);
     setFilterZona(zona);
-  }, []);
+    const params = new URLSearchParams(searchParams);
+    params.set('zona', zona);
+    params.delete('codigo_sap');
+    setSearchParams(params);
+  }, [searchParams, setSearchParams]);
+
+  const handleSelectTecnico = useCallback((tecnico: TecnicoResumen) => {
+    selectTecnico(tecnico);
+    const params = new URLSearchParams(searchParams);
+    if (selectedZona) {
+      params.set('zona', selectedZona);
+    }
+    params.set('codigo_sap', tecnico.codigoSap);
+    setSearchParams(params);
+  }, [selectedZona, searchParams, setSearchParams, selectTecnico]);
 
   const handleBackToZonas = useCallback(() => {
     setSelectedZona(null);
     setFilterZona('Todas');
     // Reset technician selection when going back to zones
     selectTecnico(null);
-  }, [selectTecnico]);
+    const params = new URLSearchParams(searchParams);
+    params.delete('zona');
+    params.delete('codigo_sap');
+    setSearchParams(params);
+  }, [searchParams, setSearchParams, selectTecnico]);
 
   const filteredTecnicos = useMemo(() => {
     return tecnicos.filter(t => {
@@ -213,11 +255,11 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
       {/* ── Modo A: Sin zona seleccionada → Panel de zonas full page ── */}
       {!selectedZona ? (
         <div className="rt-zonas-full">
-          <RendimientoTecnicoPanelZonas
-            zonas={zonasData}
-            loading={loadingZonas}
-            onSelectZona={handleSelectZona}
-          />
+        <RendimientoTecnicoPanelZonas
+          zonas={zonasData}
+          loading={loadingZonas}
+          onSelectZona={handleSelectZona}
+        />
         </div>
       ) : (
 
@@ -248,7 +290,7 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
               tecnicos={filteredTecnicos}
               loading={loadingTecnicos}
               selectedId={selectedTecnico?.id || null}
-              onSelect={selectTecnico}
+              onSelect={handleSelectTecnico}
             />
           </div>
         </div>
