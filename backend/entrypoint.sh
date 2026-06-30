@@ -1,28 +1,28 @@
 #!/bin/bash
 set -e
 
-echo "▶ Limpiando alembic_version duplicada (hotfix previo)..."
+echo "▶ Limpiando tabla alembic_version si tiene conflictos (overlap)..."
 python -c "
 from sqlalchemy import create_engine, text
 import os
 url = os.environ.get('DATABASE_URL','')
 if url:
-    eng = create_engine(url)
-    with eng.connect() as c:
-        rows = c.execute(text('SELECT version_num FROM alembic_version')).fetchall()
-        if len(rows) > 1:
-            # Keep only the latest revision
-            latest = max(r[0] for r in rows)
-            c.execute(text('DELETE FROM alembic_version'))
-            c.execute(text('INSERT INTO alembic_version (version_num) VALUES (:v)'), {'v': latest})
-            c.commit()
-            print(f'  Cleaned: kept {latest}, removed {len(rows)-1} duplicates')
-        else:
-            print('  No duplicates found')
-" || echo "  (skip cleanup)"
-
-echo "▶ Ejecutando stamp manual por seguridad (si aplica)..."
-python scripts/stamp_migration.py || echo "  (skip stamp)"
+    try:
+        eng = create_engine(url)
+        with eng.connect() as c:
+            rows = c.execute(text('SELECT version_num FROM alembic_version')).fetchall()
+            if len(rows) > 1:
+                print('  Se encontraron múltiples versiones:', [r[0] for r in rows])
+                c.execute(text('DELETE FROM alembic_version'))
+                # Como f6a1b2c3d4e5 es el head real y e88cd9c1e280 su padre, dejamos el head.
+                c.execute(text('INSERT INTO alembic_version (version_num) VALUES (:v)'), {'v': 'f6a1b2c3d4e5'})
+                c.commit()
+                print('  Conflicto resuelto: se forzó la versión f6a1b2c3d4e5')
+            else:
+                print('  No hay conflictos en alembic_version')
+    except Exception as e:
+        print('  No se pudo limpiar alembic_version:', e)
+"
 
 echo "▶ Ejecutando migraciones Alembic..."
 alembic upgrade head
