@@ -363,6 +363,9 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
       );
     }
     if (modalTipo === 'reconexiones_corte') {
+      if (!data) {
+        return <div className="modal-detail-notice">No hay datos para la fecha seleccionada.</div>;
+      }
       const cortes = data.productividadDiaria;
       const reconexiones = data.reconexionesEjecutadas;
       let brecha = cortes !== -1 && reconexiones !== -1 ? cortes - reconexiones : 0;
