@@ -49,15 +49,6 @@ jobs:
             echo "==> Reiniciando servicios con nuevas imagenes..."
             docker compose up -d --no-deps backend frontend
 
-            echo "==> Esperando que el backend arranque..."
-            sleep 5
-
-            echo "==> [Hotfix] Stamping revision e88cd9c1e280 si la tabla ya existe..."
-            docker compose exec -T backend python scripts/stamp_migration.py
-
-            echo "==> Ejecutando migraciones de BD..."
-            docker compose exec -T backend alembic upgrade head
-
             echo "==> Verificando estado..."
             docker compose ps
 
