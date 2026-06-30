@@ -90,7 +90,7 @@ type ModalTipo =
   | 'mejor'
   | 'cumplimiento'
   | 'acumulado'
-  | 'bajo_meta'
+  | 'reconexiones_corte'
   | 'criticos'
   | 'fallidas'
   | null;
@@ -101,7 +101,7 @@ const TITULOS_MODAL: Record<Exclude<ModalTipo, null>, string> = {
   mejor: 'Detalle de mejor productividad',
   cumplimiento: 'Detalle de cumplimiento',
   acumulado: 'Detalle de cortes acumulados',
-  bajo_meta: 'Días bajo meta',
+  reconexiones_corte: 'Detalle de Reconexión vs. Corte',
   criticos: 'Días críticos',
   fallidas: 'Detalle de fallidas / frustrados',
 };
@@ -134,6 +134,36 @@ function buildCards(
       : data.cumplimientoPct >= 50
       ? '#78350F'
       : '#991B1B';
+
+  let recPct = 0;
+  let recBrecha = 0;
+  let recColor = '#64748B';
+  let recValor = 'N/A';
+  let recSubtitulo = 'Brecha: 0';
+
+  const cortes = resumen ? data.totalCortesAcumulados : data.productividadDiaria;
+  const reconexiones = data.reconexionesEjecutadas;
+
+  if (cortes > 0) {
+    if (reconexiones >= cortes) {
+      recPct = 100;
+      recBrecha = cortes - reconexiones;
+      recColor = '#1E6845';
+    } else {
+      recPct = (reconexiones / cortes) * 100;
+      recBrecha = cortes - reconexiones;
+      
+      if (recPct >= 90) {
+        recColor = '#1E3A5F';
+      } else if (recPct >= 70) {
+        recColor = '#78350F';
+      } else {
+        recColor = '#991B1B';
+      }
+    }
+    recValor = `${formatNumero(recPct)}%`;
+    recSubtitulo = recBrecha === 0 ? 'Cumplimiento exacto' : (recBrecha > 0 ? `Faltan ${recBrecha} rec.` : `Exceden ${Math.abs(recBrecha)} rec.`);
+  }
 
   return [
     {
@@ -172,11 +202,11 @@ function buildCards(
       onClick: () => onOpen('acumulado'),
     },
     {
-      titulo: 'Días bajo meta',
-      valor: `${data.diasBajoMeta}`,
-      subtitulo: 'Resultado menor a la meta',
-      color: '#78350F',
-      onClick: () => onOpen('bajo_meta'),
+      titulo: 'Cumplimiento Reconexión/Corte',
+      valor: recValor,
+      subtitulo: recSubtitulo,
+      color: recColor,
+      onClick: () => onOpen('reconexiones_corte'),
     },
     {
       titulo: 'Días críticos',
@@ -206,7 +236,7 @@ function mapRendimientoToKpi(
       mejorProductividad: resumen.mejor_productividad ?? -1,
       cumplimientoPct: resumen.cumplimiento_diario_pct ?? -1,
       totalCortesAcumulados: resumen.total_cortes_acumulados,
-      diasBajoMeta: resumen.dias_bajo_meta,
+      reconexionesEjecutadas: resumen.reconexiones_acumuladas,
       diasCriticos: resumen.dias_criticos,
       fallidasFrustrados: resumen.fallidas_dia,
     };
@@ -218,7 +248,7 @@ function mapRendimientoToKpi(
     mejorProductividad: r.cortes_productivos,
     cumplimientoPct: r.cumplimiento_pct,
     totalCortesAcumulados: r.cortes_productivos,
-    diasBajoMeta: 0,
+    reconexionesEjecutadas: r.reconexiones,
     diasCriticos: 0,
     fallidasFrustrados: r.visita_fallida,
   };
@@ -238,9 +268,6 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
   const fallidasSinDetalle = kpiData
     ? Math.max(0, kpiData.visita_fallida - totalCausasDetalladas)
     : 0;
-  const diasBajoMeta = resumen?.dias.filter(
-    dia => dia.cortes_productivos < dia.meta_aplicada,
-  ) ?? [];
   const diasCriticos = resumen?.dias.filter(dia => dia.cumplimiento_pct < 50) ?? [];
 
   const modalRow = (label: string, value: React.ReactNode) => (
@@ -329,11 +356,21 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
         </>
       );
     }
-    if (modalTipo === 'bajo_meta') {
+    if (modalTipo === 'reconexiones_corte') {
+      const cortes = resumen ? data.totalCortesAcumulados : data.productividadDiaria;
+      const reconexiones = data.reconexionesEjecutadas;
+      let brecha = cortes - reconexiones;
+      let pctStr = cortes > 0 ? (reconexiones >= cortes ? '100%' : `${formatNumero((reconexiones / cortes) * 100)}%`) : 'N/A';
       return (
         <>
-          {modalRow('Total de días bajo meta', resumen.dias_bajo_meta)}
-          {renderDias(diasBajoMeta, 'No existen días bajo meta en el período.')}
+          {modalRow('Cortes ejecutados', cortes)}
+          {modalRow('Reconexiones ejecutadas', reconexiones)}
+          {modalRow('Cumplimiento', pctStr)}
+          {modalRow('Brecha', brecha > 0 ? `Faltan ${brecha}` : (brecha < 0 ? `Excedente de ${Math.abs(brecha)}` : '0'))}
+          <div className="modal-detail-notice">
+            Se espera una relación 1 a 1 entre cortes y reconexiones. 
+            El porcentaje visible está limitado a un máximo del 100%, pero la brecha muestra el excedente.
+          </div>
         </>
       );
     }

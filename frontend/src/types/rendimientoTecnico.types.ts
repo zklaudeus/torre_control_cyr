@@ -25,7 +25,7 @@ export type RendimientoTecnicoKpiData = {
   mejorProductividad: number;
   cumplimientoPct: number;
   totalCortesAcumulados: number;
-  diasBajoMeta: number;
+  reconexionesEjecutadas: number;
   diasCriticos: number;
   fallidasFrustrados: number;
 };

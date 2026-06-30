@@ -343,6 +343,7 @@ class ProductividadService:
             cumplimiento_acumulado_pct=cumplimiento_acumulado,
             total_cortes_acumulados=total_cortes,
             total_meta_acumulada=total_meta,
+            reconexiones_acumuladas=sum(m["reconexiones"] for _, m in metricas_periodo),
             corte_en_poste_acumulado=sum(m["corte_en_poste"] for _, m in metricas_periodo),
             corte_en_empalme_acumulado=sum(m["corte_en_empalme"] for _, m in metricas_periodo),
             corte_fuera_de_rango_acumulado=sum(m["corte_fuera_de_rango"] for _, m in metricas_periodo),

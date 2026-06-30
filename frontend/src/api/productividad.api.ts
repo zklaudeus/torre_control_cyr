@@ -67,6 +67,7 @@ export interface ResumenKpiTecnicoBackend {
   cumplimiento_acumulado_pct: number | null;
   total_cortes_acumulados: number;
   total_meta_acumulada: number;
+  reconexiones_acumuladas: number;
   corte_en_poste_acumulado: number;
   corte_en_empalme_acumulado: number;
   corte_fuera_de_rango_acumulado: number;

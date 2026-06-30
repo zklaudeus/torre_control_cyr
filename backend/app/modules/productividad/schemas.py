@@ -83,6 +83,7 @@ class ResumenKpiTecnico(BaseModel):
     cumplimiento_acumulado_pct: Optional[Decimal] = None
     total_cortes_acumulados: int = 0
     total_meta_acumulada: int = 0
+    reconexiones_acumuladas: int = 0
     corte_en_poste_acumulado: int = 0
     corte_en_empalme_acumulado: int = 0
     corte_fuera_de_rango_acumulado: int = 0
