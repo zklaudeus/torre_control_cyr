@@ -337,6 +337,7 @@ class ProductividadService:
             productividad_diaria=metrica_dia["cortes_productivos"] if metrica_dia else None,
             meta_diaria=metrica_dia["meta_aplicada"] if metrica_dia else None,
             cumplimiento_diario_pct=metrica_dia["cumplimiento_pct"] if metrica_dia else None,
+            reconexiones_dia=metrica_dia["reconexiones"] if metrica_dia else None,
             productividad_promedio=promedio,
             mejor_productividad=mejor[1]["cortes_productivos"] if mejor else None,
             fecha_mejor_productividad=mejor[0].fecha_operacional if mejor else None,

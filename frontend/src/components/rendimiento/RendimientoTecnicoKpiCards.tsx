@@ -141,10 +141,10 @@ function buildCards(
   let recValor = 'N/A';
   let recSubtitulo = 'Brecha: 0';
 
-  const cortes = resumen ? data.totalCortesAcumulados : data.productividadDiaria;
+  const cortes = data.productividadDiaria;
   const reconexiones = data.reconexionesEjecutadas;
 
-  if (cortes > 0) {
+  if (cortes !== -1 && reconexiones !== -1 && cortes > 0) {
     if (reconexiones >= cortes) {
       recPct = 100;
       recBrecha = cortes - reconexiones;
@@ -163,6 +163,12 @@ function buildCards(
     }
     recValor = `${formatNumero(recPct)}%`;
     recSubtitulo = recBrecha === 0 ? 'Cumplimiento exacto' : (recBrecha > 0 ? `Faltan ${recBrecha} rec.` : `Exceden ${Math.abs(recBrecha)} rec.`);
+  } else if (cortes === 0) {
+    recValor = 'N/A';
+    recSubtitulo = '0 cortes ejecutados';
+  } else if (cortes === -1) {
+    recValor = '—';
+    recSubtitulo = 'Sin datos';
   }
 
   return [
@@ -236,7 +242,7 @@ function mapRendimientoToKpi(
       mejorProductividad: resumen.mejor_productividad ?? -1,
       cumplimientoPct: resumen.cumplimiento_diario_pct ?? -1,
       totalCortesAcumulados: resumen.total_cortes_acumulados,
-      reconexionesEjecutadas: resumen.reconexiones_acumuladas,
+      reconexionesEjecutadas: resumen.reconexiones_dia ?? -1,
       diasCriticos: resumen.dias_criticos,
       fallidasFrustrados: resumen.fallidas_dia,
     };
@@ -357,16 +363,19 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
       );
     }
     if (modalTipo === 'reconexiones_corte') {
-      const cortes = resumen ? data.totalCortesAcumulados : data.productividadDiaria;
+      const cortes = data.productividadDiaria;
       const reconexiones = data.reconexionesEjecutadas;
-      let brecha = cortes - reconexiones;
-      let pctStr = cortes > 0 ? (reconexiones >= cortes ? '100%' : `${formatNumero((reconexiones / cortes) * 100)}%`) : 'N/A';
+      let brecha = cortes !== -1 && reconexiones !== -1 ? cortes - reconexiones : 0;
+      let pctStr = 'N/A';
+      if (cortes !== -1 && reconexiones !== -1 && cortes > 0) {
+        pctStr = reconexiones >= cortes ? '100%' : `${formatNumero((reconexiones / cortes) * 100)}%`;
+      }
       return (
         <>
-          {modalRow('Cortes ejecutados', cortes)}
-          {modalRow('Reconexiones ejecutadas', reconexiones)}
+          {modalRow('Cortes ejecutados (día)', cortes !== -1 ? cortes : '—')}
+          {modalRow('Reconexiones ejecutadas (día)', reconexiones !== -1 ? reconexiones : '—')}
           {modalRow('Cumplimiento', pctStr)}
-          {modalRow('Brecha', brecha > 0 ? `Faltan ${brecha}` : (brecha < 0 ? `Excedente de ${Math.abs(brecha)}` : '0'))}
+          {modalRow('Brecha', cortes !== -1 && reconexiones !== -1 ? (brecha > 0 ? `Faltan ${brecha}` : (brecha < 0 ? `Excedente de ${Math.abs(brecha)}` : '0')) : '—')}
           <div className="modal-detail-notice">
             Se espera una relación 1 a 1 entre cortes y reconexiones. 
             El porcentaje visible está limitado a un máximo del 100%, pero la brecha muestra el excedente.

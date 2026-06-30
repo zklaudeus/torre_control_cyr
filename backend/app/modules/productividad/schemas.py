@@ -77,6 +77,7 @@ class ResumenKpiTecnico(BaseModel):
     productividad_diaria: Optional[int] = None
     meta_diaria: Optional[int] = None
     cumplimiento_diario_pct: Optional[Decimal] = None
+    reconexiones_dia: Optional[int] = None
     productividad_promedio: Optional[Decimal] = None
     mejor_productividad: Optional[int] = None
     fecha_mejor_productividad: Optional[date] = None

@@ -61,6 +61,7 @@ export interface ResumenKpiTecnicoBackend {
   productividad_diaria: number | null;
   meta_diaria: number | null;
   cumplimiento_diario_pct: number | null;
+  reconexiones_dia: number | null;
   productividad_promedio: number | null;
   mejor_productividad: number | null;
   fecha_mejor_productividad: string | null;
