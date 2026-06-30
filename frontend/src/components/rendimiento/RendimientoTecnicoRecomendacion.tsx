@@ -6,8 +6,6 @@ interface Recomendacion {
   id: number;
   codigo_sap: string;
   comentario: string;
-  prioridad: 'ALTA' | 'MEDIA' | 'BAJA';
-  estado_accion: 'PENDIENTE' | 'EN_CURSO' | 'COMPLETADO' | 'CANCELADO';
   usuario_id: number;
   autor_nombre: string | null;
   created_at: string;
@@ -17,19 +15,6 @@ interface Recomendacion {
 interface RendimientoTecnicoRecomendacionProps {
   codigoSap: string | null;
 }
-
-const PRIORIDAD_CONFIG: Record<string, { label: string; color: string; bg: string; border: string }> = {
-  ALTA:  { label: 'Alta',  color: '#DC2626', bg: '#FEE2E2', border: '#FECACA' },
-  MEDIA: { label: 'Media', color: '#D97706', bg: '#FEF3C7', border: '#FDE68A' },
-  BAJA:  { label: 'Baja',  color: '#2563EB', bg: '#DBEAFE', border: '#BFDBFE' },
-};
-
-const ESTADO_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  PENDIENTE:  { label: 'Pendiente',  color: '#6B7280', bg: '#F3F4F6' },
-  EN_CURSO:   { label: 'En Curso',   color: '#D97706', bg: '#FEF3C7' },
-  COMPLETADO: { label: 'Completado', color: '#059669', bg: '#D1FAE5' },
-  CANCELADO:  { label: 'Cancelado',  color: '#9CA3AF', bg: '#F9FAFB' },
-};
 
 function formatFecha(iso: string): string {
   try {
@@ -47,8 +32,12 @@ async function apiRequest<T>(path: string, opts?: { method?: string; body?: unkn
 }
 
 function getErrorMessage(error: unknown): string {
-  const err = error as any;
-  return err?.response?.data?.detail || err?.message || 'Error inesperado';
+  if (typeof error === 'object' && error !== null) {
+    const err = error as { response?: { data?: { detail?: unknown } }; message?: unknown };
+    if (typeof err.response?.data?.detail === 'string') return err.response.data.detail;
+    if (typeof err.message === 'string') return err.message;
+  }
+  return 'Error inesperado';
 }
 
 export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomendacionProps> = ({ codigoSap }) => {
@@ -61,8 +50,6 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
   const [showForm, setShowForm] = useState(false);
   const [editando, setEditando] = useState<Recomendacion | null>(null);
   const [comentario, setComentario] = useState('');
-  const [prioridad, setPrioridad] = useState<'ALTA' | 'MEDIA' | 'BAJA'>('MEDIA');
-  const [estadoAccion, setEstadoAccion] = useState<'PENDIENTE' | 'EN_CURSO' | 'COMPLETADO' | 'CANCELADO'>('PENDIENTE');
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
 
@@ -75,28 +62,27 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
     try {
       const data = await apiRequest<Recomendacion[]>(`/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/recomendaciones`);
       setRecomendaciones(data || []);
-    } catch (e: any) {
+    } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setLoading(false);
     }
   }, [codigoSap]);
 
-  useEffect(() => { cargar(); }, [cargar]);
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => { void cargar(); }, 0);
+    return () => window.clearTimeout(timeoutId);
+  }, [cargar]);
 
   const abrirFormNuevo = () => {
     setEditando(null);
     setComentario('');
-    setPrioridad('MEDIA');
-    setEstadoAccion('PENDIENTE');
     setShowForm(true);
   };
 
   const abrirFormEditar = (r: Recomendacion) => {
     setEditando(r);
     setComentario(r.comentario);
-    setPrioridad(r.prioridad);
-    setEstadoAccion(r.estado_accion);
     setShowForm(true);
   };
 
@@ -109,17 +95,17 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
       if (editando) {
         await apiRequest(`/api/productividad/tecnicos/recomendaciones/${editando.id}`, {
           method: 'PUT',
-          body: { comentario, prioridad, estado_accion: estadoAccion },
+          body: { comentario },
         });
       } else {
         await apiRequest(`/api/productividad/tecnicos/${encodeURIComponent(codigoSap)}/recomendaciones`, {
           method: 'POST',
-          body: { comentario, prioridad, estado_accion: estadoAccion },
+          body: { comentario },
         });
       }
       cerrarForm();
       await cargar();
-    } catch (e: any) {
+    } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setSaving(false);
@@ -132,7 +118,7 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
     try {
       await apiRequest(`/api/productividad/tecnicos/recomendaciones/${id}`, { method: 'DELETE' });
       await cargar();
-    } catch (e: any) {
+    } catch (e) {
       setError(getErrorMessage(e));
     } finally {
       setDeletingId(null);
@@ -145,7 +131,6 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
     color: 'var(--text-main)', fontSize: '13px', fontFamily: 'var(--sans)',
     outline: 'none', boxSizing: 'border-box',
   };
-  const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
   const btnStyle = (variant: 'primary' | 'danger' | 'ghost'): React.CSSProperties => ({
     padding: '6px 14px', borderRadius: '5px', border: 'none',
     fontSize: '12px', fontWeight: 600, cursor: 'pointer', fontFamily: 'var(--sans)',
@@ -184,25 +169,6 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
             placeholder="Escribe la recomendación o comentario..."
             style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
           />
-          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <div style={{ flex: '1 1 140px' }}>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Prioridad</label>
-              <select value={prioridad} onChange={e => setPrioridad(e.target.value as any)} style={selectStyle}>
-                <option value="ALTA">Alta</option>
-                <option value="MEDIA">Media</option>
-                <option value="BAJA">Baja</option>
-              </select>
-            </div>
-            <div style={{ flex: '1 1 160px' }}>
-              <label style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 600, display: 'block', marginBottom: '4px' }}>Estado</label>
-              <select value={estadoAccion} onChange={e => setEstadoAccion(e.target.value as any)} style={selectStyle}>
-                <option value="PENDIENTE">Pendiente</option>
-                <option value="EN_CURSO">En Curso</option>
-                <option value="COMPLETADO">Completado</option>
-                <option value="CANCELADO">Cancelado</option>
-              </select>
-            </div>
-          </div>
           <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
             <button onClick={cerrarForm} style={btnStyle('ghost')}>Cancelar</button>
             <button onClick={guardar} disabled={saving || !comentario.trim()} style={{ ...btnStyle('primary'), opacity: saving || !comentario.trim() ? 0.5 : 1 }}>
@@ -240,34 +206,21 @@ export const RendimientoTecnicoRecomendacion: React.FC<RendimientoTecnicoRecomen
 
       {/* Lista de recomendaciones */}
       {!loading && recomendaciones.map(r => {
-        const pCfg = PRIORIDAD_CONFIG[r.prioridad] || PRIORIDAD_CONFIG.MEDIA;
-        const eCfg = ESTADO_CONFIG[r.estado_accion] || ESTADO_CONFIG.PENDIENTE;
-        const esAutor = String(r.usuario_id) === String((user as any)?.id);
+        const esAutor = String(r.usuario_id) === String(user?.id);
         const puedeEditar = canEdit && (esAutor || user?.rol === 'admin' || user?.rol === 'superadmin' || user?.rol === 'torre_control');
 
         return (
           <div key={r.id} style={{ background: 'var(--bg-panel-sec)', border: '1px solid var(--border)', borderRadius: '8px', padding: '14px 16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-            {/* Badges */}
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '10px', color: pCfg.color, background: pCfg.bg, border: `1px solid ${pCfg.border}` }}>
-                  {pCfg.label}
-                </span>
-                <span style={{ fontSize: '10px', fontWeight: 700, padding: '3px 8px', borderRadius: '10px', color: eCfg.color, background: eCfg.bg }}>
-                  {eCfg.label}
-                </span>
+            {puedeEditar && (
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '6px' }}>
+                <button onClick={() => abrirFormEditar(r)} style={{ ...btnStyle('ghost'), padding: '3px 8px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '4px' }}>
+                  Editar
+                </button>
+                <button onClick={() => eliminar(r.id)} disabled={deletingId === r.id} style={{ ...btnStyle('danger'), padding: '3px 8px', fontSize: '11px', opacity: deletingId === r.id ? 0.5 : 1 }}>
+                  {deletingId === r.id ? '…' : 'Eliminar'}
+                </button>
               </div>
-              {puedeEditar && (
-                <div style={{ display: 'flex', gap: '6px' }}>
-                  <button onClick={() => abrirFormEditar(r)} style={{ ...btnStyle('ghost'), padding: '3px 8px', fontSize: '11px', border: '1px solid var(--border)', borderRadius: '4px' }}>
-                    Editar
-                  </button>
-                  <button onClick={() => eliminar(r.id)} disabled={deletingId === r.id} style={{ ...btnStyle('danger'), padding: '3px 8px', fontSize: '11px', opacity: deletingId === r.id ? 0.5 : 1 }}>
-                    {deletingId === r.id ? '…' : 'Eliminar'}
-                  </button>
-                </div>
-              )}
-            </div>
+            )}
 
             {/* Texto */}
             <p style={{ margin: 0, fontSize: '14px', color: 'var(--text-main)', lineHeight: 1.6, borderLeft: '3px solid var(--secondary)', paddingLeft: '12px' }}>

@@ -3,12 +3,13 @@ import React, { useState } from 'react';
 interface KpiCardProps {
   titulo: string;
   valor: string;
+  detalle?: string;
   subtitulo?: string;
   color?: string;
   onClick?: () => void;
 }
 
-const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'var(--primary)', onClick }) => (
+const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, detalle, subtitulo, color = 'var(--primary)', onClick }) => (
   <div
     style={{
       background: 'var(--bg-panel)',
@@ -62,6 +63,17 @@ const KpiCard: React.FC<KpiCardProps> = ({ titulo, valor, subtitulo, color = 'va
     }}>
       {valor}
     </div>
+    {detalle && (
+      <div style={{
+        fontSize: '13px',
+        fontWeight: 600,
+        color: 'var(--text-main)',
+        fontFamily: 'var(--mono)',
+        fontVariantNumeric: 'tabular-nums',
+      }}>
+        {detalle}
+      </div>
+    )}
     {subtitulo && (
       <div style={{
         fontSize: '12px',
@@ -116,6 +128,10 @@ function formatValor(data: RendimientoTecnicoKpiData, campo: keyof RendimientoTe
   return `${formatNumero(v)}${sufijo}`;
 }
 
+function formatCantidadDiaria(valor: number, unidad: string): string {
+  return valor === -1 ? 'Sin datos' : `${formatNumero(valor)} ${unidad}`;
+}
+
 function formatCausa(causa: string): string {
   const texto = causa.replaceAll('_', ' ').trim();
   return texto ? texto.charAt(0).toUpperCase() + texto.slice(1) : 'Causa no informada';
@@ -135,8 +151,6 @@ function buildCards(
       ? '#78350F'
       : '#991B1B';
 
-  let recPct = 0;
-  let recBrecha = 0;
   let recColor = '#64748B';
   let recValor = 'N/A';
   let recSubtitulo = 'Brecha: 0';
@@ -145,14 +159,12 @@ function buildCards(
   const reconexiones = data.reconexionesEjecutadas;
 
   if (cortes !== -1 && reconexiones !== -1 && cortes > 0) {
+    const recBrecha = cortes - reconexiones;
+    const recPct = reconexiones >= cortes ? 100 : (reconexiones / cortes) * 100;
+
     if (reconexiones >= cortes) {
-      recPct = 100;
-      recBrecha = cortes - reconexiones;
       recColor = '#1E6845';
     } else {
-      recPct = (reconexiones / cortes) * 100;
-      recBrecha = cortes - reconexiones;
-      
       if (recPct >= 90) {
         recColor = '#1E3A5F';
       } else if (recPct >= 70) {
@@ -174,7 +186,8 @@ function buildCards(
   return [
     {
       titulo: 'Productividad diaria',
-      valor: formatValor(data, 'productividadDiaria', ' cortes'),
+      valor: formatCantidadDiaria(data.productividadDiaria, 'cortes'),
+      detalle: formatCantidadDiaria(data.reconexionesEjecutadas, 'reconexiones'),
       subtitulo: formatFecha(resumen?.fecha_hasta, 'Fecha seleccionada'),
       color: 'var(--primary)',
       onClick: () => onOpen('productividad'),
@@ -237,14 +250,14 @@ function mapRendimientoToKpi(
 ): RendimientoTecnicoKpiData | null {
   if (resumen) {
     return {
-      productividadDiaria: resumen.productividad_diaria ?? -1,
+      productividadDiaria: resumen.productividad_diaria ?? r?.cortes_productivos ?? -1,
       productividadPromedio: resumen.productividad_promedio ?? -1,
       mejorProductividad: resumen.mejor_productividad ?? -1,
-      cumplimientoPct: resumen.cumplimiento_diario_pct ?? -1,
+      cumplimientoPct: resumen.cumplimiento_diario_pct ?? r?.cumplimiento_pct ?? -1,
       totalCortesAcumulados: resumen.total_cortes_acumulados,
-      reconexionesEjecutadas: resumen.reconexiones_dia ?? -1,
+      reconexionesEjecutadas: resumen.reconexiones_dia ?? r?.reconexiones ?? -1,
       diasCriticos: resumen.dias_criticos,
-      fallidasFrustrados: resumen.fallidas_dia,
+      fallidasFrustrados: resumen.fallidas_dia ?? r?.visita_fallida ?? 0,
     };
   }
   if (!r) return null;
@@ -304,15 +317,34 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
   const renderModalContent = () => {
     if (!modalTipo) return null;
     if (modalTipo === 'productividad') {
-      if (!kpiData) return <div className="modal-detail-notice">No hay datos para la fecha seleccionada.</div>;
+      if (!data) return <div className="modal-detail-notice">No hay datos para la fecha seleccionada.</div>;
+      const tieneMetricasDiarias =
+        data.productividadDiaria !== -1 ||
+        data.reconexionesEjecutadas !== -1 ||
+        Boolean(kpiData);
+      if (!tieneMetricasDiarias) {
+        return (
+          <div className="modal-detail-notice">
+            No hay registro diario contabilizable para la fecha seleccionada.
+          </div>
+        );
+      }
       return (
         <>
-          {modalRow('Fecha operacional', formatFecha(kpiData.fecha_operacional))}
-          {modalRow('Cortes en poste', kpiData.corte_en_poste)}
-          {modalRow('Cortes en empalme', kpiData.corte_en_empalme)}
-          {modalRow('Cortes fuera de rango', kpiData.corte_fuera_de_rango)}
-          {modalRow('Total cortes productivos', kpiData.cortes_productivos)}
-          {modalRow('Reconexiones', kpiData.reconexiones)}
+          {modalRow('Fecha operacional', formatFecha(kpiData?.fecha_operacional ?? resumen?.fecha_hasta))}
+          {kpiData ? (
+            <>
+              {modalRow('Cortes en poste', kpiData.corte_en_poste)}
+              {modalRow('Cortes en empalme', kpiData.corte_en_empalme)}
+              {modalRow('Cortes fuera de rango', kpiData.corte_fuera_de_rango)}
+            </>
+          ) : (
+            <div className="modal-detail-notice">
+              No hay desglose por tipo de corte para esta fecha; se muestran los totales disponibles.
+            </div>
+          )}
+          {modalRow('Total cortes productivos', data.productividadDiaria !== -1 ? data.productividadDiaria : '—')}
+          {modalRow('Reconexiones', data.reconexionesEjecutadas !== -1 ? data.reconexionesEjecutadas : '—')}
         </>
       );
     }
@@ -368,7 +400,7 @@ export const RendimientoTecnicoKpiCards: React.FC<RendimientoTecnicoKpiCardsProp
       }
       const cortes = data.productividadDiaria;
       const reconexiones = data.reconexionesEjecutadas;
-      let brecha = cortes !== -1 && reconexiones !== -1 ? cortes - reconexiones : 0;
+      const brecha = cortes !== -1 && reconexiones !== -1 ? cortes - reconexiones : 0;
       let pctStr = 'N/A';
       if (cortes !== -1 && reconexiones !== -1 && cortes > 0) {
         pctStr = reconexiones >= cortes ? '100%' : `${formatNumero((reconexiones / cortes) * 100)}%`;
