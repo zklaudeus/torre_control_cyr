@@ -94,7 +94,7 @@ export const ConfiguracionDashboardView = ({
               fontWeight: 'bold',
             }}
           >
-            {saving ? 'Guardando...' : '💾 Guardar Configuración'}
+            {saving ? 'Guardando...' : 'Guardar Configuración'}
           </button>
         </div>
       </header>

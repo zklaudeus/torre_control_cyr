@@ -73,7 +73,6 @@ export const InicioDiaDashboardView = ({
           <div style={{ background: '#FFFFFF', border: '1px solid #E2E8F0', borderRadius: '12px', padding: '24px', boxShadow: '0 4px 6px rgba(0,0,0,0.02), 0 1px 3px rgba(0,0,0,0.05)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#0B7BFF15', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '16px' }}>📋</div>
                 <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: '#0A192F' }}>Resultados de Brigadas Origen</h2>
               </div>
               <div style={{ display: 'flex', gap: '8px' }}>

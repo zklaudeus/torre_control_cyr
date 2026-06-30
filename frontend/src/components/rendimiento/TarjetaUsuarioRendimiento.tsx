@@ -17,22 +17,26 @@ export type TarjetaUsuarioRendimientoProps = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const ESTADO_CONFIG: Record<string, { bg: string; color: string; dot: string }> = {
-  'Crítico':         { bg: '#FEE2E2', color: '#B91C1C', dot: '#EF4444' },
-  'En recuperación': { bg: '#FEF3C7', color: '#92400E', dot: '#F59E0B' },
-  'Estable':         { bg: '#D1FAE5', color: '#065F46', dot: '#10B981' },
-  'Alto desempeño':  { bg: '#DBEAFE', color: '#1E40AF', dot: '#3B82F6' },
-  'Sin evaluación':  { bg: '#F1F5F9', color: '#64748B', dot: '#94A3B8' },
+  'Crítico':         { bg: '#FEE2E2', color: '#991B1B', dot: '#B91C1C' },
+  'En recuperación': { bg: '#FEF9C3', color: '#78350F', dot: '#92400E' },
+  'Estable':         { bg: '#DCFCE7', color: '#1E4D3A', dot: '#1E6845' },
+  'Alto desempeño':  { bg: '#E8EFF7', color: '#1E3A5F', dot: '#2C4A70' },
+  'Sin evaluación':  { bg: '#F1F5F9', color: '#475569', dot: '#64748B' },
 };
 
 const getEstadoStyle = (estado: string) =>
-  ESTADO_CONFIG[estado] ?? { bg: '#F1F5F9', color: '#64748B', dot: '#94A3B8' };
+  ESTADO_CONFIG[estado] ?? { bg: '#F1F5F9', color: '#475569', dot: '#64748B' };
 
-/** Genera un color de fondo para la zona basado en las primeras letras */
+/** Color corporativo de zona — azul pizarra */
+const ZONA_PALETTE = [
+  '#1E3A5F', '#2C4A70', '#1B4B82', '#243B55',
+  '#1A3651', '#2D4B6E', '#1F3C6B', '#26415E',
+];
+
 const zonaColor = (zona: string): string => {
-  const palette = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#EF4444', '#14B8A6'];
   let hash = 0;
   for (let i = 0; i < zona.length; i++) hash = zona.charCodeAt(i) + ((hash << 5) - hash);
-  return palette[Math.abs(hash) % palette.length];
+  return ZONA_PALETTE[Math.abs(hash) % ZONA_PALETTE.length];
 };
 
 const initials = (name: string) =>
@@ -95,7 +99,7 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
         style={{
           width: '72px',
           flexShrink: 0,
-          background: `linear-gradient(160deg, ${zColor}dd, ${zColor}88)`,
+          background: zColor,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
@@ -108,11 +112,11 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
         <div
           style={{
             width: '40px', height: '40px',
-            borderRadius: '50%',
-            background: 'rgba(255,255,255,0.25)',
-            backdropFilter: 'blur(4px)',
+            borderRadius: '4px',
+            background: 'rgba(255,255,255,0.12)',
+            border: '1px solid rgba(255,255,255,0.18)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: '13px', fontWeight: 800, color: '#fff',
+            fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.95)',
             letterSpacing: '0.5px',
           }}
         >
@@ -124,8 +128,8 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
             writingMode: 'vertical-lr',
             transform: 'rotate(180deg)',
             fontSize: '9px',
-            fontWeight: 700,
-            color: 'rgba(255,255,255,0.9)',
+            fontWeight: 600,
+            color: 'rgba(255,255,255,0.7)',
             textTransform: 'uppercase',
             letterSpacing: '1.5px',
             whiteSpace: 'nowrap',
@@ -173,11 +177,11 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
         {/* Fila 2: Datos en grid 2 columnas */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px 12px' }}>
           {[
-            { label: '🪚 Brigada',    value: displayBrigada },
-            { label: '👤 Pareja',     value: displayPareja  },
-            { label: '🚗 Patente',    value: displayPatente },
-            { label: '📅 Fecha',      value: displayFecha   },
-            { label: '👷 Supervisor', value: displaySuperv  },
+            { label: 'Brigada',    value: displayBrigada },
+            { label: 'Pareja',     value: displayPareja  },
+            { label: 'Patente',    value: displayPatente },
+            { label: 'Fecha',      value: displayFecha   },
+            { label: 'Supervisor', value: displaySuperv  },
           ].map(({ label, value }) => (
             <div key={label} style={{ minWidth: 0 }}>
               <div style={{ fontSize: '10px', fontWeight: 600, color: '#94A3B8', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
@@ -193,16 +197,16 @@ export const TarjetaUsuarioRendimiento: React.FC<TarjetaUsuarioRendimientoProps>
         {/* Fila 3: Productividad destacada */}
         <div style={{
           marginTop: 'auto',
-          background: 'linear-gradient(90deg, #EFF6FF, #F0FDF4)',
-          border: '1px solid #BFDBFE',
-          borderRadius: '8px',
+          background: '#F8FAFC',
+          border: '1px solid #E2E8F0',
+          borderRadius: '6px',
           padding: '8px 12px',
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-            📊 Productividad
+            Productividad
           </span>
-          <span style={{ fontSize: '13px', fontWeight: 700, color: '#1D4ED8' }}>
+          <span style={{ fontSize: '13px', fontWeight: 700, color: '#1E3A5F' }}>
             {displayProd}
           </span>
         </div>

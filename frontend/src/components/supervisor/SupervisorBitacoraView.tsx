@@ -1024,7 +1024,7 @@ export const SupervisorBitacoraView = ({
         <div className="table-responsive">
           {rows.length === 0 ? (
             <div style={{ padding: '3rem', textAlign: 'center', color: K.mutedText }}>
-              <div style={{ fontSize: '2rem', opacity: 0.5, marginBottom: '1rem' }}>📋</div>
+              
               Aún no hay brigadas agregadas.
             </div>
           ) : filteredRows.length === 0 ? (

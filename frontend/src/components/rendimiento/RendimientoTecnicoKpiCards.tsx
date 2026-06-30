@@ -128,12 +128,12 @@ function buildCards(
 ) {
   const cumplimientoColor =
     data.cumplimientoPct === -1
-      ? '#6b7280'
+      ? '#64748B'
       : data.cumplimientoPct >= 80
-      ? '#22c55e'
+      ? '#1E6845'
       : data.cumplimientoPct >= 50
-      ? '#f59e0b'
-      : '#ef4444';
+      ? '#78350F'
+      : '#991B1B';
 
   return [
     {
@@ -154,7 +154,7 @@ function buildCards(
       titulo: 'Mejor productividad',
       valor: formatValor(data, 'mejorProductividad', ' cortes'),
       subtitulo: formatFecha(resumen?.fecha_mejor_productividad, 'Sin fecha registrada'),
-      color: '#22c55e',
+      color: '#1E6845',
       onClick: () => onOpen('mejor'),
     },
     {
@@ -168,28 +168,28 @@ function buildCards(
       titulo: 'Total cortes acumulados',
       valor: formatValor(data, 'totalCortesAcumulados'),
       subtitulo: 'Acumulado del mes',
-      color: 'var(--secondary)',
+      color: 'var(--primary)',
       onClick: () => onOpen('acumulado'),
     },
     {
       titulo: 'Días bajo meta',
       valor: `${data.diasBajoMeta}`,
       subtitulo: 'Resultado menor a la meta',
-      color: '#f59e0b',
+      color: '#78350F',
       onClick: () => onOpen('bajo_meta'),
     },
     {
       titulo: 'Días críticos',
       valor: `${data.diasCriticos}`,
       subtitulo: 'Cumplimiento menor a 50%',
-      color: '#ef4444',
+      color: '#991B1B',
       onClick: () => onOpen('criticos'),
     },
     {
       titulo: 'Fallidas / frustrados',
       valor: `${data.fallidasFrustrados}`,
       subtitulo: formatFecha(resumen?.fecha_hasta, 'Fecha seleccionada'),
-      color: '#ef4444',
+      color: '#991B1B',
       onClick: () => onOpen('fallidas'),
     },
   ];

@@ -21,11 +21,7 @@ export const CrearDesdeDiaAnteriorPanel = ({
       boxShadow: '0 1px 3px rgba(0,0,0,0.06)'
     }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '16px' }}>
-        <div style={{
-          width: '32px', height: '32px', borderRadius: '6px',
-          background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '16px'
-        }}>📋</div>
+    
         <h3 style={{ margin: 0, fontSize: '15px', fontWeight: 600, color: '#1E293B' }}>
           Crear brigadas desde día anterior
         </h3>
@@ -78,7 +74,7 @@ export const CrearDesdeDiaAnteriorPanel = ({
             gap: '6px'
           }}
         >
-          {loading ? '⏳ Buscando...' : '🔍 Buscar brigadas origen'}
+          {loading ? ' Buscando...' : ' Buscar brigadas origen'}
         </button>
       </div>
     </div>

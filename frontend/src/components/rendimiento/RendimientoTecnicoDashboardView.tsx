@@ -304,12 +304,12 @@ export const RendimientoTecnicoDashboardView: React.FC<RendimientoTecnicoDashboa
               </div>
               <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                 {[
-                  { value: 'Todos',            label: 'Todos',          activeColor: '#3B82F6', activeBg: '#EFF6FF' },
-                  { value: 'Crítico',          label: 'Crítico',        activeColor: '#DC2626', activeBg: '#FEE2E2' },
-                  { value: 'En recuperación',  label: 'Recuperación',   activeColor: '#D97706', activeBg: '#FEF3C7' },
-                  { value: 'Estable',          label: 'Estable',        activeColor: '#059669', activeBg: '#D1FAE5' },
-                  { value: 'Alto desempeño',   label: 'Alto desempeño', activeColor: '#7C3AED', activeBg: '#EDE9FE' },
-                  { value: 'Sin evaluación',   label: 'Sin eval.',      activeColor: '#64748B', activeBg: '#F1F5F9' },
+                  { value: 'Todos',            label: 'Todos',          activeColor: '#1E3A5F', activeBg: '#E8EFF7' },
+                  { value: 'Crítico',          label: 'Crítico',        activeColor: '#991B1B', activeBg: '#FEE2E2' },
+                  { value: 'En recuperación',  label: 'Recuperación',   activeColor: '#78350F', activeBg: '#FEF9C3' },
+                  { value: 'Estable',          label: 'Estable',        activeColor: '#1E4D3A', activeBg: '#D1FAE5' },
+                  { value: 'Alto desempeño',   label: 'Alto desempeño', activeColor: '#312E81', activeBg: '#EEF2FF' },
+                  { value: 'Sin evaluación',   label: 'Sin eval.',      activeColor: '#374151', activeBg: '#F1F5F9' },
                 ].map(f => (
                   <button
                     key={f.value}

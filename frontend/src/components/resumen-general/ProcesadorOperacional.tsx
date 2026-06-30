@@ -98,7 +98,7 @@ export const ProcesadorOperacional: React.FC<ProcesadorOperacionalProps> = ({
     <div style={containerStyle}>
       <div style={headerStyle}>
         <h3 style={{ margin: 0, fontSize: '1rem', color: '#1E293B' }}>
-          📊 Procesar Resultados Operacionales SAP
+          Procesar Resultados Operacionales SAP
         </h3>
         <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#64748B' }}>
           Sube los Excel operacionales de la jornada para calcular y actualizar automáticamente los resultados de las brigadas.

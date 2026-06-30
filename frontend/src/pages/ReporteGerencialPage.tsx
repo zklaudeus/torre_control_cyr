@@ -249,7 +249,7 @@ export const ReporteGerencialPage = () => {
       <div style={topBarStyle} className="no-print">
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <h1 style={{ margin: 0, fontSize: '18px', fontWeight: 700, color: 'var(--text-main)' }}>
-            📊 Reporte Gerencial CyR
+            Reporte Gerencial CyR
           </h1>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <label style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Fecha:</label>

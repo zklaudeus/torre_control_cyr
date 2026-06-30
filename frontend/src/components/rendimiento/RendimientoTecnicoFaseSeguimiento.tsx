@@ -26,9 +26,9 @@ const Stepper: React.FC<StepperProps> = ({ faseActual }) => (
       const completada = fase.num < faseActual;
       const activa    = fase.num === faseActual;
 
-      const circleColor = completada ? '#22c55e' : activa ? '#f97316' : '#4b5563';
-      const labelColor  = completada ? '#22c55e' : activa ? '#f97316' : '#6b7280';
-      const lineColor   = completada ? '#22c55e' : '#374151';
+      const circleColor = completada ? '#1E6845' : activa ? '#1E3A5F' : '#94A3B8';
+      const labelColor  = completada ? '#1E6845' : activa ? '#1E3A5F' : '#94A3B8';
+      const lineColor   = completada ? '#1E6845' : '#CBD5E1';
 
       return (
         <React.Fragment key={fase.num}>
@@ -39,16 +39,16 @@ const Stepper: React.FC<StepperProps> = ({ faseActual }) => (
               height: '36px',
               borderRadius: '50%',
               border: `2px solid ${circleColor}`,
-              background: activa ? 'rgba(249,115,22,0.12)' : completada ? 'rgba(34,197,94,0.12)' : 'rgba(75,85,99,0.1)',
+              background: activa ? 'rgba(30,58,95,0.08)' : completada ? 'rgba(30,104,69,0.08)' : 'rgba(148,163,184,0.1)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              boxShadow: activa ? '0 0 12px rgba(249,115,22,0.5)' : completada ? '0 0 8px rgba(34,197,94,0.3)' : 'none',
+              boxShadow: 'none',
               transition: 'all 0.2s',
               flexShrink: 0,
             }}>
               {completada ? (
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#22c55e" strokeWidth="2.5">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#1E6845" strokeWidth="2.5">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               ) : (
@@ -119,11 +119,11 @@ interface RendimientoTecnicoFaseSeguimientoProps {
 }
 
 const ESTADO_COLOR_MAP: Record<string, string> = {
-  'SIN_EVALUACION': '#6b7280',
-  'CRITICO': '#ef4444',
-  'RECUPERACION': '#f97316',
-  'ESTABLE': '#60a5fa',
-  'ALTO_DESEMPENO': '#22c55e',
+  'SIN_EVALUACION': '#64748B',
+  'CRITICO':        '#991B1B',
+  'RECUPERACION':   '#92400E',
+  'ESTABLE':        '#1E3A5F',
+  'ALTO_DESEMPENO': '#1E6845',
 };
 
 const ESTADO_LABEL_MAP: Record<string, string> = {
@@ -370,7 +370,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             disabled={registrandoAdvertencia}
             style={{
               padding: '8px 16px',
-              background: registrandoAdvertencia ? '#6b7280' : '#ef4444',
+              background: registrandoAdvertencia ? '#94A3B8' : '#991B1B',
               color: '#fff',
               border: 'none',
               borderRadius: '6px',
@@ -387,7 +387,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
             disabled={cambiandoFase}
             style={{
               padding: '8px 16px',
-              background: cambiandoFase ? '#6b7280' : '#3b82f6',
+              background: cambiandoFase ? '#94A3B8' : '#1E3A5F',
               color: '#fff',
               border: 'none',
               borderRadius: '6px',
@@ -421,7 +421,7 @@ export const RendimientoTecnicoFaseSeguimiento: React.FC<RendimientoTecnicoFaseS
               Registrar advertencia
             </h3>
             <p style={{ margin: '0 0 16px', fontSize: '13px', color: '#64748B' }}>
-              Técnico: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
+              Brigada: <strong>{seguimiento.usuario}</strong> ({codigoSap})<br />
               Nivel actual: <strong>Nivel {fase}</strong> · Advertencias activas: <strong>{seguimiento.advertencias_fase2}/3</strong>
             </p>
 

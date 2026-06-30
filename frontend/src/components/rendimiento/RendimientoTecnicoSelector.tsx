@@ -75,7 +75,7 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
                       <span>•</span>
                       <span>{t.zona}</span>
                       <span>•</span>
-                      <span style={{ fontWeight: 600, color: '#6366F1' }}>{t.tipoBrigada}</span>
+                      <span style={{ fontWeight: 600, color: '#1E3A5F' }}>{t.tipoBrigada}</span>
                     </div>
                   </div>
                   <div style={{
@@ -95,16 +95,18 @@ export const RendimientoTecnicoSelector: React.FC<RendimientoTecnicoSelectorProp
                   <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
                     <span style={{
                       fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
-                      background: t.fase === 3 ? '#FEE2E2' : t.fase === 2 ? '#FEF3C7' : '#F1F5F9',
-                      color: t.fase === 3 ? '#DC2626' : t.fase === 2 ? '#D97706' : '#475569',
+                      background: t.fase === 3 ? 'rgba(153,27,27,0.08)' : t.fase === 2 ? 'rgba(120,53,15,0.08)' : '#F1F5F9',
+                      color: t.fase === 3 ? '#991B1B' : t.fase === 2 ? '#78350F' : '#475569',
                       fontWeight: 600,
+                      border: t.fase === 3 ? '1px solid rgba(153,27,27,0.2)' : t.fase === 2 ? '1px solid rgba(120,53,15,0.2)' : '1px solid #E2E8F0',
                     }}>
                       N{t.fase}
                     </span>
                     {t.advertenciasActivas > 0 && (
                       <span style={{
                         fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
-                        background: '#FEE2E2', color: '#DC2626', fontWeight: 600,
+                        background: 'rgba(153,27,27,0.08)', color: '#991B1B', fontWeight: 600,
+                        border: '1px solid rgba(153,27,27,0.2)',
                       }}>
                         {t.advertenciasActivas} adv.
                       </span>

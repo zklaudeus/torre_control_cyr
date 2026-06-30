@@ -87,7 +87,7 @@ export const DashboardHeader = ({
               cursor: saving ? 'not-allowed' : 'pointer',
             }}
           >
-            {saving ? 'Guardando...' : '💾 Guardar Todo'}
+            {saving ? 'Guardando...' : 'Guardar Todo'}
           </button>
         )}
       </div>

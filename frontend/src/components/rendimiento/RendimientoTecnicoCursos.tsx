@@ -127,7 +127,7 @@ export const RendimientoTecnicoCursos: React.FC<RendimientoTecnicoCursosProps> =
             </span>
           </div>
           <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-muted)', paddingLeft: '11px' }}>
-            Control visual de capacitaciones, cumplimiento y cursos pendientes del técnico.
+            Control visual de capacitaciones, cumplimiento y cursos pendientes de la brigada.
           </p>
         </div>
         <div style={{

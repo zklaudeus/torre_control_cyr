@@ -8,24 +8,29 @@ interface Props {
 }
 
 const PRIORIDAD_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  ALTA: { label: 'Alta', color: '#B91C1C', bg: '#FEE2E2' },
-  MEDIA: { label: 'Media', color: '#92400E', bg: '#FEF3C7' },
-  NORMAL: { label: 'Normal', color: '#065F46', bg: '#D1FAE5' },
+  ALTA: { label: 'Alta', color: '#991B1B', bg: '#FEE2E2' },
+  MEDIA: { label: 'Media', color: '#78350F', bg: '#FEF9C3' },
+  NORMAL: { label: 'Normal', color: '#1E3A5F', bg: '#E8EFF7' },
 };
 
 const ESTADO_COLORS: Record<string, string> = {
-  criticos: '#DC2626',
-  recuperacion: '#D97706',
-  estables: '#2563EB',
-  alto_desempeno: '#059669',
-  sin_evaluacion: '#94A3B8',
+  criticos:      '#B91C1C',
+  recuperacion:  '#92400E',
+  estables:      '#1E3A5F',
+  alto_desempeno:'#065F46',
+  sin_evaluacion:'#475569',
 };
 
+// Paleta corporativa neutra — todos los tonos de azul pizarra
+const ZONA_PALETTE = [
+  '#1E3A5F', '#2C4A70', '#1B4B82', '#243B55',
+  '#1A3651', '#2D4B6E', '#1F3C6B', '#26415E',
+];
+
 const zonaColor = (zona: string): string => {
-  const palette = ['#3B82F6', '#8B5CF6', '#EC4899', '#F59E0B', '#10B981', '#EF4444', '#14B8A6'];
   let hash = 0;
   for (let i = 0; i < zona.length; i++) hash = zona.charCodeAt(i) + ((hash << 5) - hash);
-  return palette[Math.abs(hash) % palette.length];
+  return ZONA_PALETTE[Math.abs(hash) % ZONA_PALETTE.length];
 };
 
 const initials = (name: string) =>
@@ -109,12 +114,12 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
               e.currentTarget.style.boxShadow = '0 1px 3px rgba(0,0,0,0.06)';
             }}
           >
-            {/* ── Franja izquierda: gradiente + iniciales zona ── */}
+            {/* ── Franja izquierda: corporativa azul pizarra ── */}
             <div
               style={{
                 width: '72px',
                 flexShrink: 0,
-                background: `linear-gradient(160deg, ${zColor}dd, ${zColor}88)`,
+                background: zColor,
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
@@ -126,11 +131,11 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
               <div
                 style={{
                   width: '40px', height: '40px',
-                  borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.25)',
-                  backdropFilter: 'blur(4px)',
+                  borderRadius: '4px',
+                  background: 'rgba(255,255,255,0.12)',
+                  border: '1px solid rgba(255,255,255,0.18)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '13px', fontWeight: 800, color: '#fff',
+                  fontSize: '13px', fontWeight: 700, color: 'rgba(255,255,255,0.95)',
                   letterSpacing: '0.5px',
                 }}
               >
@@ -141,8 +146,8 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
                   writingMode: 'vertical-lr',
                   transform: 'rotate(180deg)',
                   fontSize: '9px',
-                  fontWeight: 700,
-                  color: 'rgba(255,255,255,0.9)',
+                  fontWeight: 600,
+                  color: 'rgba(255,255,255,0.7)',
                   textTransform: 'uppercase',
                   letterSpacing: '1.5px',
                   whiteSpace: 'nowrap',
@@ -190,7 +195,7 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
               </div>
 
               {/* Fila 3: Estados */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                 {[
                   { key: 'criticos', label: 'Críticos' },
                   { key: 'recuperacion', label: 'Recuperación' },
@@ -202,10 +207,11 @@ export const RendimientoTecnicoPanelZonas: React.FC<Props> = ({ zonas, loading, 
                   if (value === 0) return null;
                   return (
                     <span key={key} style={{
-                      fontSize: '12px', fontWeight: 600,
+                      fontSize: '11px', fontWeight: 500,
                       color: ESTADO_COLORS[key] || '#475569',
-                      background: `${ESTADO_COLORS[key] || '#F1F5F9'}15`,
-                      padding: '2px 8px', borderRadius: '6px',
+                      background: `${ESTADO_COLORS[key]}12`,
+                      border: `1px solid ${ESTADO_COLORS[key]}25`,
+                      padding: '1px 7px', borderRadius: '4px',
                     }}>
                       {label}: {value}
                     </span>
