@@ -21,6 +21,9 @@ if url:
             print('  No duplicates found')
 " || echo "  (skip cleanup)"
 
+echo "▶ Ejecutando stamp manual por seguridad (si aplica)..."
+python scripts/stamp_migration.py || echo "  (skip stamp)"
+
 echo "▶ Ejecutando migraciones Alembic..."
 alembic upgrade head
 echo "✓ Migraciones aplicadas correctamente"
